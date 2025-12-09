@@ -1,8 +1,8 @@
 # PWA layer for Fasket
 
 ## What was added
-- Enabled `vite-plugin-pwa` with `registerType: autoUpdate`, scope/start URL `/app`, and workbox fallback to `/app/index.html` in `vite.config.ts`.
-- Set Vite `base` and the HTML `<base>` to `./` so the build works both at `https://fasket.shop/app` and inside Capacitor without breaking asset paths.
+- Enabled `vite-plugin-pwa` with `registerType: autoUpdate`, start URL `/app`, scope `/app/`, and workbox fallback to `/app/index.html` in `vite.config.ts`.
+- Set Vite `base` to `/app/` so the build serves correctly from the `/app` sub-path (HTML `<base>` stays relative for Capacitor).
 - Added PWA manifest metadata (name/description/colors) and new icons in `public/icons` plus a `favicon.ico`. Manifest links now point to the generated `manifest.webmanifest`.
 
 ## Build and preview

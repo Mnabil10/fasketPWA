@@ -7,7 +7,7 @@ import { defineConfig } from 'vite'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: './',
+  base: '/app/',
   plugins: [
     react(),
     legacy(),
@@ -28,7 +28,7 @@ export default defineConfig({
         short_name: 'Fasket',
         description: 'Fasket grocery delivery app for Badr City.',
         start_url: '/app',
-        scope: '/app',
+        scope: '/app/',
         display: 'standalone',
         orientation: 'portrait',
         background_color: '#ffffff',

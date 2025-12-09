@@ -1,0 +1,31 @@
+:root {
+  /* Map Ionic variables to Figma brand tokens */
+  --ion-color-primary: #0D6EFD;
+  --ion-color-primary-rgb: 13,110,253;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255,255,255;
+  --ion-color-primary-shade: #0b60db;
+  --ion-color-primary-tint: #2a80fd;
+
+  --ion-color-secondary: #6C757D;
+  --ion-color-secondary-rgb: 108,117,125;
+  --ion-color-secondary-contrast: #ffffff;
+
+  --ion-color-success: #17C964;
+  --ion-color-warning: #F5A524;
+  --ion-color-danger:  #F31260;
+  --ion-color-light:   #F2F4F7;
+  --ion-color-medium:  #98A2B3;
+  --ion-color-dark:    #101828;
+
+  --ion-border-radius: 20px;
+}
+
+ion-card,
+ion-item,
+ion-button,
+ion-input,
+ion-select,
+ion-textarea {
+  border-radius: var(--ion-border-radius);
+}

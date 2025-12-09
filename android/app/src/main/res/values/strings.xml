@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Fasket</string>
+    <string name="title_activity_main">Fasket</string>
+    <string name="package_name">customer.fasket.cloud</string>
+    <string name="custom_url_scheme">customer.fasket.cloud</string>
+</resources>

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "616967267192",
+    "project_id": "fasket-b11e5",
+    "storage_bucket": "fasket-b11e5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:616967267192:android:08474450e4f42e1dc01e8d",
+        "android_client_info": {
+          "package_name": "customer.fasket.cloud"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDINHM0AX-TM-Lv6tU0LDYPQdojBvd_Zd4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

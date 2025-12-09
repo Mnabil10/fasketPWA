@@ -1,0 +1,70 @@
+{
+  "onboarding": {
+    "skip": "Skip",
+    "next": "Next",
+    "getStarted": "Get Started",
+    "slides": [
+      {
+        "title": "Shop Everything You Need",
+        "subtitle": "Discover fresh groceries, pantry essentials, and household items all in one place."
+      },
+      {
+        "title": "Fast Delivery",
+        "subtitle": "Get your groceries delivered to your doorstep in under 30 minutes."
+      },
+      {
+        "title": "Smart Shopping",
+        "subtitle": "AI-powered recommendations and smart lists make shopping effortless."
+      }
+    ]
+  },
+  "auth": {
+    "welcomeBack": "Welcome Back",
+    "signInSubtitle": "Sign in to continue shopping",
+    "createAccount": "Create Account",
+    "fullName": "Full Name",
+    "phone": "Phone Number",
+    "password": "Password",
+    "signIn": "Sign In",
+    "signUp": "Create Account",
+    "haveAccount": "Already have an account?",
+    "noAccount": "Don't have an account?",
+    "forgotPassword": "Forgot Password?"
+  },
+  "tabs": { "home": "Home", "categories": "Categories", "cart": "Cart", "orders": "Orders", "account": "Account" },
+  "home": {
+    "hiName": "Hi, {{name}}!",
+    "prompt": "What do you need today?",
+    "shopByCategory": "Shop by Category",
+    "popularItems": "Popular Items"
+  },
+  "categories": { "title": "Categories", "all": "All Categories", "popular": "Popular", "trending": "Trending" },
+  "products": { "add": "Add", "outOfStock": "Out of Stock", "items": "items" },
+  "cart": {
+    "title": "Shopping Cart",
+    "empty": "Your cart is empty",
+    "emptyHint": "Add some items to your cart to continue shopping",
+    "startShopping": "Start Shopping",
+    "subtotal": "Subtotal",
+    "deliveryFee": "Delivery Fee",
+    "total": "Total",
+    "checkout": "Proceed to Checkout"
+  },
+  "checkout": {
+    "title": "Checkout",
+    "deliveryAddress": "Delivery Address",
+    "addNew": "+ Add New",
+    "deliveryOptions": "Delivery Options",
+    "standardDelivery": "Standard Delivery",
+    "expressDelivery": "Express Delivery",
+    "placeOrder": "Place Order • {{total}}",
+    "notes": "Delivery Notes",
+    "paymentMethod": "Payment Method",
+    "cod": "Cash on Delivery",
+    "card": "Credit/Debit Card",
+    "wallet": "Digital Wallet"
+  },
+  "orderSuccess": { "title": "Order Placed Successfully!", "track": "Track Your Order" },
+  "settings": { "title": "Settings", "language": "Language" }
+}
+

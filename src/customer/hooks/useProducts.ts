@@ -1,0 +1,112 @@
+import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
+import { bestSelling, hotOffers, listProducts } from "../../services/catalog";
+import type { Product } from "../../types/api";
+import type { CachedResult } from "../../lib/offlineCache";
+
+type ProductQueryKind = "all" | "best-selling" | "hot-offers";
+
+export type UseProductsParams = {
+  search?: string;
+  categoryId?: string | null;
+  categorySlug?: string | null;
+  minPrice?: number;
+  maxPrice?: number;
+  orderBy?: "createdAt" | "priceCents" | "name";
+  sort?: "asc" | "desc";
+  page?: number;
+  pageSize?: number;
+  limit?: number;
+  type?: ProductQueryKind;
+  enabled?: boolean;
+};
+
+type ProductsQueryKey = [
+  "products",
+  ProductQueryKind,
+  {
+    lang: string;
+    search?: string;
+    categoryId?: string | null;
+    categorySlug?: string | null;
+    minPrice?: number;
+    maxPrice?: number;
+    orderBy?: "createdAt" | "priceCents" | "name";
+    sort?: "asc" | "desc";
+    page?: number;
+    pageSize?: number;
+    limit?: number;
+  }
+];
+
+type UseProductsOptions<TData = CachedResult<Product[]>> = Omit<
+  UseQueryOptions<CachedResult<Product[]>, Error, TData, ProductsQueryKey>,
+  "queryKey" | "queryFn"
+>;
+
+export function useProducts<TData = CachedResult<Product[]>>(
+  params?: UseProductsParams,
+  options?: UseProductsOptions<TData>
+) {
+  const { i18n } = useTranslation();
+  const lang = i18n.language?.startsWith("ar") ? "ar" : "en";
+  const type: ProductQueryKind = params?.type ?? "all";
+  const search = params?.search?.trim() || undefined;
+  const categoryId = params?.categoryId || undefined;
+  const categorySlug = params?.categorySlug || undefined;
+  const minPrice = params?.minPrice;
+  const maxPrice = params?.maxPrice;
+  const orderBy = params?.orderBy;
+  const sort = params?.sort;
+  const page = params?.page;
+  const pageSize = params?.pageSize;
+  const limit = params?.limit;
+  const enabled = params?.enabled ?? true;
+
+  return useQuery({
+    queryKey: [
+      "products",
+      type,
+      {
+        lang,
+        search,
+        categoryId,
+        categorySlug,
+        minPrice,
+        maxPrice,
+        orderBy,
+        sort,
+        page,
+        pageSize,
+        limit,
+      },
+    ],
+    queryFn: () => {
+      if (type === "best-selling") {
+        return bestSelling({ pageSize: limit ?? pageSize ?? 10, lang });
+      }
+      if (type === "hot-offers") {
+        return hotOffers({ pageSize: limit ?? pageSize ?? 10, lang });
+      }
+      return listProducts({
+        q: search,
+        categoryId,
+        categorySlug,
+        min: minPrice,
+        max: maxPrice,
+        orderBy,
+        sort,
+        page,
+        pageSize: pageSize ?? limit,
+        lang,
+      });
+    },
+    enabled,
+    staleTime: type === "all" ? 30 * 1000 : 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    placeholderData: (prev) => prev,
+    networkMode: "offlineFirst",
+    retry: 1,
+    ...options,
+  });
+}

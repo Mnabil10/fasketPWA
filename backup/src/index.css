@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ion-font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+}
+html, body, #root { height: 100%; background: #fff; }
+
+/* ⬅️ عرفنا bg-muted و text-muted-foreground يدويًا */
+@layer utilities {
+  .bg-muted { background-color: #F2F4F7; }
+  .text-muted-foreground { color: #667085; }
+  .shadow-card { box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+}
+
+@layer components {
+  .card { @apply rounded-2xl shadow-card bg-white; }
+  .btn  { @apply inline-flex items-center justify-center rounded-2xl px-4 py-2 font-medium transition; }
+  .btn-primary { @apply bg-primary text-primary-foreground hover:opacity-90; }
+  .btn-muted   { @apply bg-muted text-muted-foreground hover:opacity-90; }
+}

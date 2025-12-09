@@ -1,0 +1,61 @@
+{
+  "onboarding": {
+    "skip": "تخطي",
+    "next": "التالي",
+    "getStarted": "ابدأ الآن",
+    "slides": [
+      { "title": "تسوّق كل ما تحتاج", "subtitle": "اكتشف المنتجات الطازجة والمواد الأساسية للمنزل في مكان واحد." },
+      { "title": "توصيل سريع", "subtitle": "نوصّل مشترياتك إلى باب بيتك خلال أقل من 30 دقيقة." },
+      { "title": "تسوق ذكي", "subtitle": "توصيات مدعومة بالذكاء وتشكيل قوائم ذكية لتسوق أسهل." }
+    ]
+  },
+  "auth": {
+    "welcomeBack": "مرحباً بعودتك",
+    "signInSubtitle": "سجّل الدخول لمتابعة التسوق",
+    "createAccount": "إنشاء حساب",
+    "fullName": "الاسم الكامل",
+    "phone": "رقم الهاتف",
+    "password": "كلمة المرور",
+    "signIn": "تسجيل الدخول",
+    "signUp": "إنشاء الحساب",
+    "haveAccount": "لديك حساب بالفعل؟",
+    "noAccount": "ليس لديك حساب؟",
+    "forgotPassword": "نسيت كلمة المرور؟"
+  },
+  "tabs": { "home": "الرئيسية", "categories": "التصنيفات", "cart": "السلة", "orders": "الطلبات", "account": "حسابي" },
+  "home": {
+    "hiName": "مرحباً، {{name}}!",
+    "prompt": "ماذا تحتاج اليوم؟",
+    "shopByCategory": "تسوّق حسب التصنيف",
+    "popularItems": "الأصناف الشائعة"
+  },
+  "categories": { "title": "التصنيفات", "all": "كل التصنيفات", "popular": "الأكثر شيوعاً", "trending": "الرائج" },
+  "products": { "add": "إضافة", "outOfStock": "غير متوفر", "items": "عنصر" },
+  "cart": {
+    "title": "سلة التسوق",
+    "empty": "سلتك فارغة",
+    "emptyHint": "أضف بعض المنتجات للمتابعة",
+    "startShopping": "ابدأ التسوق",
+    "subtotal": "الإجمالي الفرعي",
+    "deliveryFee": "رسوم التوصيل",
+    "total": "الإجمالي",
+    "checkout": "إتمام الشراء"
+  },
+  "checkout": {
+    "title": "الدفع",
+    "deliveryAddress": "عنوان التوصيل",
+    "addNew": "+ إضافة جديد",
+    "deliveryOptions": "خيارات التوصيل",
+    "standardDelivery": "توصيل عادي",
+    "expressDelivery": "توصيل سريع",
+    "placeOrder": "تنفيذ الطلب • {{total}}",
+    "notes": "ملاحظات التوصيل",
+    "paymentMethod": "طريقة الدفع",
+    "cod": "الدفع عند الاستلام",
+    "card": "بطاقة ائتمانية/خصم",
+    "wallet": "محفظة رقمية"
+  },
+  "orderSuccess": { "title": "تم تنفيذ الطلب بنجاح!", "track": "تتبع طلبك" },
+  "settings": { "title": "الإعدادات", "language": "اللغة" }
+}
+

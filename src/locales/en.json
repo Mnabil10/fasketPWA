@@ -1,0 +1,620 @@
+{
+  "common": {
+    "appName": "Fasket",
+    "loading": "Loading...",
+    "searchPlaceholder": "Search groceries, brands or categories",
+    "viewAll": "View all",
+    "subtotal": "Subtotal",
+    "total": "Total",
+    "delivery": "Delivery",
+    "discount": "Discount",
+    "quantity": "Quantity",
+    "itemsCount": "{{count}} items",
+    "emptyStateTitle": "Nothing here yet",
+    "emptyStateSubtitle": "Add some products to continue shopping.",
+    "errorGeneric": "Something went wrong. Please try again.",
+    "retry": "Retry",
+    "back": "Back"
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "network": "Unable to reach the server. Check your internet connection and try again.",
+    "timeout": "The connection is too slow. Please check your internet and try again.",
+    "authInvalidCredentials": "Invalid email/phone or password.",
+    "authAccountDisabled": "Your account has been disabled. Please contact support.",
+    "addressInvalidZone": "The selected delivery area is not available.",
+    "addressZoneInactive": "This delivery area is not available right now.",
+    "addressZoneRequired": "Please choose a delivery area.",
+    "cartEmpty": "Your cart is empty. Add items to continue.",
+    "cartProductUnavailable": "One or more items are unavailable.",
+    "checkoutAddressRequired": "Select an address so we can calculate shipping.",
+    "loyaltyNotEnoughPoints": "You don't have enough points to redeem this amount.",
+    "loyaltyDisabled": "Loyalty points are currently unavailable.",
+    "loyaltyRuleViolation": "This amount of points can't be redeemed for this order.",
+    "orderNotFound": "We couldn't find this order.",
+    "orderInvalidState": "This order can't be updated right now.",
+    "couponInvalid": "This coupon code isn't valid.",
+    "couponExpired": "This coupon has expired."
+  },
+  "nav": {
+    "home": "Home",
+    "categories": "Categories",
+    "cart": "Cart",
+    "orders": "Orders",
+    "profile": "Account"
+  },
+  "offline": {
+    "banner": "You are offline - showing cached data if available.",
+    "message": "You are offline. Changes will be synced when you reconnect."
+  },
+  "splash": {
+    "title": "Fasket",
+    "subtitle": "Shop everything you need, faster."
+  },
+  "onboarding": {
+    "skip": "Skip",
+    "next": "Next",
+    "getStarted": "Get Started",
+    "slides": [
+      {
+        "title": "Serving all of Badr City",
+        "subtitle": "Groceries, essentials, and daily needs delivered across every neighborhood."
+      },
+      {
+        "title": "Fast delivery you can track",
+        "subtitle": "Track your driver and get your order as soon as possible."
+      },
+      {
+        "title": "Daily offers & loyalty points",
+        "subtitle": "Unlock offers every day, earn points on every order, and save more over time."
+      }
+    ]
+  },
+  "auth": {
+    "welcomeBack": "Welcome Back",
+    "signInSubtitle": "Sign in to continue shopping",
+    "registerTitle": "Create Account",
+    "registerSubtitle": "Join Fasket and start shopping",
+    "fullName": "Full Name",
+    "email": "Email (optional)",
+    "phone": "Phone Number",
+    "phoneHint": "Enter your phone in +20 format.",
+    "identifierLabel": "Email or phone",
+    "identifierPlaceholder": "Email or phone number",
+    "identifierRequired": "Please enter your email or phone number.",
+    "phoneInvalid": "Enter a valid phone number.",
+    "password": "Password",
+    "passwordHint": "Use at least 8 characters with letters and numbers.",
+    "passwordMinLength": "Password must be at least 8 characters and contain letters and numbers.",
+    "signIn": "Sign In",
+    "signUp": "Create Account",
+    "haveAccount": "Already have an account?",
+    "noAccount": "Don't have an account?",
+    "forgotPassword": "Forgot Password?",
+    "resetDialogTitle": "Reset Password",
+    "resetDialogDescription": "Enter your phone number to receive a reset code.",
+    "resetDialogSubmit": "Send Reset Code",
+    "nameRequired": "Full name is required.",
+    "errorLogin": "Failed to sign in. Please check your details.",
+    "errorRegister": "Failed to create your account. Please try again.",
+    "sessionExpired": "Session expired, please log in again."
+  },
+  "home": {
+    "greeting": "Hi, {{name}}!",
+    "greetingGuest": "Welcome to Fasket",
+    "prompt": "What do you need today?",
+    "searchPlaceholder": "Search fresh fruits, snacks, and essentials",
+    "subtitlePremium": "Your premium online supermarket in Badr City.",
+    "deliveryEta": "30-45 min delivery",
+    "coveragePromise": "We cover all of Badr City",
+    "qualityPromise": "Handpicked quality products",
+    "notifications": "Notifications",
+    "sections": {
+      "categories": "Shop by category",
+      "bestSelling": "Popular this week",
+      "hotOffers": "Hot offers",
+      "searchResults": "Search results",
+      "curated": "Curated for you"
+    },
+    "categoryHeadline": "Shop by category",
+    "categoryCta": "View items",
+    "filters": {
+      "inStock": "In stock"
+    },
+    "promotions": [
+      {
+        "title": "Fresh deals every day",
+        "subtitle": "Up to 30% off selected items"
+      },
+      {
+        "title": "Express delivery",
+        "subtitle": "Get your groceries in less than 30 minutes"
+      }
+    ],
+    "promotionsCta": "Shop now",
+    "emptySearchTitle": "No products found",
+    "emptySearchSubtitle": "Try searching for another keyword.",
+    "searchError": "Search failed",
+    "loyaltyWidget": {
+      "title": "Your points",
+      "subtitle": "Earn points with every order and redeem them at checkout.",
+      "cta": "Redeem now"
+    }
+  },
+  "categories": {
+    "title": "Categories",
+    "searchPlaceholder": "Search categories…",
+    "pullToRefresh": "Pull to refresh categories",
+    "filters": {
+      "all": "All",
+      "popular": "Popular",
+      "trending": "Trending"
+    },
+    "featuredTitle": "Featured today",
+    "browseTitle": "Browse categories",
+    "countLabel": "{{count}} categories",
+    "emptyTitle": "No categories found",
+    "emptySubtitle": "Try searching with different keywords.",
+    "errorLoading": "Failed to load categories.",
+    "errorOffers": "Failed to load featured offers."
+  },
+  "products": {
+    "title": "Products",
+    "searchPlaceholder": "Search products…",
+    "pullToRefresh": "Pull to refresh products",
+    "featuredBadge": "Featured",
+    "filterButton": "Filter",
+    "filterTitle": "Filters",
+    "sort": {
+      "label": "Sort by",
+      "popularity": "Most popular",
+      "priceLow": "Price: Low to High",
+      "priceHigh": "Price: High to Low",
+      "rating": "Highest rated",
+      "name": "Name A-Z",
+      "desc": "High to Low",
+      "asc": "Low to High"
+    },
+    "view": {
+      "grid": "Grid",
+      "list": "List"
+    },
+    "badges": {
+      "inStock": "In stock",
+      "outOfStock": "Out of stock"
+    },
+    "filters": {
+      "inStock": "In stock",
+      "onSale": "On sale"
+    },
+    "emptyTitle": "No products found",
+    "emptySubtitle": "Try searching with different keywords.",
+    "loading": "Loading products…",
+    "error": "Failed to load products.",
+    "itemsCount": "{{count}} items",
+    "buttons": {
+      "add": "Add to cart",
+      "added": "Added to cart",
+      "adding": "Adding..."
+    },
+    "backToCategories": "Back to categories",
+    "recentSearches": "Recent searches",
+    "clearHistory": "Clear",
+    "add": "Add to cart",
+    "outOfStock": "Out of stock"
+  },
+  "product": {
+    "description": "Description",
+    "nutrition": "Nutrition facts",
+    "deliveryInfo": "Delivery information",
+    "quantity": "Quantity",
+    "related": "You might also like",
+    "addToCart": "Add to Cart ({{price}})",
+    "messages": {
+      "notFound": "Product not found"
+    },
+    "title": "Product",
+    "similar": "Similar products",
+    "rating": "{{count}} rating",
+    "descriptionFallback": "No description available yet.",
+    "cta": "Add to Cart ({{total}})",
+    "stock": {
+      "in": "In stock",
+      "low": "Low stock ({{count}} left)",
+      "out": "Out of stock"
+    }
+  },
+  "cart": {
+    "title": "Shopping Cart",
+    "emptyTitle": "Your cart is empty",
+    "emptySubtitle": "Add some items to continue shopping.",
+    "startShopping": "Start Shopping",
+    "summaryNote": "Delivery fee & discounts are applied at checkout.",
+    "checkout": "Proceed to Checkout",
+    "loading": "Loading your cart…",
+    "clear": "Clear cart",
+    "loadError": "We couldn't load your cart. Please try again.",
+    "imageUnavailable": "Image unavailable",
+    "localSummaryNote": "These items are saved on this device only.",
+    "loginToCheckout": "Log in to complete your order and sync your cart.",
+    "offlineCheckout": "You are offline. Connect to the internet to place your order.",
+    "remove": "Remove item",
+    "saveAndLogin": "Save cart & log in",
+    "subtotalLabel": "Subtotal",
+    "syncing": "Syncing your cart...",
+    "updateError": "We couldn't update your cart. Please try again.",
+    "addressError": "Couldn't load your addresses. Please try again.",
+    "addressWarning": "Add a delivery address to calculate fees.",
+    "couponLabel": "Coupon",
+    "loyaltyLabel": "Loyalty",
+    "manageAddresses": "Manage addresses",
+    "shippingLabel": "Delivery fee",
+    "etaLabel": "Estimated delivery time",
+    "summaryEtaFallback": "Delivery time will be confirmed at checkout.",
+    "totalLabel": "Total"
+  },
+  "checkout": {
+    "title": "Checkout",
+    "subtitle": "Review your order",
+    "stepsLabel": "Cart > Address > Summary > Confirm",
+    "steps": {
+      "cart": "Cart",
+      "address": "Address",
+      "summary": "Summary",
+      "confirm": "Confirm"
+    },
+    "sections": {
+      "items": "Items",
+      "address": "Delivery address",
+      "summary": "Order summary",
+      "addresses": "Delivery address",
+      "cart": "Order summary",
+      "notes": "Delivery notes",
+      "payment": "Payment method"
+    },
+    "summary": {
+      "subtotal": "Subtotal",
+      "delivery": "Delivery fee",
+      "eta": "Estimated time",
+      "total": "Total",
+      "etaValue": "Estimated delivery: {{value}}",
+      "minutes": "min",
+      "discount": "Discount",
+      "etaUnknown": "Estimated time is not available.",
+      "freeDelivery": "Free delivery"
+    },
+    "trust": {
+      "title": "We deliver anywhere inside Badr City",
+      "support": "Support available on WhatsApp for updates."
+    },
+    "actions": {
+      "placeOrder": "Place order",
+      "placing": "Placing your order..."
+    },
+    "notes": {
+      "placeholder": "Add extra notes for your order (optional)"
+    },
+    "buttons": {
+      "addAddress": "+ Add new",
+      "placeOrder": "Place Order • {{total}}"
+    },
+    "notesPlaceholder": "Leave delivery instructions (optional)",
+    "paymentMethods": {
+      "cod": "Cash on delivery",
+      "codDesc": "Pay when your order arrives",
+      "card": "Card",
+      "cardDesc": "Visa / Mastercard"
+    },
+    "messages": {
+      "missingAddress": "Please select an address to continue.",
+      "processing": "Please wait while we place your order.",
+      "emptyCart": "Your cart is empty.",
+      "loadError": "We couldn't load your checkout details. Please try again.",
+      "missingCart": "No valid cart found for checkout.",
+      "offline": "You are offline. Connect to the internet to place your order.",
+      "submitError": "Something went wrong while creating your order. Please try again.",
+      "missingZone": "Please select a delivery zone."
+    },
+    "address": {
+      "subtitle": "Create an address to place your order.",
+      "empty": "No saved addresses yet. Add one to continue.",
+      "add": "Add address",
+      "defaultName": "Address",
+      "noCity": "City is required.",
+      "selected": "Delivery address selected."
+    },
+    "payment": {
+      "cod": "Cash on delivery",
+      "card": "Card",
+      "codOnly": "Cash on delivery only",
+      "codOnlyDesc": "Currently we only support cash on delivery."
+    },
+    "coupon": {
+      "applied": "Coupon applied successfully.",
+      "appliedLabel": "Discount coupon applied.",
+      "apply": "Apply",
+      "applying": "Applying coupon...",
+      "error": "Invalid or expired coupon.",
+      "placeholder": "Enter coupon code",
+      "required": "Please enter a coupon code.",
+      "title": "Discount coupon"
+    },
+    "item": {
+      "unknown": "Unknown item"
+    },
+    "loyalty": {
+      "title": "Redeem points",
+      "useMax": "Use max",
+      "pointsLabel": "Points to redeem",
+      "balance": "Available balance: {{balance}}",
+      "preview": "You'll save {{amount}}",
+      "summaryLabel": "Loyalty discount"
+    }
+  },
+  "orders": {
+    "title": "My Orders",
+    "loading": "Loading orders...",
+    "empty": "You have no orders yet.",
+    "status": {
+      "pending": "Pending",
+      "confirmed": "Confirmed",
+      "delivering": "Out for delivery",
+      "completed": "Completed",
+      "processing": "Processing",
+      "shipped": "Shipped",
+      "delivered": "Delivered",
+      "canceled": "Canceled",
+      "failed": "Failed"
+    },
+    "count": "{{count}} orders",
+    "dateFormat": "DD MMM YYYY · HH:mm",
+    "totalLabel": "{{amount}}",
+    "emptyCta": "Browse products to place your first order.",
+    "startShopping": "Start shopping",
+    "error": "Failed to load orders.",
+    "errorInvalidPayload": "The orders data from the server is not in the expected format."
+  },
+  "orderDetail": {
+    "title": "Order Details",
+    "address": "Delivery address",
+    "payment": "Payment",
+    "items": "Items",
+    "summary": "Summary",
+    "createdAt": "Placed on {{date}}",
+    "messages": {
+      "loading": "Loading order…",
+      "notFound": "Order not found.",
+      "missing": "We could not find this order."
+    },
+    "addressMissing": "No address provided",
+    "orderId": "Order ID",
+    "paymentMethod": "Payment",
+    "quantity": "Qty: {{count}}",
+    "deliveryZone": "Delivery zone",
+    "driver": "Driver",
+    "loyaltyDiscount": "Loyalty discount",
+    "pointsEarned": "Points earned",
+    "pointsRedeemed": "Points used",
+    "helpTitle": "Need help with this order?",
+    "helpSubtitle": "Message us on WhatsApp and we’ll assist quickly.",
+    "helpButton": "Contact via WhatsApp",
+    "helpMessage": "Hi, I need help with my Fasket order #{{id}}"
+  },
+  "orderSuccess": {
+    "title": "Order placed successfully!",
+    "subtitle": "Thank you for choosing Fasket.",
+    "estimated": "Estimated delivery",
+    "address": "Delivery address",
+    "total": "Total",
+    "buttons": {
+      "track": "Track your order",
+      "continue": "Continue shopping",
+      "call": "Visit website"
+    },
+    "specialOfferTitle": "Special offer",
+    "specialOfferSubtitle": "Get 20% off your next order when you rate your delivery.",
+    "recommendationsTitle": "You might also like",
+    "ratingLabel": "Rate your experience",
+    "etaFallback": "Preparing your order",
+    "addressMissing": "No address provided"
+  },
+  "about": {
+    "title": "About Fasket",
+    "subtitle": "Groceries in Badr City",
+    "tagline": "Trusted local delivery",
+    "description": "We cover all neighborhoods of Badr City with fast delivery, daily offers, loyalty points, and tracked orders.",
+    "serviceAreaLabel": "Service area",
+    "serviceArea": "We cover all of Badr City, Cairo",
+    "workingHoursLabel": "Working hours",
+    "coverageLabel": "City coverage",
+    "whoWeAre": "Who we are",
+    "features": [
+      "Coverage across all districts of Badr City, Cairo",
+      "Fast delivery with live status updates",
+      "Daily offers and bundle-friendly prices",
+      "Loyalty points on every order and easy reorders"
+    ],
+    "contact": "Contact & Support",
+    "phone": "Phone",
+    "email": "Email",
+    "website": "Website",
+    "whatsapp": "WhatsApp",
+    "visitWebsite": "Visit Website",
+    "openWebApp": "Open Web App (PWA)",
+    "contactWhatsapp": "Contact via WhatsApp",
+    "contactEmail": "Contact via Email",
+    "emailSubject": "Support request from Fasket app",
+    "shareTitle": "Share Fasket",
+    "shareSubtitle": "Invite friends to shop via the web app or mobile.",
+    "shareButton": "Share / Invite a friend",
+    "rateApp": "Rate the app",
+    "landingCta": "Open landing page",
+    "whatsappMessage": "Hi, I'd like to ask about an order from Fasket."
+  },
+  "share": {
+    "title": "Fasket - Grocery Delivery in Badr",
+    "text": "Download Fasket and order your groceries in Badr City:",
+    "copied": "Link copied to clipboard"
+  },
+  "profile": {
+    "title": "Profile",
+    "guest": "Guest",
+    "memberSince": "Member since {{date}}",
+    "tier": "Premium member",
+    "sectionAccount": "Account",
+    "sectionSettings": "Settings",
+    "noPhone": "No phone number",
+    "noEmail": "No email",
+    "editProfile": "Edit Profile",
+    "stats": {
+      "orders": "Orders",
+      "points": "Points",
+      "addresses": "Addresses",
+      "totalSpent": "Total spent"
+    },
+    "menu": {
+      "addresses": "My Addresses",
+      "orders": "Order History",
+      "payments": "Payment Methods",
+      "favorites": "Favorites",
+      "rewards": "Rewards & Offers"
+    },
+    "badges": {
+      "new": "New"
+    },
+    "settings": {
+      "notifications": "Push Notifications",
+      "emails": "Promotional Emails",
+      "language": "Language",
+      "preferences": "App Preferences",
+      "help": "Help & Support",
+      "account": "Account Settings",
+      "orderUpdates": "Order updates",
+      "orderUpdatesHint": "Push notifications about your orders.",
+      "loyaltyUpdates": "Loyalty updates",
+      "loyaltyUpdatesHint": "Alerts when you earn or redeem points.",
+      "marketing": "Offers & marketing",
+      "marketingHint": "Deals, tips, and personalized recommendations."
+    },
+    "support": {
+      "title": "About & Support",
+      "about": "About Fasket",
+      "website": "Visit website",
+      "rate": "Rate the app",
+      "rateSoon": "App store link coming soon",
+      "whatsapp": "Contact via WhatsApp",
+      "whatsappMessage": "Hi, I’d like to ask about an order from Fasket.",
+      "email": "Support email",
+      "emailSubject": "Support request from Fasket app",
+      "share": "Share Fasket / Invite a friend",
+      "phone": "Call support"
+    },
+    "appVersion": "App Version",
+    "logout": "Sign Out",
+    "saved": "Profile updated",
+    "errorSave": "Failed to update profile",
+    "passwordChanged": "Password updated",
+    "errorPassword": "Failed to update password",
+    "saveProfile": "Save profile",
+    "changePassword": "Change password",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm password",
+    "savePassword": "Save password",
+    "validation": {
+      "name": "Name is required",
+      "phone": "Phone is required",
+      "currentPassword": "Current password is required",
+      "newPassword": "New password is required",
+      "confirmPassword": "Passwords do not match"
+    },
+    "loyalty": {
+      "balanceLabel": "Points balance",
+      "rate": "Earn {{earn}} pts per currency, redeem with {{redeem}} pts per currency.",
+      "viewHistory": "View history"
+    }
+  },
+  "addresses": {
+    "title": "My Addresses",
+    "loading": "Loading addresses…",
+    "empty": "No addresses yet",
+    "form": {
+      "label": "Label",
+      "city": "City",
+      "zone": "Zone",
+      "zonePlaceholder": "Select delivery area",
+      "street": "Street",
+      "building": "Building",
+      "apartment": "Apartment",
+      "lat": "Latitude",
+      "lng": "Longitude",
+      "labelPlaceholder": "Home / Work / Other"
+    },
+    "buttons": {
+      "add": "Add Address",
+      "edit": "Edit",
+      "delete": "Delete",
+      "cancel": "Cancel",
+      "save": "Save",
+      "deleting": "Deleting…",
+      "saving": "Saving…",
+      "create": "Create Address"
+    },
+    "dialogs": {
+      "addTitle": "Add new address",
+      "editTitle": "Edit address"
+    },
+    "count": "{{count}} addresses",
+    "emptySubtitle": "Add your delivery location to continue.",
+    "validation": {
+      "label": "Label is required",
+      "city": "City is required",
+      "zone": "Delivery zone is required",
+      "street": "Street is required"
+    },
+    "success": {
+      "saved": "Address saved",
+      "deleted": "Address deleted"
+    },
+    "badges": {
+      "default": "Default"
+    },
+    "error": {
+      "save": "Could not save the address",
+      "delete": "Could not delete the address",
+      "load": "Failed to load addresses",
+      "zones": "Failed to load delivery zones."
+    },
+    "zoneEta": "{{value}} min",
+    "zoneEtaUnknown": "ETA varies",
+    "zoneSelected": "{{zone}} • {{fee}} • {{eta}}",
+    "confirmDeleteTitle": "Delete address?",
+    "confirmDeleteSubtitle": "This action cannot be undone."
+  },
+  "settings": {
+    "language": "Language"
+  },
+  "loyaltyHistory": {
+    "title": "Loyalty history",
+    "subtitle": "Track earned and redeemed points.",
+    "emptyTitle": "No loyalty activity yet",
+    "emptySubtitle": "Place orders to start earning points.",
+    "error": "Couldn't load your loyalty history.",
+    "loadMore": "Load more",
+    "viewOrder": "View order {{id}}",
+    "types": {
+      "earn": "Earned",
+      "redeem": "Redeemed",
+      "adjust": "Adjustment"
+    }
+  },
+  "notifications": {
+    "loyaltyEarned": "You earned {{points}} points!",
+    "loyaltyUpdated": "Your points balance was updated.",
+    "marketing": "New offers are available.",
+    "orderUpdated": "Your order was updated.",
+    "viewHistory": "View history",
+    "viewOffers": "View offers",
+    "viewOrder": "View order"
+  }
+}

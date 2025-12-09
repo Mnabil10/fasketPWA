@@ -1,0 +1,41 @@
+:root {
+  /* Fasket Design System v2 */
+  --color-primary: #e53935;
+  --color-primary-strong: #c62828;
+  --color-accent: #ff857a;
+  --color-success: #16a34a;
+  --color-warning: #f59e0b;
+  --color-danger: #dc2626;
+
+  --surface-page: #f6f7f9;
+  --surface-card: #ffffff;
+  --surface-muted: #fafafa;
+  --ink-900: #1a1a1a;
+  --ink-700: #2b2b2f;
+  --ink-500: #667085;
+  --border-strong: #e5e7eb;
+  --border-soft: rgba(0, 0, 0, 0.06);
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+
+  --shadow-card: 0 12px 32px rgba(15, 23, 42, 0.08);
+  --shadow-float: 0 18px 44px rgba(229, 57, 53, 0.14);
+
+  /* Spacing scale */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 20px;
+  --space-2xl: 24px;
+  --space-3xl: 32px;
+
+  /* Aliases for existing styles */
+  --primary: var(--color-primary);
+  --primary-strong: var(--color-primary-strong);
+  --accent: var(--color-accent);
+  --muted-foreground: var(--ink-500);
+}

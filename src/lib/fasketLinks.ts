@@ -12,9 +12,12 @@ export function buildWhatsappUrl(message: string) {
 }
 
 export async function openExternalUrl(url: string) {
+  const maybeApp = CapacitorApp as unknown as { openUrl?: (options: { url: string }) => Promise<void> };
   try {
-    await CapacitorApp.openUrl({ url });
-    return;
+    if (maybeApp.openUrl) {
+      await maybeApp.openUrl({ url });
+      return;
+    }
   } catch {
     // fall through
   }

@@ -164,7 +164,7 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
     },
   ];
 
-  const supportActions: SettingsMenuItem[] = [
+  const supportActions: SettingsActionItem[] = [
     {
       key: "about",
       icon: ExternalLink,

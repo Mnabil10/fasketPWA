@@ -87,6 +87,7 @@ export type Product = {
   imageUrl?: string | null;
   gallery?: string[] | null;
   images?: string[] | null;
+  tags?: string[] | null;
   description?: string | null;
   descriptionAr?: string | null;
   priceCents: number;
@@ -94,6 +95,7 @@ export type Product = {
   stock: number;
   status: "ACTIVE" | "INACTIVE";
   isHotOffer?: boolean;
+  deliveryEstimateMinutes?: number | null;
   categoryId?: string;
   category?: { id: string; name: string; slug: string };
   rating?: number | null;

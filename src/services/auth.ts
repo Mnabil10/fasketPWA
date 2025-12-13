@@ -23,6 +23,8 @@ export type AuthResponse = {
   refreshToken: string | null;
 };
 
+export type SignupStartResponse = { otpId: string; expiresInSeconds?: number; phone?: string };
+
 export async function authLogin(body: LoginBody): Promise<AuthResponse> {
   const identifier = (body.identifier || body.phoneOrEmail || "").trim();
   if (!identifier) {
@@ -41,43 +43,6 @@ export async function authLogin(body: LoginBody): Promise<AuthResponse> {
   return normalizeAuthResponse(data);
 }
 
-export async function authOtpSend(phone: string) {
-  const normalized = phone.trim();
-  if (!normalized) throw new Error("phone is required");
-  await api.post("/auth/otp/send", { phone: normalized }, { skipAuth: true });
-}
-
-export async function authOtpVerify(payload: { phone: string; otp: string }): Promise<AuthResponse> {
-  if (!payload.phone?.trim() || !payload.otp?.trim()) {
-    throw new Error("phone and otp are required");
-  }
-  const { data } = await api.post(
-    "/auth/otp/verify",
-    { phone: payload.phone.trim(), otp: payload.otp.trim() },
-    { skipAuth: true }
-  );
-  return normalizeAuthResponse(data);
-}
-
-export async function forgotPassword(identifier: string) {
-  const normalized = identifier.trim();
-  if (!normalized) throw new Error("identifier is required");
-  await api.post("/auth/forgot-password", { identifier: normalized }, { skipAuth: true });
-}
-
-export async function resetPassword(body: { identifier: string; otp: string; newPassword: string }) {
-  const identifier = body.identifier?.trim();
-  const otp = body.otp?.trim();
-  if (!identifier || !otp || !body.newPassword) {
-    throw new Error("identifier, otp and newPassword are required");
-  }
-  await api.post(
-    "/auth/reset-password",
-    { identifier, otp, newPassword: body.newPassword },
-    { skipAuth: true }
-  );
-}
-
 export async function logout(payload?: { deviceToken?: string; refreshToken?: string }) {
   const refreshToken = payload?.refreshToken;
   await api.post(
@@ -94,16 +59,61 @@ export async function logout(payload?: { deviceToken?: string; refreshToken?: st
   );
 }
 
-export async function authRegister(body: RegisterBody): Promise<AuthResponse> {
+export async function authSignupStart(body: RegisterBody): Promise<SignupStartResponse> {
   const trimmedEmail = body.email?.trim();
   const { data } = await api.post(
-    "/auth/register",
+    "/auth/signup/start",
     {
       name: body.name,
       phone: body.phone,
       email: trimmedEmail || undefined,
       password: body.password,
     },
+    { skipAuth: true }
+  );
+  return {
+    otpId: (data as any)?.otpId ?? (data as any)?.otp_id ?? "",
+    expiresInSeconds: (data as any)?.expiresInSeconds,
+    phone: body.phone,
+  };
+}
+
+export async function authSignupVerify(payload: { otpId: string; otp: string }): Promise<AuthResponse> {
+  const { data } = await api.post(
+    "/auth/signup/verify",
+    { otpId: payload.otpId, otp: payload.otp },
+    { skipAuth: true }
+  );
+  return normalizeAuthResponse(data);
+}
+
+export async function resendPhoneVerification(phone: string) {
+  const normalized = phone.trim();
+  if (!normalized) throw new Error("phone is required");
+  await api.post("/auth/phone-verification/resend", { phone: normalized }, { skipAuth: true });
+}
+
+export async function verifyPhone(payload: { phone: string; otpId?: string; otp: string }) {
+  const normalized = payload.phone.trim();
+  const { data } = await api.post(
+    "/auth/phone-verification/verify",
+    { phone: normalized, otpId: payload.otpId, otp: payload.otp },
+    { skipAuth: true }
+  );
+  return normalizeAuthResponse(data);
+}
+
+export async function passwordResetRequest(identifier: string) {
+  const normalized = identifier.trim();
+  if (!normalized) throw new Error("identifier is required");
+  const { data } = await api.post("/auth/password-reset/request", { identifier: normalized }, { skipAuth: true });
+  return { otpId: (data as any)?.otpId ?? (data as any)?.otp_id ?? "" };
+}
+
+export async function passwordResetConfirm(body: { otpId: string; otp: string; newPassword: string }) {
+  const { data } = await api.post(
+    "/auth/password-reset/confirm",
+    { otpId: body.otpId, otp: body.otp, newPassword: body.newPassword },
     { skipAuth: true }
   );
   return normalizeAuthResponse(data);

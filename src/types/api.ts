@@ -208,6 +208,7 @@ export type OrderDetail = {
   code?: string | null;
   userId?: string;
   status: string;
+  statusHistory?: Array<{ id?: string; from?: string | null; to: string; note?: string | null; createdAt: string }> | null;
   paymentMethod: "COD" | "CARD";
   subtotalCents: number;
   shippingFeeCents: number;

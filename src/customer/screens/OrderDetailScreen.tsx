@@ -13,6 +13,7 @@ import { useOrderDetail, useNetworkStatus } from "../hooks";
 import { goToOrders } from "../navigation/navigation";
 import { mapApiErrorToMessage } from "../../utils/mapApiErrorToMessage";
 import { openWhatsapp } from "../../lib/fasketLinks";
+import React from "react";
 
 interface OrderDetailScreenProps {
   appState: AppState;
@@ -53,6 +54,28 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
   const statusKey = order?.status?.toUpperCase?.() || "PENDING";
   const statusMeta = STATUS_VARIANTS[statusKey] || { icon: Clock, variant: "outline" };
   const StatusIcon = statusMeta.icon;
+
+  const timeline = React.useMemo(() => {
+    const steps = [
+      { key: "PENDING", label: t("orders.status.pending", "Pending") },
+      { key: "PROCESSING", label: t("orders.status.processing", "Processing") },
+      { key: "OUT_FOR_DELIVERY", label: t("orders.status.out_for_delivery", "Out for delivery") },
+      { key: "DELIVERED", label: t("orders.status.delivered", "Delivered") },
+    ];
+    const history = (order?.statusHistory || []).map((h) => ({
+      status: (h.to || "").toUpperCase(),
+      at: h.createdAt || order?.createdAt,
+      note: h.note,
+    }));
+    const reached = new Set(history.map((h) => h.status));
+    const currentReached = steps.findIndex((s) => s.key === statusKey);
+    return steps.map((step, idx) => {
+      const historyMatch = history.find((h) => h.status === step.key);
+      const at = historyMatch?.at || (idx === 0 ? order?.createdAt : null);
+      const completed = reached.has(step.key) || idx <= currentReached;
+      return { ...step, at, completed, note: historyMatch?.note };
+    });
+  }, [order?.createdAt, order?.statusHistory, statusKey, t]);
 
   const addressLine = order?.address
     ? [order.address.label, order.address.street, order.address.city, order.address.zone]
@@ -225,6 +248,24 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
             </section>
 
             <section className="section-card space-y-2">
+              <h2 className="font-medium text-gray-900">{t("orderDetail.timeline", "Order timeline")}</h2>
+              <div className="space-y-3">
+                {timeline.map((step) => (
+                  <div key={step.key} className="flex items-start gap-3">
+                    <div className={`w-3 h-3 rounded-full mt-1 ${step.completed ? "bg-green-500" : "bg-gray-300"}`} />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{step.label}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {step.at ? dayjs(step.at).format(t("orders.dateFormat", "DD MMM YYYY - HH:mm")) : t("orderDetail.pendingTimestamp", "Pending update")}
+                      </p>
+                      {step.note && <p className="text-xs text-muted-foreground">{step.note}</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="section-card space-y-2">
               <h2 className="font-medium text-gray-900">{t("orderDetail.helpTitle", "Need help with this order?")}</h2>
               <p className="text-sm text-gray-600">
                 {t("orderDetail.helpSubtitle", "Chat with us on WhatsApp and we'll assist right away.")}
@@ -246,5 +287,4 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
     </div>
   );
 }
-
 

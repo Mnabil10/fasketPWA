@@ -33,6 +33,7 @@ import { useNotificationPreferences } from "./stores/notificationPreferences";
 import { useToast } from "./providers/ToastProvider";
 import { App as CapacitorApp } from "@capacitor/app";
 import { goToCart, goToCategory, goToHome, goToOrders, goToProduct } from "./navigation/navigation";
+import { HelpScreen } from "./screens/HelpScreen";
 
 export type Screen =
   | "splash"
@@ -48,6 +49,7 @@ export type Screen =
   | "order-success"
   | "orders"
   | "order-detail"
+  | "help"
   | "profile"
   | "addresses"
   | "loyalty-history"
@@ -164,6 +166,10 @@ export function CustomerApp() {
       }
       if (first === "profile") {
         updateAppState({ currentScreen: "profile" });
+        return;
+      }
+      if (first === "help") {
+        updateAppState({ currentScreen: "help" });
         return;
       }
       goToHome(updateAppState);
@@ -557,6 +563,8 @@ export function CustomerApp() {
         return <OrdersScreen appState={appState} updateAppState={updateAppState} />;
       case "order-detail":
         return <OrderDetailScreen appState={appState} updateAppState={updateAppState} />;
+      case "help":
+        return <HelpScreen appState={appState} updateAppState={updateAppState} />;
       case "profile":
         return <ProfileScreen appState={appState} updateAppState={updateAppState} />;
       case "addresses":

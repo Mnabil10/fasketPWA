@@ -6,7 +6,15 @@ import { Label } from "../../ui/label";
 import { Eye, EyeOff } from "lucide-react";
 import appLogo from "../../../icons/icon-256.webp";
 import { useApiErrorToast } from "../hooks";
-import { authLogin, authRegister } from "../../services/auth";
+import {
+  authLogin,
+  authSignupStart,
+  authSignupVerify,
+  resendPhoneVerification,
+  verifyPhone,
+  passwordResetRequest,
+  passwordResetConfirm,
+} from "../../services/auth";
 import { persistSessionTokens } from "../../store/session";
 interface AuthScreenProps {
   mode: "auth" | "register";
@@ -20,11 +28,17 @@ type FormState = {
   email: string;
   password: string;
   identifier: string;
+  otp: string;
+  otpId: string;
+  newPassword: string;
 };
 
 export function AuthScreen({ mode, onAuthSuccess, onToggleMode }: AuthScreenProps) {
   const { t } = useTranslation();
-  const isLogin = mode === "auth";
+  const [step, setStep] = useState<"login" | "register" | "verifySignup" | "verifyPhone" | "forgot" | "resetVerify">(
+    mode === "auth" ? "login" : "register"
+  );
+  const isLogin = step === "login";
   const apiErrorToast = useApiErrorToast();
 
   const [formData, setFormData] = useState<FormState>({
@@ -33,13 +47,18 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode }: AuthScreenProp
     email: "",
     password: "",
     identifier: "",
+    otp: "",
+    otpId: "",
+    newPassword: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [pendingPhone, setPendingPhone] = useState<string>("");
 
   useEffect(() => {
     setErr(null);
+    setStep(mode === "auth" ? "login" : "register");
   }, [mode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,11 +67,8 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode }: AuthScreenProp
     setErr(null);
 
     try {
-      const password = formData.password.trim();
-      if (password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password)) {
-        throw new Error(t("auth.passwordMinLength"));
-      }
-      if (isLogin) {
+      if (step === "login") {
+        const password = formData.password.trim();
         const identifierInput = formData.identifier.trim();
         if (!identifierInput) {
           throw new Error(t("auth.identifierRequired"));
@@ -73,7 +89,13 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode }: AuthScreenProp
         }
         persistTokens(res.accessToken, res.refreshToken);
         await onAuthSuccess();
-      } else {
+      }
+
+      if (step === "register") {
+        const password = formData.password.trim();
+        if (password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password)) {
+          throw new Error(t("auth.passwordMinLength"));
+        }
         const name = formData.name?.trim();
         if (!name) throw new Error(t("auth.nameRequired"));
         const normalizedPhone = normalizeEgPhone(formData.phone);
@@ -81,22 +103,28 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode }: AuthScreenProp
           throw new Error(t("auth.phoneInvalid"));
         }
         const trimmedEmail = formData.email?.trim() || "";
-        const res = await authRegister({
+        const start = await authSignupStart({
           name,
           phone: normalizedPhone,
           email: trimmedEmail || undefined,
           password,
         });
-        if (!res.accessToken || !res.refreshToken) {
-          throw new Error(t("auth.errorRegister"));
-        }
-        persistTokens(res.accessToken, res.refreshToken);
-        await onAuthSuccess();
+        setPendingPhone(normalizedPhone);
+        setFormData((prev) => ({ ...prev, otpId: start.otpId, otp: "" }));
+        setStep("verifySignup");
       }
     } catch (e: any) {
-      const fallbackKey = isLogin ? "auth.errorLogin" : "auth.errorRegister";
+      const fallbackKey = step === "login" ? "auth.errorLogin" : "auth.errorRegister";
       const friendly = apiErrorToast(e, fallbackKey);
-      setErr(friendly);
+      const code = (e as any)?.response?.data?.code || (e as any)?.code;
+      if (code === "PHONE_NOT_VERIFIED") {
+        const prepared = prepareIdentifier(formData.identifier);
+        setPendingPhone(prepared?.value || "");
+        setFormData((prev) => ({ ...prev, otp: "", otpId: (e as any)?.response?.data?.otpId ?? "" }));
+        setStep("verifyPhone");
+      } else {
+        setErr(friendly);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -109,20 +137,96 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode }: AuthScreenProp
   const handleModeToggle = () => {
     setIsLoading(false);
     setErr(null);
-    setFormData((prev) => {
-      if (isLogin) {
-        const prepared = prepareIdentifier(prev.identifier);
-        return {
-          ...prev,
-          phone: prepared?.kind === "phone" ? prepared.value : prev.phone,
-        };
-      }
-      return {
-        ...prev,
-        identifier: prev.phone || prev.identifier,
-      };
-    });
+    setFormData((prev) => ({
+      ...prev,
+      otp: "",
+      otpId: "",
+      newPassword: "",
+    }));
+    const nextMode = step === "login" ? "register" : "login";
+    setStep(nextMode);
     onToggleMode();
+  };
+
+  const handleVerifySignup = async () => {
+    if (!formData.otpId || !formData.otp.trim()) {
+      setErr(t("auth.otpRequired", "Enter the OTP sent to your phone"));
+      return;
+    }
+    setIsLoading(true);
+    setErr(null);
+    try {
+      const res = await authSignupVerify({ otpId: formData.otpId, otp: formData.otp.trim() });
+      if (!res.accessToken || !res.refreshToken) {
+        throw new Error(t("auth.errorRegister"));
+      }
+      persistTokens(res.accessToken, res.refreshToken);
+      await onAuthSuccess();
+    } catch (e: any) {
+      setErr(apiErrorToast(e, "auth.errorRegister"));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyPhone = async () => {
+    if (!pendingPhone || !formData.otp.trim()) {
+      setErr(t("auth.otpRequired", "Enter the OTP sent to your phone"));
+      return;
+    }
+    setIsLoading(true);
+    setErr(null);
+    try {
+      const res = await verifyPhone({ phone: pendingPhone, otp: formData.otp.trim(), otpId: formData.otpId });
+      if (res.accessToken && res.refreshToken) {
+        persistTokens(res.accessToken, res.refreshToken);
+        await onAuthSuccess();
+      } else {
+        setStep("login");
+      }
+    } catch (e: any) {
+      setErr(apiErrorToast(e, "auth.errorLogin"));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    const identifier = formData.identifier.trim();
+    if (!identifier) {
+      setErr(t("auth.identifierRequired"));
+      return;
+    }
+    setIsLoading(true);
+    setErr(null);
+    try {
+      const { otpId } = await passwordResetRequest(identifier);
+      setFormData((prev) => ({ ...prev, otpId, otp: "", newPassword: "" }));
+      setStep("resetVerify");
+    } catch (e: any) {
+      setErr(apiErrorToast(e, "auth.errorForgot"));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!formData.otpId || !formData.otp.trim() || !formData.newPassword.trim()) {
+      setErr(t("auth.resetRequired", "Provide OTP and new password"));
+      return;
+    }
+    setIsLoading(true);
+    setErr(null);
+    try {
+      await passwordResetConfirm({ otpId: formData.otpId, otp: formData.otp.trim(), newPassword: formData.newPassword.trim() });
+      setStep("login");
+      setErr(null);
+      setFormData((prev) => ({ ...prev, password: "", otp: "", otpId: "", newPassword: "" }));
+    } catch (e: any) {
+      setErr(apiErrorToast(e, "auth.errorReset"));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -133,17 +237,17 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode }: AuthScreenProp
         </div>
         <div>
           <h1 className="font-poppins text-2xl text-gray-900" style={{ fontWeight: 800 }}>
-            {isLogin ? t("auth.welcomeBack") : t("auth.registerTitle")}
+            {step === "login" ? t("auth.welcomeBack") : t("auth.registerTitle")}
           </h1>
           <p className="text-gray-600">
-            {isLogin ? t("auth.signInSubtitle") : t("auth.registerSubtitle")}
+            {step === "login" ? t("auth.signInSubtitle") : t("auth.registerSubtitle")}
           </p>
         </div>
       </div>
 
       <div className="section-card w-full max-w-xl self-center">
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {isLogin ? (
+        {step === "login" && (
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="identifier">{t("auth.identifierLabel") ?? t("auth.identifierPlaceholder")}</Label>
               <Input
@@ -156,32 +260,65 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode }: AuthScreenProp
                 required
               />
             </div>
-          ) : (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="name">{t("auth.fullName")}</Label>
+            <div className="space-y-2">
+              <Label htmlFor="password">{t("auth.password")}</Label>
+              <div className="relative">
                 <Input
-                  id="name"
-                  type="text"
-                  placeholder={t("auth.fullName")}
-                  value={formData.name}
-                  onChange={(e) => handleInputChange("name", e.target.value)}
-                  className="h-12 rounded-xl"
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder={t("auth.password")}
+                  value={formData.password}
+                  onChange={(e) => handleInputChange("password", e.target.value)}
+                  className="h-12 rounded-xl pr-10"
                   required
+                  minLength={8}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">{t("auth.email")}</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="name@example.com"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange("email", e.target.value)}
-                  className="h-12 rounded-xl"
-                />
-              </div>
-              <div className="space-y-2">
+            </div>
+            {err && <div className="text-sm text-red-600 bg-red-50 rounded-lg p-3">{err}</div>}
+            <Button type="submit" disabled={isLoading} className="w-full h-12 rounded-xl">
+              {isLoading ? t("common.loading") : t("auth.signIn")}
+            </Button>
+            <div className="flex justify-between text-sm text-primary mt-2">
+              <button type="button" onClick={() => setStep("forgot")}>{t("auth.forgot", "Forgot password?")}</button>
+              <button type="button" onClick={handleModeToggle}>{t("auth.signUp")}</button>
+            </div>
+          </form>
+        )}
+
+        {step === "register" && (
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="name">{t("auth.fullName")}</Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder={t("auth.fullName")}
+                value={formData.name}
+                onChange={(e) => handleInputChange("name", e.target.value)}
+                className="h-12 rounded-xl"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">{t("auth.email")}</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="name@example.com"
+                value={formData.email}
+                onChange={(e) => handleInputChange("email", e.target.value)}
+                className="h-12 rounded-xl"
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="phone">{t("auth.phone")}</Label>
               <Input
                 id="phone"
@@ -194,46 +331,133 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode }: AuthScreenProp
               />
               <p className="text-xs text-gray-500">{t("auth.phoneHint")}</p>
             </div>
-          </>
+            <div className="space-y-2">
+              <Label htmlFor="password">{t("auth.password")}</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder={t("auth.password")}
+                  value={formData.password}
+                  onChange={(e) => handleInputChange("password", e.target.value)}
+                  className="h-12 rounded-xl pr-10"
+                  required
+                  minLength={8}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+            </div>
+            {err && <div className="text-sm text-red-600 bg-red-50 rounded-lg p-3">{err}</div>}
+            <Button type="submit" disabled={isLoading} className="w-full h-12 rounded-xl">
+              {isLoading ? t("common.loading") : t("auth.signUp")}
+            </Button>
+            <div className="text-center text-sm mt-2">
+              <button type="button" onClick={handleModeToggle} className="text-primary">{t("auth.signIn")}</button>
+            </div>
+          </form>
         )}
 
-          <div className="space-y-2">
-            <Label htmlFor="password">{t("auth.password")}</Label>
-            <div className="relative">
-              <Input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                placeholder={t("auth.password")}
-                value={formData.password}
-                onChange={(e) => handleInputChange("password", e.target.value)}
-                className="h-12 rounded-xl pr-10"
-                required
-                minLength={8}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((prev) => !prev)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
-              >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
-            </div>
-            <p className="text-xs text-gray-500">{t("auth.passwordHint", "Use at least 8 characters with letters and numbers.")}</p>
+        {step === "verifySignup" && (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">{t("auth.verifyPhone", "Enter the OTP sent to your phone")}</p>
+            <Input
+              type="text"
+              placeholder={t("auth.otpPlaceholder", "Enter OTP")}
+              value={formData.otp}
+              onChange={(e) => handleInputChange("otp", e.target.value)}
+              className="h-12 rounded-xl"
+            />
+            {err && <div className="text-sm text-red-600 bg-red-50 rounded-lg p-3">{err}</div>}
+            <Button onClick={handleVerifySignup} disabled={isLoading} className="w-full h-12 rounded-xl">
+              {isLoading ? t("common.loading") : t("auth.verify", "Verify")}
+            </Button>
+            <button type="button" onClick={() => setStep("register")} className="text-sm text-primary">
+              {t("auth.back", "Back")}
+            </button>
           </div>
+        )}
 
-          {err && <div className="text-sm text-red-600 bg-red-50 rounded-lg p-3">{err}</div>}
+        {step === "verifyPhone" && (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">{t("auth.verifyPhoneLogin", "Verify your phone to continue")}</p>
+            <Input
+              type="text"
+              placeholder={t("auth.otpPlaceholder", "Enter OTP")}
+              value={formData.otp}
+              onChange={(e) => handleInputChange("otp", e.target.value)}
+              className="h-12 rounded-xl"
+            />
+            {err && <div className="text-sm text-red-600 bg-red-50 rounded-lg p-3">{err}</div>}
+            <div className="flex gap-2">
+              <Button onClick={handleVerifyPhone} disabled={isLoading} className="flex-1 h-12 rounded-xl">
+                {isLoading ? t("common.loading") : t("auth.verify", "Verify")}
+              </Button>
+              <Button
+                variant="outline"
+                disabled={isLoading}
+                onClick={() => pendingPhone && resendPhoneVerification(pendingPhone)}
+                className="h-12 rounded-xl"
+              >
+                {t("auth.resend", "Resend")}
+              </Button>
+            </div>
+            <button type="button" onClick={() => setStep("login")} className="text-sm text-primary">
+              {t("auth.back", "Back")}
+            </button>
+          </div>
+        )}
 
-          <Button type="submit" disabled={isLoading} className="w-full h-12 rounded-xl">
-            {isLoading ? t("common.loading") : isLogin ? t("auth.signIn") : t("auth.signUp")}
-          </Button>
-        </form>
+        {step === "forgot" && (
+          <div className="space-y-4">
+            <Label>{t("auth.identifierLabel")}</Label>
+            <Input
+              type="text"
+              placeholder={t("auth.identifierPlaceholder")}
+              value={formData.identifier}
+              onChange={(e) => handleInputChange("identifier", e.target.value)}
+              className="h-12 rounded-xl"
+            />
+            {err && <div className="text-sm text-red-600 bg-red-50 rounded-lg p-3">{err}</div>}
+            <Button onClick={handleForgotPassword} disabled={isLoading} className="w-full h-12 rounded-xl">
+              {isLoading ? t("common.loading") : t("auth.send_reset", "Send reset code")}
+            </Button>
+            <button type="button" onClick={() => setStep("login")} className="text-sm text-primary">
+              {t("auth.back", "Back")}
+            </button>
+          </div>
+        )}
 
-        <div className="mt-8 text-center">
-          <p className="text-gray-600 mb-2">{isLogin ? t("auth.noAccount") : t("auth.haveAccount")}</p>
-          <Button variant="outline" onClick={handleModeToggle} className="w-full h-12 rounded-xl">
-            {isLogin ? t("auth.signUp") : t("auth.signIn")}
-          </Button>
-        </div>
+        {step === "resetVerify" && (
+          <div className="space-y-4">
+            <Input
+              type="text"
+              placeholder={t("auth.otpPlaceholder", "Enter OTP")}
+              value={formData.otp}
+              onChange={(e) => handleInputChange("otp", e.target.value)}
+              className="h-12 rounded-xl"
+            />
+            <Input
+              type={showPassword ? "text" : "password"}
+              placeholder={t("auth.newPassword", "New password")}
+              value={formData.newPassword}
+              onChange={(e) => handleInputChange("newPassword", e.target.value)}
+              className="h-12 rounded-xl"
+            />
+            {err && <div className="text-sm text-red-600 bg-red-50 rounded-lg p-3">{err}</div>}
+            <Button onClick={handleResetPassword} disabled={isLoading} className="w-full h-12 rounded-xl">
+              {isLoading ? t("common.loading") : t("auth.resetPassword", "Reset password")}
+            </Button>
+            <button type="button" onClick={() => setStep("login")} className="text-sm text-primary">
+              {t("auth.back", "Back")}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -284,5 +508,3 @@ function prepareIdentifier(value: string): { value: string; kind: "phone" | "ema
 function persistTokens(access: string, refresh: string) {
   persistSessionTokens(access, refresh);
 }
-
-

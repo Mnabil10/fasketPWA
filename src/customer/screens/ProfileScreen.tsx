@@ -196,6 +196,13 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
       action: () => openWhatsapp(whatsappMessage),
     },
     {
+      key: "help",
+      icon: Phone,
+      label: t("profile.support.help", "Help & self-service"),
+      toggle: false,
+      action: () => updateAppState({ currentScreen: "help" }),
+    },
+    {
       key: "email",
       icon: Mail,
       label: t("profile.support.email"),

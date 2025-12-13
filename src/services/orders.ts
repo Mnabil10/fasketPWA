@@ -100,6 +100,15 @@ function normalizeOrderDetail(payload: any): OrderDetail {
     id: node.id,
     code: node.code || node.id,
     status: mapOrderStatus(node.status),
+    statusHistory: Array.isArray(node.statusHistory)
+      ? node.statusHistory.map((h: any) => ({
+          id: h.id ?? `${h.from || ""}-${h.to}-${h.createdAt || ""}`,
+          from: h.from ?? h.fromStatus ?? null,
+          to: h.to ?? h.toStatus ?? "",
+          note: h.note ?? null,
+          createdAt: h.createdAt ?? h.at ?? node.createdAt,
+        }))
+      : null,
     driver,
     deliveryZone: node.deliveryZone || node.zone || node.address?.deliveryZone || null,
     address: node.address,
@@ -245,11 +254,19 @@ export async function reorderOrder(id: string): Promise<ApiCart> {
 }
 
 export async function getOrderTimeline(id: string) {
-  const { data } = await api.get(`/orders/${id}/timeline`);
-  return (data?.data ?? data) as Array<{ from?: string | null; to?: string; note?: string; createdAt: string }>;
+  try {
+    const { data } = await api.get(`/orders/${id}/timeline`);
+    return (data?.data ?? data) as Array<{ from?: string | null; to?: string; note?: string; createdAt: string }>;
+  } catch {
+    return [];
+  }
 }
 
 export async function getDriverLocation(id: string) {
-  const { data } = await api.get(`/orders/${id}/driver-location`);
-  return data?.data ?? data;
+  try {
+    const { data } = await api.get(`/orders/${id}/driver-location`);
+    return data?.data ?? data;
+  } catch {
+    return null;
+  }
 }

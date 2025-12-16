@@ -13,7 +13,6 @@ import { useOrderDetail, useNetworkStatus } from "../hooks";
 import { goToOrders } from "../navigation/navigation";
 import { mapApiErrorToMessage } from "../../utils/mapApiErrorToMessage";
 import { openWhatsapp } from "../../lib/fasketLinks";
-import React from "react";
 
 interface OrderDetailScreenProps {
   appState: AppState;
@@ -287,4 +286,3 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
     </div>
   );
 }
-

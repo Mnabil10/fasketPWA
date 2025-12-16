@@ -176,7 +176,7 @@ export async function signupRequestOtp(payload: { signupSessionId: string; signu
 }
 
 export async function authSignupVerifySession(payload: {
-  signupSessionToken: string;
+  signupSessionToken?: string;
   signupSessionId: string;
   otp: string;
 }): Promise<SignupVerifyResponse> {

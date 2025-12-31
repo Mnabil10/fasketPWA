@@ -5,19 +5,24 @@ import { Input } from "../../ui/input";
 import { MobileNav } from "../MobileNav";
 import { AppState, type UpdateAppState } from "../CustomerApp";
 import { useNetworkStatus } from "../hooks";
-import { getOrderById } from "../../services/orders";
+import { trackGuestOrders } from "../../services/orders";
 import { getDeliveryZones } from "../../services/settings";
 import { listProducts } from "../../services/catalog";
 import { NetworkBanner, SkeletonList, EmptyState } from "../components";
 import { openWhatsapp } from "../../lib/fasketLinks";
 import { fmtEGP, fromCents } from "../../lib/money";
+import type { OrderGroupSummary } from "../../types/api";
+import { resolveSupportConfig } from "../utils/mobileAppConfig";
 
 export function HelpScreen({ appState, updateAppState }: { appState: AppState; updateAppState: UpdateAppState }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { isOffline } = useNetworkStatus();
-  const [orderCode, setOrderCode] = useState("");
-  const [orderResult, setOrderResult] = useState<any | null>(null);
-  const [orderError, setOrderError] = useState<string | null>(null);
+  const lang = i18n.language?.startsWith("ar") ? "ar" : "en";
+  const supportConfig = resolveSupportConfig(appState.settings?.mobileApp ?? null, lang);
+  const [guestPhone, setGuestPhone] = useState(appState.guestTracking?.phone ?? "");
+  const [guestCode, setGuestCode] = useState(appState.guestTracking?.code ?? "");
+  const [guestResult, setGuestResult] = useState<OrderGroupSummary | null>(null);
+  const [guestError, setGuestError] = useState<string | null>(null);
   const [zones, setZones] = useState<any[]>([]);
   const [zonesLoaded, setZonesLoaded] = useState(false);
   const [zoneError, setZoneError] = useState<string | null>(null);
@@ -26,15 +31,19 @@ export function HelpScreen({ appState, updateAppState }: { appState: AppState; u
   const [productsLoading, setProductsLoading] = useState(false);
   const [productsError, setProductsError] = useState<string | null>(null);
 
-  const fetchOrder = async () => {
-    setOrderError(null);
-    setOrderResult(null);
-    if (!orderCode.trim()) return;
+  const fetchGuestOrder = async () => {
+    setGuestError(null);
+    setGuestResult(null);
+    const phone = guestPhone.trim();
+    if (!phone) {
+      setGuestError(t("help.phoneRequired", "Phone number is required."));
+      return;
+    }
     try {
-      const result = await getOrderById(orderCode.trim());
-      setOrderResult(result);
+      const result = await trackGuestOrders({ phone, code: guestCode.trim() || undefined });
+      setGuestResult(result);
     } catch (error) {
-      setOrderError(t("help.order_not_found", "Order not found. Try WhatsApp support."));
+      setGuestError(t("help.order_not_found", "Order not found. Try WhatsApp support."));
     }
   };
 
@@ -64,7 +73,7 @@ export function HelpScreen({ appState, updateAppState }: { appState: AppState; u
   };
 
   const whatsappFallback = (intent: string) => {
-    openWhatsapp(t("help.whatsapp_prefill", "Hi, I need help with {{intent}}", { intent }));
+    openWhatsapp(t("help.whatsapp_prefill", "Hi, I need help with {{intent}}", { intent }), supportConfig.whatsappNumber);
   };
 
   return (
@@ -77,23 +86,46 @@ export function HelpScreen({ appState, updateAppState }: { appState: AppState; u
         </div>
 
         <div className="section-card space-y-3">
-          <h2 className="text-sm font-semibold">{t("help.track_order", "Track order by code")}</h2>
+          <h2 className="text-sm font-semibold">{t("help.track_order", "Track order by phone")}</h2>
           <Input
-            placeholder={t("help.order_placeholder", "Enter order code")}
-            value={orderCode}
-            onChange={(e) => setOrderCode(e.target.value)}
+            placeholder={t("help.phone_placeholder", "Enter phone number")}
+            value={guestPhone}
+            onChange={(e) => setGuestPhone(e.target.value)}
           />
-          <Button onClick={fetchOrder} disabled={isOffline}>{t("help.track", "Track")}</Button>
-          {orderError && <div className="text-sm text-red-600 bg-red-50 rounded-lg p-3">{orderError}</div>}
-          {orderResult && (
-            <div className="text-sm space-y-1">
-              <p className="font-medium">#{orderResult.code || orderResult.id}</p>
-              <p>{t("orders.status", "Status")}: {orderResult.status}</p>
-              <p>{t("orders.amount", "Amount")}: {fmtEGP(fromCents(orderResult.totalCents || 0))}</p>
+          <Input
+            placeholder={t("help.order_placeholder", "Order code (optional)")}
+            value={guestCode}
+            onChange={(e) => setGuestCode(e.target.value)}
+          />
+          <Button onClick={fetchGuestOrder} disabled={isOffline}>{t("help.track", "Track")}</Button>
+          {guestError && <div className="text-sm text-red-600 bg-red-50 rounded-lg p-3">{guestError}</div>}
+          {guestResult && (
+            <div className="text-sm space-y-2">
+              <div>
+                <p className="font-medium">#{guestResult.code || guestResult.orderGroupId}</p>
+                <p>{t("orders.status", "Status")}: {guestResult.status}</p>
+                <p>{t("orders.amount", "Amount")}: {fmtEGP(fromCents(guestResult.totalCents || 0))}</p>
+              </div>
+              {guestResult.orders?.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs text-gray-500">{t("help.groupOrders", "Orders in this group")}</p>
+                  {guestResult.orders.map((order) => (
+                    <div key={order.id} className="flex items-center justify-between text-xs">
+                      <span>#{order.code || order.id}</span>
+                      <span>{fmtEGP(fromCents(order.totalCents || 0))}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
-          {!orderResult && orderError && (
+          {!guestResult && guestError && (
             <Button variant="outline" onClick={() => whatsappFallback("order tracking")}>{t("help.whatsapp", "Contact WhatsApp")}</Button>
+          )}
+          {appState.user && (
+            <p className="text-xs text-gray-500">
+              {t("help.loggedInHint", "Signed in? You can view your orders from the Orders tab.")}
+            </p>
           )}
         </div>
 

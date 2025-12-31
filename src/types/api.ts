@@ -40,6 +40,83 @@ export type DeliveryConfig = {
   feeCurrency?: string;
 };
 
+export type LocalizedString = string | { en?: string; ar?: string };
+
+export type MobileAppConfig = {
+  branding?: {
+    appName?: LocalizedString;
+    logoUrl?: string;
+    splashUrl?: string;
+    wordmarkUrl?: string;
+  };
+  theme?: {
+    primary?: string;
+    primaryStrong?: string;
+    accent?: string;
+    background?: string;
+    surface?: string;
+    surfaceMuted?: string;
+    text?: string;
+    textStrong?: string;
+    textMuted?: string;
+    mutedForeground?: string;
+    borderStrong?: string;
+    borderSoft?: string;
+    heroGradient?: string;
+    splashGradient?: string;
+    fontBase?: string;
+    fontArabic?: string;
+  };
+  navigation?: {
+    tabs?: Array<{
+      id?: string;
+      screen?: string;
+      label?: LocalizedString;
+      icon?: string;
+      enabled?: boolean;
+      requiresAuth?: boolean;
+      order?: number;
+    }>;
+  };
+  home?: {
+    hero?: {
+      prompt?: LocalizedString;
+      title?: LocalizedString;
+      subtitle?: LocalizedString;
+      pills?: Array<{ label: LocalizedString; icon?: string }>;
+    };
+    promos?: Array<{ imageUrl: string; title?: LocalizedString; subtitle?: LocalizedString }>;
+    sections?: Array<{
+      id?: string;
+      type?: string;
+      title?: LocalizedString;
+      subtitle?: LocalizedString;
+      enabled?: boolean;
+      order?: number;
+      limit?: number;
+    }>;
+  };
+  content?: {
+    support?: {
+      phone?: string;
+      email?: string;
+      websiteUrl?: string;
+      webAppUrl?: string;
+      whatsapp?: string;
+      serviceArea?: LocalizedString;
+      workingHours?: LocalizedString;
+      cityCoverage?: LocalizedString;
+      playStoreUrl?: string;
+      appStoreUrl?: string;
+    };
+  };
+  features?: {
+    guestCheckout?: boolean;
+    coupons?: boolean;
+    loyalty?: boolean;
+  };
+};
+
 export type AppSettings = {
   loyalty?: LoyaltyConfig | null;
   delivery?: DeliveryConfig | null;
@@ -55,6 +132,7 @@ export type AppSettings = {
     provider?: string | null;
   } | null;
   banners?: Array<{ imageUrl: string; action?: string | null }>;
+  mobileApp?: MobileAppConfig | null;
 };
 
 export type UserProfile = User & {
@@ -96,6 +174,8 @@ export type Product = {
   status: "ACTIVE" | "INACTIVE";
   isHotOffer?: boolean;
   deliveryEstimateMinutes?: number | null;
+  providerId?: string | null;
+  branchId?: string | null;
   categoryId?: string;
   category?: { id: string; name: string; slug: string };
   rating?: number | null;
@@ -162,13 +242,29 @@ export type DeliveryDriver = {
 };
 
 export type CartItem = {
-  id: string; cartId: string; productId: string; qty: number; priceCents: number;
+  id: string; cartId: string; productId: string; branchId?: string | null; qty: number; priceCents: number;
   product: { name: string; imageUrl?: string | null; priceCents: number; salePriceCents?: number | null };
+};
+
+export type CartGroup = {
+  branchId: string;
+  providerId?: string | null;
+  branchName?: string | null;
+  branchNameAr?: string | null;
+  items: CartItem[];
+  subtotalCents: number;
+  shippingFeeCents: number;
+  distanceKm?: number | null;
+  ratePerKmCents?: number | null;
+  deliveryMode?: string | null;
+  deliveryRequiresLocation?: boolean;
+  deliveryUnavailable?: boolean;
 };
 
 export type Cart = {
   cartId: string;
   items: CartItem[];
+  groups?: CartGroup[];
   subtotalCents: number;
   totalCents?: number;
   discountCents?: number;
@@ -190,9 +286,36 @@ export type Cart = {
     zoneName?: string | null;
     estimatedDeliveryTime?: string | null;
     etaMinutes?: number | null;
+    requiresLocation?: boolean;
   };
   requiresAddress?: boolean;
   quote?: unknown;
+};
+
+export type OrderGroupItem = {
+  id: string;
+  code?: string | null;
+  status: string;
+  subtotalCents: number;
+  shippingFeeCents: number;
+  discountCents: number;
+  totalCents: number;
+  providerId?: string | null;
+  branchId?: string | null;
+  createdAt: string;
+};
+
+export type OrderGroupSummary = {
+  orderGroupId: string;
+  code?: string | null;
+  status: string;
+  subtotalCents: number;
+  shippingFeeCents: number;
+  discountCents: number;
+  totalCents: number;
+  createdAt: string;
+  orders: OrderGroupItem[];
+  skippedBranchIds?: string[];
 };
 
 export type OrderSummary = {
@@ -207,6 +330,19 @@ export type OrderDetail = {
   id: string;
   code?: string | null;
   userId?: string;
+  guestName?: string | null;
+  guestPhone?: string | null;
+  guestAddress?: {
+    fullAddress?: string;
+    city?: string | null;
+    region?: string | null;
+    street?: string | null;
+    building?: string | null;
+    apartment?: string | null;
+    notes?: string | null;
+  } | null;
+  guestLat?: number | null;
+  guestLng?: number | null;
   status: string;
   statusHistory?: Array<{ id?: string; from?: string | null; to: string; note?: string | null; createdAt: string }> | null;
   paymentMethod: "COD" | "CARD";

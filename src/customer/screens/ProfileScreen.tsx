@@ -36,10 +36,10 @@ import { NetworkBanner } from "../components";
 import { goToOrders } from "../navigation/navigation";
 import { useNotificationPreferences } from "../stores/notificationPreferences";
 import { APP_VERSION } from "../../version";
-import { FASKET_CONFIG } from "../../config/fasketConfig";
 import { openExternalUrl, openWhatsapp, buildSupportMailto } from "../../lib/fasketLinks";
 import { useShareFasket } from "../hooks/useShareFasket";
 import { getTelegramLinkToken } from "../../services/telegram";
+import { resolveSupportConfig } from "../utils/mobileAppConfig";
 
 interface ProfileScreenProps {
   appState: AppState;
@@ -62,7 +62,9 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const share = useShareFasket();
+  const normalizedLanguage = i18n.language?.startsWith("ar") ? "ar" : "en";
+  const supportConfig = resolveSupportConfig(appState.settings?.mobileApp ?? null, normalizedLanguage);
+  const share = useShareFasket(supportConfig.webAppUrl);
   const whatsappMessage = t(
     "profile.support.whatsappMessage",
     "Hi, I'd like to ask about an order from Fasket."
@@ -76,7 +78,6 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
     }
   }, [profile?.name, profile?.email, profile?.phone]);
 
-  const normalizedLanguage = i18n.language?.startsWith("ar") ? "ar" : "en";
   const activeLanguage = supportedLanguages.find((lang) => lang.code === normalizedLanguage) ?? supportedLanguages[0];
   const displayName = profile?.name?.trim() || t("profile.guest");
   const displayPhone = profile?.phone?.trim() || t("profile.noPhone");
@@ -178,7 +179,7 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
       icon: Globe,
       label: t("profile.support.website"),
       toggle: false,
-      action: () => openExternalUrl(FASKET_CONFIG.websiteUrl),
+      action: () => openExternalUrl(supportConfig.websiteUrl),
     },
     {
       key: "telegram-link",
@@ -208,16 +209,16 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
       icon: Star,
       label: t("profile.support.rate"),
       toggle: false,
-      action: () => openExternalUrl(FASKET_CONFIG.playStoreUrl),
-      subtitle: FASKET_CONFIG.playStoreUrl ? undefined : t("profile.support.rateSoon"),
-      disabled: !FASKET_CONFIG.playStoreUrl,
+      action: () => openExternalUrl(supportConfig.playStoreUrl),
+      subtitle: supportConfig.playStoreUrl ? undefined : t("profile.support.rateSoon"),
+      disabled: !supportConfig.playStoreUrl,
     },
     {
       key: "whatsapp",
       icon: MessageCircle,
       label: t("profile.support.whatsapp"),
       toggle: false,
-      action: () => openWhatsapp(whatsappMessage),
+      action: () => openWhatsapp(whatsappMessage, supportConfig.whatsappNumber),
     },
     {
       key: "help",
@@ -231,7 +232,7 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
       icon: Mail,
       label: t("profile.support.email"),
       toggle: false,
-      action: () => openExternalUrl(buildSupportMailto(t("profile.support.emailSubject"))),
+      action: () => openExternalUrl(buildSupportMailto(t("profile.support.emailSubject"), supportConfig.supportEmail)),
     },
     {
       key: "share",
@@ -245,7 +246,7 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
       icon: Phone,
       label: t("profile.support.phone"),
       toggle: false,
-      action: () => openExternalUrl(`tel:${FASKET_CONFIG.supportPhone}`),
+      action: () => openExternalUrl(`tel:${supportConfig.supportPhone}`),
     },
   ];
 
@@ -301,6 +302,8 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
       selectedOrder: null,
       lastOrder: null,
       lastOrderId: null,
+      guestSession: null,
+      guestTracking: null,
       currentScreen: "auth",
     });
   };

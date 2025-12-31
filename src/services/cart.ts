@@ -6,6 +6,7 @@ export type ApiCartItem = {
   id: string;
   cartId: string;
   productId: string;
+  branchId?: string | null;
   qty: number;
   priceCents: number;
   product?: {
@@ -16,9 +17,25 @@ export type ApiCartItem = {
   };
 };
 
+export type ApiCartGroup = {
+  branchId: string;
+  providerId?: string | null;
+  branchName?: string | null;
+  branchNameAr?: string | null;
+  items: ApiCartItem[];
+  subtotalCents: number;
+  shippingFeeCents: number;
+  distanceKm?: number | null;
+  ratePerKmCents?: number | null;
+  deliveryMode?: string | null;
+  deliveryRequiresLocation?: boolean;
+  deliveryUnavailable?: boolean;
+};
+
 export type ApiCart = {
   cartId: string;
   items: ApiCartItem[];
+  groups?: ApiCartGroup[];
   subtotalCents: number;
   totalCents?: number;
   shippingFeeCents?: number;
@@ -33,6 +50,7 @@ export type ApiCart = {
     zoneName?: string | null;
     estimatedDeliveryTime?: string | null;
     etaMinutes?: number | null;
+    requiresLocation?: boolean;
   };
   deliveryZone?: string | null;
   loyaltyDiscountCents?: number;
@@ -104,7 +122,10 @@ export const getCart = async (options?: { lang?: "ar" | "en"; addressId?: string
   return normalizeCart(data);
 };
 
-export const addItem = (body: { productId: string; qty: number }, options?: { addressId?: string | null }) => {
+export const addItem = (
+  body: { productId: string; qty: number; branchId?: string | null },
+  options?: { addressId?: string | null }
+) => {
   const lang = getActiveLang() ?? "en";
   const qs = buildQueryString({ lang, addressId: options?.addressId ?? undefined });
   return request<CartPayload>({ url: `/cart/items${qs}`, method: "POST", data: body }).then(normalizeCart);

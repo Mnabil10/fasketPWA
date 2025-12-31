@@ -6,6 +6,8 @@ import { Label } from "../../ui/label";
 import { Eye, EyeOff } from "lucide-react";
 import appLogo from "../../../icons/icon-256.webp";
 import { useApiErrorToast } from "../hooks";
+import type { MobileAppConfig } from "../../types/api";
+import { getLocalizedString } from "../utils/mobileAppConfig";
 import {
   authLogin,
   verifyPhone,
@@ -25,6 +27,7 @@ interface AuthScreenProps {
   mode: "auth" | "register";
   onAuthSuccess: () => Promise<void> | void;
   onToggleMode: () => void;
+  branding?: MobileAppConfig["branding"] | null;
 }
 
 type FormState = {
@@ -38,8 +41,11 @@ type FormState = {
   newPassword: string;
 };
 
-export function AuthScreen({ mode, onAuthSuccess, onToggleMode }: AuthScreenProps) {
-  const { t } = useTranslation();
+export function AuthScreen({ mode, onAuthSuccess, onToggleMode, branding }: AuthScreenProps) {
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language?.startsWith("ar") ? "ar" : "en";
+  const brandName = getLocalizedString(branding?.appName, lang, t("common.appName", "Fasket"));
+  const logoUrl = branding?.logoUrl || branding?.wordmarkUrl || appLogo;
   const [step, setStep] = useState<"login" | "register" | "verifySignup" | "verifyPhone" | "forgot" | "resetVerify">(
     mode === "auth" ? "login" : "register"
   );
@@ -346,7 +352,7 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode }: AuthScreenProp
     <div className="page-shell" dir="auto">
       <div className="flex flex-col items-center text-center gap-3">
         <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center shadow-card overflow-hidden">
-          <img src={appLogo} alt={t("common.appName", "Fasket")} className="w-12 h-12 object-contain" />
+          <img src={logoUrl} alt={brandName} className="w-12 h-12 object-contain" />
         </div>
         <div>
           <h1 className="font-poppins text-2xl text-gray-900" style={{ fontWeight: 800 }}>

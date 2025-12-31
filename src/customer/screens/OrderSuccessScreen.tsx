@@ -5,14 +5,14 @@ import { Badge } from "../../ui/badge";
 import { CheckCircle, Clock, MapPin, Phone, Star, CreditCard } from "lucide-react";
 import { AppState, type UpdateAppState } from "../CustomerApp";
 import { useProducts, useCart, useApiErrorToast } from "../hooks";
-import type { Product } from "../../types/api";
+import type { OrderDetail, OrderGroupSummary, Product } from "../../types/api";
 import { fmtEGP, fromCents } from "../../lib/money";
 import { NetworkBanner, ProductCard, ProductCardSkeleton } from "../components";
 import { trackAddToCart, trackOrderPlaced } from "../../lib/analytics";
 import { goToHome, goToProduct } from "../navigation/navigation";
 import { useToast } from "../providers/ToastProvider";
-import { FASKET_CONFIG } from "../../config/fasketConfig";
 import { openExternalUrl } from "../../lib/fasketLinks";
+import { resolveSupportConfig } from "../utils/mobileAppConfig";
 
 interface OrderSuccessScreenProps {
   appState: AppState;
@@ -21,9 +21,20 @@ interface OrderSuccessScreenProps {
 
 export function OrderSuccessScreen({ appState, updateAppState }: OrderSuccessScreenProps) {
   const order = appState.lastOrder;
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { showToast } = useToast();
-  const bestQuery = useProducts({ type: "best-selling", limit: 6 }, { enabled: !order?.recommendedProducts?.length });
+  const isGuest = !appState.user;
+  const lang = i18n.language?.startsWith("ar") ? "ar" : "en";
+  const supportConfig = resolveSupportConfig(appState.settings?.mobileApp ?? null, lang);
+  const isGroupSummary = (value: any): value is OrderGroupSummary =>
+    Boolean(value && typeof value === "object" && Array.isArray(value.orders) && value.orderGroupId);
+  const isGroup = isGroupSummary(order);
+  const detailOrder = !isGroup && order ? (order as OrderDetail) : null;
+  const groupOrder = isGroup && order ? (order as OrderGroupSummary) : null;
+  const bestQuery = useProducts(
+    { type: "best-selling", limit: 6 },
+    { enabled: !detailOrder?.recommendedProducts?.length }
+  );
   const [showConfetti, setShowConfetti] = useState(true);
   const cart = useCart({ userId: appState.user?.id });
   const apiErrorToast = useApiErrorToast("cart.updateError");
@@ -34,10 +45,15 @@ export function OrderSuccessScreen({ appState, updateAppState }: OrderSuccessScr
   }, []);
 
   useEffect(() => {
-    if (order?.id) {
-      trackOrderPlaced(order.id, order.totalCents);
+    if (!order) return;
+    if (isGroup && groupOrder?.orderGroupId) {
+      trackOrderPlaced(groupOrder.orderGroupId, order.totalCents);
+      return;
     }
-  }, [order?.id, order?.totalCents]);
+    if (detailOrder?.id) {
+      trackOrderPlaced(detailOrder.id, order.totalCents);
+    }
+  }, [order, isGroup, groupOrder?.orderGroupId, detailOrder?.id]);
 
   useEffect(() => {
     if (!order) {
@@ -45,47 +61,77 @@ export function OrderSuccessScreen({ appState, updateAppState }: OrderSuccessScr
     }
   }, [order, updateAppState]);
 
-  const recommendations: Product[] = order?.recommendedProducts?.length
-    ? order.recommendedProducts
+  const recommendations: Product[] = detailOrder?.recommendedProducts?.length
+    ? detailOrder.recommendedProducts
     : bestQuery.data?.data ?? [];
   const staleData = bestQuery.data?.stale ?? false;
 
   const totalDisplay = order ? fmtEGP(fromCents(order.totalCents)) : "";
-  const subtotalDisplay = order ? fmtEGP(fromCents(order.subtotalCents)) : "";
+  const subtotalDisplay = order ? fmtEGP(fromCents(order.subtotalCents ?? 0)) : "";
   const shippingDisplay = order ? fmtEGP(fromCents(order.shippingFeeCents || 0)) : "";
   const discountDisplay =
     order && order.discountCents ? fmtEGP(fromCents(order.discountCents)) : null;
 
   const etaText = useMemo(() => {
     if (!order) return "";
-    if (order.deliveryEstimateMinutes && order.deliveryEstimateMinutes > 0) {
-      return `${order.deliveryEstimateMinutes} ${t("checkout.summary.minutes", "min")}`;
+    if (detailOrder?.deliveryEstimateMinutes && detailOrder.deliveryEstimateMinutes > 0) {
+      return `${detailOrder.deliveryEstimateMinutes} ${t("checkout.summary.minutes", "min")}`;
     }
     return t("orderSuccess.etaFallback");
-  }, [order, t]);
+  }, [order, detailOrder?.deliveryEstimateMinutes, t]);
 
   const addressLine = useMemo(() => {
-    if (!order?.address) return t("orderSuccess.addressMissing");
-    const parts = [order.address.label, order.address.street, order.address.city, order.address.zone]
-      .filter(Boolean)
-      .join(", ");
-    return parts || t("orderSuccess.addressMissing");
-  }, [order?.address, t]);
+    if (detailOrder?.address) {
+      const parts = [detailOrder.address.label, detailOrder.address.street, detailOrder.address.city, detailOrder.address.zone]
+        .filter(Boolean)
+        .join(", ");
+      return parts || t("orderSuccess.addressMissing");
+    }
+    if (isGuest && appState.guestSession?.address?.fullAddress) {
+      return appState.guestSession.address.fullAddress;
+    }
+    return t("orderSuccess.addressMissing");
+  }, [detailOrder?.address, t, isGuest, appState.guestSession?.address?.fullAddress]);
 
   if (!order) {
     return null;
   }
 
   const goToTrackOrder = () => {
+    const trackCode = isGroup
+      ? groupOrder?.code ?? groupOrder?.orderGroupId ?? null
+      : detailOrder?.code ?? detailOrder?.id ?? null;
+    if (isGuest) {
+      updateAppState((prev) => ({
+        ...prev,
+        guestTracking: {
+          phone: prev.guestTracking?.phone ?? prev.guestSession?.phone ?? undefined,
+          code: trackCode ?? undefined,
+        },
+        currentScreen: "help",
+      }));
+      return;
+    }
+    if (isGroup) {
+      updateAppState({
+        selectedOrderId: null,
+        selectedOrder: order,
+        lastOrderId: null,
+        selectedOrderSummary: null,
+        currentScreen: "order-detail",
+      });
+      return;
+    }
+    if (!detailOrder) return;
     updateAppState({
-      selectedOrderId: order.id,
-      selectedOrder: order,
-      lastOrderId: order.id,
+      selectedOrderId: detailOrder.id,
+      selectedOrder: detailOrder,
+      lastOrderId: detailOrder.id,
       selectedOrderSummary: {
-        id: order.id,
-        totalCents: order.totalCents,
-        status: order.status,
-        createdAt: order.createdAt,
+        id: detailOrder.id,
+        totalCents: detailOrder.totalCents,
+        status: detailOrder.status,
+        createdAt: detailOrder.createdAt,
       },
       currentScreen: "order-detail",
     });
@@ -124,24 +170,56 @@ export function OrderSuccessScreen({ appState, updateAppState }: OrderSuccessScr
             </div>
             <Badge variant="secondary">{t("orders.status.delivered")}</Badge>
           </div>
+          {isGroup && (
+            <div className="text-sm text-gray-700">
+              {t("orderSuccess.groupNotice", {
+                count: groupOrder?.orders.length ?? 0,
+                defaultValue: `Your order was split into ${groupOrder?.orders.length ?? 0} orders.`,
+              })}
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-gray-500" />
             <span className="text-sm text-gray-700">{t("orderSuccess.estimated")} {etaText}</span>
           </div>
-          <div className="flex items-start gap-2">
-            <MapPin className="w-4 h-4 text-gray-500" />
-            <div>
-              <p className="text-sm text-gray-500">{t("orderSuccess.address")}</p>
-              <p className="text-sm text-gray-900">{addressLine}</p>
+          {!isGroup && (
+            <>
+              <div className="flex items-start gap-2">
+                <MapPin className="w-4 h-4 text-gray-500" />
+                <div>
+                  <p className="text-sm text-gray-500">{t("orderSuccess.address")}</p>
+                  <p className="text-sm text-gray-900">{addressLine}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-gray-500" />
+                <span className="text-sm text-gray-700">
+                  {detailOrder?.paymentMethod === "COD" ? t("checkout.payment.cod") : t("checkout.payment.card")}
+                </span>
+              </div>
+            </>
+          )}
+          {isGuest && (
+            <div className="text-xs text-gray-600 bg-gray-50 rounded-xl p-2">
+              {t("orderSuccess.guestHint", "Track your order using your phone number from the Help screen.")}
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <CreditCard className="w-4 h-4 text-gray-500" />
-            <span className="text-sm text-gray-700">
-              {order.paymentMethod === "COD" ? t("checkout.payment.cod") : t("checkout.payment.card")}
-            </span>
-          </div>
+          )}
         </div>
+
+        {isGroup && (
+          <div className="bg-white rounded-2xl shadow-sm w-full max-w-2xl p-4 sm:p-5 space-y-2 sm:space-y-3">
+            <p className="text-sm text-gray-500">{t("orderSuccess.groupOrders", "Orders in this group")}</p>
+            {(groupOrder?.orders ?? []).map((sub) => (
+              <div key={sub.id} className="flex items-center justify-between text-sm">
+                <div>
+                  <p className="font-medium text-gray-900">#{sub.code ?? sub.id}</p>
+                  <p className="text-xs text-gray-500">{t(`orders.status.${sub.status.toLowerCase()}`)}</p>
+                </div>
+                <span className="font-semibold text-gray-900">{fmtEGP(fromCents(sub.totalCents))}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className="w-full max-w-3xl flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
           <Button onClick={goToTrackOrder} className="rounded-xl w-full sm:w-auto justify-center">
@@ -152,7 +230,7 @@ export function OrderSuccessScreen({ appState, updateAppState }: OrderSuccessScr
           </Button>
           <Button
             variant="ghost"
-            onClick={() => openExternalUrl(FASKET_CONFIG.websiteUrl)}
+            onClick={() => openExternalUrl(`tel:${supportConfig.supportPhone}`)}
             className="rounded-xl w-full sm:w-auto justify-center"
           >
             <Phone className="w-4 h-4 mr-1" /> {t("orderSuccess.buttons.call")}

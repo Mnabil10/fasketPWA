@@ -5,8 +5,8 @@ export function digitsOnly(input: string) {
   return input.replace(/[^\d]/g, "");
 }
 
-export function buildWhatsappUrl(message: string) {
-  const number = digitsOnly(FASKET_CONFIG.whatsappNumber);
+export function buildWhatsappUrl(message: string, phoneOverride?: string) {
+  const number = digitsOnly(phoneOverride ?? FASKET_CONFIG.whatsappNumber);
   const encoded = encodeURIComponent(message);
   return `https://wa.me/${number}?text=${encoded}`;
 }
@@ -26,12 +26,13 @@ export async function openExternalUrl(url: string) {
   }
 }
 
-export async function openWhatsapp(message: string) {
-  const url = buildWhatsappUrl(message);
+export async function openWhatsapp(message: string, phoneOverride?: string) {
+  const url = buildWhatsappUrl(message, phoneOverride);
   await openExternalUrl(url);
 }
 
-export function buildSupportMailto(subject?: string) {
+export function buildSupportMailto(subject?: string, emailOverride?: string) {
   const encodedSubject = subject ? encodeURIComponent(subject) : "";
-  return `mailto:${FASKET_CONFIG.supportEmail}${encodedSubject ? `?subject=${encodedSubject}` : ""}`;
+  const email = emailOverride ?? FASKET_CONFIG.supportEmail;
+  return `mailto:${email}${encodedSubject ? `?subject=${encodedSubject}` : ""}`;
 }

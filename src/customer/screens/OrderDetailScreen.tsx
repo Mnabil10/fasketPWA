@@ -13,6 +13,7 @@ import { useOrderDetail, useNetworkStatus } from "../hooks";
 import { goToOrders } from "../navigation/navigation";
 import { mapApiErrorToMessage } from "../../utils/mapApiErrorToMessage";
 import { openWhatsapp } from "../../lib/fasketLinks";
+import type { OrderDetail, OrderGroupSummary } from "../../types/api";
 
 interface OrderDetailScreenProps {
   appState: AppState;
@@ -37,17 +38,25 @@ const STATUS_VARIANTS: Record<
 export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScreenProps) {
   const { t } = useTranslation();
   const { isOffline } = useNetworkStatus();
-  const fallbackId =
-    appState.selectedOrderId ||
-    appState.selectedOrder?.id ||
-    appState.lastOrder?.id ||
-    appState.lastOrderId ||
-    appState.selectedOrderSummary?.id;
+  const selectedOrder = appState.selectedOrder;
+  const isGroupSummary = (value: any): value is OrderGroupSummary =>
+    Boolean(value && typeof value === "object" && Array.isArray(value.orders) && value.orderGroupId);
+  const isGroup = isGroupSummary(selectedOrder);
+  const fallbackId = isGroup
+    ? null
+    : appState.selectedOrderId ||
+      (appState.selectedOrder as any)?.id ||
+      (appState.lastOrder as any)?.id ||
+      appState.lastOrderId ||
+      appState.selectedOrderSummary?.id;
 
   const orderQuery = useOrderDetail(fallbackId, {
-    initialData: appState.selectedOrder || undefined,
+    initialData: !isGroup ? (selectedOrder as any) : undefined,
+    enabled: !isGroup && Boolean(fallbackId),
   });
-  const order = orderQuery.data ?? null;
+  const order = isGroup ? (selectedOrder as OrderGroupSummary) : orderQuery.data ?? null;
+  const orderDetail = !isGroup && order ? (order as OrderDetail) : null;
+  const groupOrder = isGroup && order ? (order as OrderGroupSummary) : null;
   const loadErrorMessage = mapApiErrorToMessage(orderQuery.error, "orderDetail.messages.notFound");
 
   const statusKey = order?.status?.toUpperCase?.() || "PENDING";
@@ -55,35 +64,37 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
   const StatusIcon = statusMeta.icon;
 
   const timeline = React.useMemo(() => {
+    if (!order || isGroup) return [];
     const steps = [
       { key: "PENDING", label: t("orders.status.pending", "Pending") },
       { key: "PROCESSING", label: t("orders.status.processing", "Processing") },
       { key: "OUT_FOR_DELIVERY", label: t("orders.status.out_for_delivery", "Out for delivery") },
       { key: "DELIVERED", label: t("orders.status.delivered", "Delivered") },
     ];
-    const history = (order?.statusHistory || []).map((h) => ({
+    const history = (orderDetail?.statusHistory || []).map((h) => ({
       status: (h.to || "").toUpperCase(),
-      at: h.createdAt || order?.createdAt,
+      at: h.createdAt || orderDetail?.createdAt,
       note: h.note,
     }));
     const reached = new Set(history.map((h) => h.status));
     const currentReached = steps.findIndex((s) => s.key === statusKey);
     return steps.map((step, idx) => {
       const historyMatch = history.find((h) => h.status === step.key);
-      const at = historyMatch?.at || (idx === 0 ? order?.createdAt : null);
+      const at = historyMatch?.at || (idx === 0 ? orderDetail?.createdAt : null);
       const completed = reached.has(step.key) || idx <= currentReached;
       return { ...step, at, completed, note: historyMatch?.note };
     });
-  }, [order?.createdAt, order?.statusHistory, statusKey, t]);
+  }, [orderDetail?.createdAt, orderDetail?.statusHistory, statusKey, t, isGroup]);
 
-  const addressLine = order?.address
-    ? [order.address.label, order.address.street, order.address.city, order.address.zone]
+  const addressLine = orderDetail?.address
+    ? [orderDetail.address.label, orderDetail.address.street, orderDetail.address.city, orderDetail.address.zone]
         .filter(Boolean)
         .join(", ")
     : t("orderDetail.addressMissing", "No address provided");
+  const helpId = isGroup && groupOrder ? groupOrder.orderGroupId : fallbackId || "";
   const helpMessage = t("orderDetail.helpMessage", {
-    id: fallbackId || "",
-    defaultValue: `Hi, I need help with my Fasket order${fallbackId ? " #" + fallbackId : ""}.`,
+    id: helpId,
+    defaultValue: `Hi, I need help with my Fasket order${helpId ? " #" + helpId : ""}.`,
   });
 
   const goBack = () => {
@@ -127,8 +138,10 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
             <section className="section-card space-y-2">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500">{t("orderDetail.orderId")}</p>
-                  <p className="font-medium text-gray-900">#{order.id}</p>
+                  <p className="text-sm text-gray-500">
+                    {isGroup ? t("orderDetail.orderGroupId", "Order group") : t("orderDetail.orderId")}
+                  </p>
+                  <p className="font-medium text-gray-900">#{isGroup ? groupOrder?.orderGroupId : orderDetail?.id}</p>
                 </div>
                 <Badge variant={statusMeta.variant} className="flex items-center gap-1">
                   <StatusIcon className="w-3 h-3" />
@@ -141,67 +154,102 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
                 })}
               </div>
               <Separator />
-              <div className="space-y-3 text-sm text-gray-700">
-                <div className="flex items-center gap-2">
-                  <CreditCard className="w-4 h-4 text-gray-500" />
-                  <span>
-                    {t("orderDetail.paymentMethod")} :{" "}
-                    {order.paymentMethod === "COD"
-                      ? t("checkout.payment.cod")
-                      : t("checkout.payment.card")}
-                  </span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <MapPin className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                  <div>
-                    <p className="text-sm text-gray-500 mb-1">{t("orderDetail.address")}</p>
-                    <p className="font-medium text-gray-900">{addressLine}</p>
+              {!isGroup && (
+                <div className="space-y-3 text-sm text-gray-700">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="w-4 h-4 text-gray-500" />
+                    <span>
+                      {t("orderDetail.paymentMethod")} :{" "}
+                      {orderDetail?.paymentMethod === "COD"
+                        ? t("checkout.payment.cod")
+                        : t("checkout.payment.card")}
+                    </span>
                   </div>
-                </div>
-                {(order.deliveryZone?.nameEn || order.deliveryZoneName) && (
                   <div className="flex items-start gap-2">
-                    <Truck className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                    <MapPin className="w-4 h-4 text-gray-500 flex-shrink-0" />
                     <div>
-                      <p className="text-sm text-gray-500 mb-1">{t("orderDetail.deliveryZone", "Delivery zone")}</p>
-                      <p className="font-medium text-gray-900">
-                        {order.deliveryZone?.nameEn || order.deliveryZoneName}
-                      </p>
+                      <p className="text-sm text-gray-500 mb-1">{t("orderDetail.address")}</p>
+                      <p className="font-medium text-gray-900">{addressLine}</p>
                     </div>
                   </div>
-                )}
-                {order.driver?.fullName && (
-                  <div className="flex items-start gap-2">
-                    <Truck className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm text-gray-500 mb-1">{t("orderDetail.driver", "Driver")}</p>
-                      <p className="font-medium text-gray-900">{order.driver.fullName}</p>
-                      {order.driver.phone && <p className="text-gray-500">{order.driver.phone}</p>}
+                  {(orderDetail?.deliveryZone?.nameEn || orderDetail?.deliveryZoneName) && (
+                    <div className="flex items-start gap-2">
+                      <Truck className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm text-gray-500 mb-1">{t("orderDetail.deliveryZone", "Delivery zone")}</p>
+                        <p className="font-medium text-gray-900">
+                          {orderDetail?.deliveryZone?.nameEn || orderDetail?.deliveryZoneName}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                  {orderDetail?.driver?.fullName && (
+                    <div className="flex items-start gap-2">
+                      <Truck className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm text-gray-500 mb-1">{t("orderDetail.driver", "Driver")}</p>
+                        <p className="font-medium text-gray-900">{orderDetail.driver.fullName}</p>
+                        {orderDetail.driver.phone && <p className="text-gray-500">{orderDetail.driver.phone}</p>}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </section>
 
-            <section className="section-card space-y-2">
-              <h2 className="font-medium text-gray-900">{t("orderDetail.items")}</h2>
-              <div className="space-y-3">
-                {order.items.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between text-sm">
-                    <div className="flex-1 pr-3">
-                      <p className="font-medium text-gray-900 line-clamp-2">
-                        {item.productNameSnapshot}
-                      </p>
-                      <p className="text-gray-500">
-                        {t("orderDetail.quantity", { count: item.qty })}
-                      </p>
+            {isGroup ? (
+              <section className="section-card space-y-2">
+                <h2 className="font-medium text-gray-900">
+                  {t("orderDetail.groupOrders", "Orders in this group")}
+                </h2>
+                <div className="space-y-3">
+                  {(groupOrder?.orders ?? []).map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() =>
+                        updateAppState({
+                          selectedOrderId: item.id,
+                          selectedOrder: null,
+                          currentScreen: "order-detail",
+                        })
+                      }
+                      className="w-full text-left inline-card flex items-center justify-between text-sm"
+                    >
+                      <div>
+                        <p className="font-medium text-gray-900">#{item.code ?? item.id}</p>
+                        <p className="text-xs text-gray-500">
+                          {t(`orders.status.${item.status.toLowerCase()}`)}
+                        </p>
+                      </div>
+                      <div className="font-semibold text-gray-900 price-text">
+                        {fmtEGP(fromCents(item.totalCents))}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            ) : (
+              <section className="section-card space-y-2">
+                <h2 className="font-medium text-gray-900">{t("orderDetail.items")}</h2>
+                <div className="space-y-3">
+                  {(orderDetail?.items ?? []).map((item) => (
+                    <div key={item.id} className="flex items-center justify-between text-sm">
+                      <div className="flex-1 pr-3">
+                        <p className="font-medium text-gray-900 line-clamp-2">
+                          {item.productNameSnapshot}
+                        </p>
+                        <p className="text-gray-500">
+                          {t("orderDetail.quantity", { count: item.qty })}
+                        </p>
+                      </div>
+                      <div className="font-semibold text-gray-900 price-text">
+                        {fmtEGP(fromCents(item.priceSnapshotCents) * item.qty)}
+                      </div>
                     </div>
-                    <div className="font-semibold text-gray-900 price-text">
-                      {fmtEGP(fromCents(item.priceSnapshotCents) * item.qty)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
+                  ))}
+                </div>
+              </section>
+            )}
 
             <section className="section-card space-y-2">
               <h2 className="font-medium text-gray-900">{t("orderDetail.summary")}</h2>
@@ -220,22 +268,22 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
                     <span className="price-text">-{fmtEGP(fromCents(order.discountCents))}</span>
                   </div>
                 ) : null}
-                {order.loyaltyDiscountCents ? (
+                {orderDetail?.loyaltyDiscountCents ? (
                   <div className="flex justify-between text-green-700">
                     <span>{t("orderDetail.loyaltyDiscount", "Loyalty discount")}</span>
-                    <span className="price-text">-{fmtEGP(fromCents(order.loyaltyDiscountCents))}</span>
+                    <span className="price-text">-{fmtEGP(fromCents(orderDetail.loyaltyDiscountCents))}</span>
                   </div>
                 ) : null}
-                {order.loyaltyPointsRedeemed != null && (
+                {orderDetail?.loyaltyPointsRedeemed != null && (
                   <div className="flex justify-between text-gray-600">
                     <span>{t("orderDetail.pointsRedeemed", "Points used")}</span>
-                    <span>{order.loyaltyPointsRedeemed}</span>
+                    <span>{orderDetail.loyaltyPointsRedeemed}</span>
                   </div>
                 )}
-                {order.loyaltyPointsEarned != null && (
+                {orderDetail?.loyaltyPointsEarned != null && (
                   <div className="flex justify-between text-gray-600">
                     <span>{t("orderDetail.pointsEarned", "Points earned")}</span>
-                    <span>{order.loyaltyPointsEarned}</span>
+                    <span>{orderDetail.loyaltyPointsEarned}</span>
                   </div>
                 )}
                 <Separator />
@@ -246,23 +294,25 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
               </div>
             </section>
 
-            <section className="section-card space-y-2">
-              <h2 className="font-medium text-gray-900">{t("orderDetail.timeline", "Order timeline")}</h2>
-              <div className="space-y-3">
-                {timeline.map((step) => (
-                  <div key={step.key} className="flex items-start gap-3">
-                    <div className={`w-3 h-3 rounded-full mt-1 ${step.completed ? "bg-green-500" : "bg-gray-300"}`} />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{step.label}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {step.at ? dayjs(step.at).format(t("orders.dateFormat", "DD MMM YYYY - HH:mm")) : t("orderDetail.pendingTimestamp", "Pending update")}
-                      </p>
-                      {step.note && <p className="text-xs text-muted-foreground">{step.note}</p>}
+            {!isGroup && (
+              <section className="section-card space-y-2">
+                <h2 className="font-medium text-gray-900">{t("orderDetail.timeline", "Order timeline")}</h2>
+                <div className="space-y-3">
+                  {timeline.map((step) => (
+                    <div key={step.key} className="flex items-start gap-3">
+                      <div className={`w-3 h-3 rounded-full mt-1 ${step.completed ? "bg-green-500" : "bg-gray-300"}`} />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{step.label}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {step.at ? dayjs(step.at).format(t("orders.dateFormat", "DD MMM YYYY - HH:mm")) : t("orderDetail.pendingTimestamp", "Pending update")}
+                        </p>
+                        {step.note && <p className="text-xs text-muted-foreground">{step.note}</p>}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </section>
+                  ))}
+                </div>
+              </section>
+            )}
 
             <section className="section-card space-y-2">
               <h2 className="font-medium text-gray-900">{t("orderDetail.helpTitle", "Need help with this order?")}</h2>

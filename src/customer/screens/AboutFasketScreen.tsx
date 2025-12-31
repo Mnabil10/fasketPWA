@@ -16,20 +16,22 @@ import {
   Star,
 } from "lucide-react";
 import { AppState, type UpdateAppState } from "../CustomerApp";
-import { FASKET_CONFIG } from "../../config/fasketConfig";
 import { openExternalUrl, openWhatsapp, buildSupportMailto } from "../../lib/fasketLinks";
 import { useShareFasket } from "../hooks/useShareFasket";
 import { NetworkBanner } from "../components";
 import { FASKET_GRADIENTS } from "../../styles/designSystem";
+import { resolveSupportConfig } from "../utils/mobileAppConfig";
 
 interface AboutFasketScreenProps {
   appState: AppState;
   updateAppState: UpdateAppState;
 }
 
-export function AboutFasketScreen({ updateAppState }: AboutFasketScreenProps) {
+export function AboutFasketScreen({ appState, updateAppState }: AboutFasketScreenProps) {
   const { t, i18n } = useTranslation();
-  const share = useShareFasket();
+  const lang = i18n.language?.startsWith("ar") ? "ar" : "en";
+  const supportConfig = resolveSupportConfig(appState.settings?.mobileApp ?? null, lang);
+  const share = useShareFasket(supportConfig.webAppUrl);
   const isRTL = i18n.dir() === "rtl";
 
   const features = (t("about.features", { returnObjects: true }) as string[]) || [];
@@ -70,28 +72,28 @@ export function AboutFasketScreen({ updateAppState }: AboutFasketScreenProps) {
             <MapPin className="w-4 h-4 text-primary" />
             <div>
               <p className="text-xs text-gray-500">{t("about.serviceAreaLabel")}</p>
-              <p className="font-semibold text-gray-900">{FASKET_CONFIG.serviceArea}</p>
+              <p className="font-semibold text-gray-900">{supportConfig.serviceArea}</p>
             </div>
           </div>
           <div className="bg-white/80 rounded-xl p-3 border border-border shadow-card flex items-center gap-2">
             <Clock className="w-4 h-4 text-primary" />
             <div>
               <p className="text-xs text-gray-500">{t("about.workingHoursLabel", "Working hours")}</p>
-              <p className="font-semibold text-gray-900">{FASKET_CONFIG.workingHours}</p>
+              <p className="font-semibold text-gray-900">{supportConfig.workingHours}</p>
             </div>
           </div>
           <div className="bg-white/80 rounded-xl p-3 border border-border shadow-card flex items-center gap-2">
             <Globe className="w-4 h-4 text-primary" />
             <div>
               <p className="text-xs text-gray-500">{t("about.coverageLabel", "City coverage")}</p>
-              <p className="font-semibold text-gray-900">{FASKET_CONFIG.cityCoverage}</p>
+              <p className="font-semibold text-gray-900">{supportConfig.cityCoverage}</p>
             </div>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button
             className="rounded-xl"
-            onClick={() => openExternalUrl(FASKET_CONFIG.websiteUrl)}
+            onClick={() => openExternalUrl(supportConfig.websiteUrl)}
           >
             <ExternalLink className="w-4 h-4 mr-2" />
             {t("about.visitWebsite")}
@@ -107,7 +109,7 @@ export function AboutFasketScreen({ updateAppState }: AboutFasketScreenProps) {
           <Button
             variant="outline"
             className="rounded-xl"
-            onClick={() => openWhatsapp(whatsappMessage)}
+            onClick={() => openWhatsapp(whatsappMessage, supportConfig.whatsappNumber)}
           >
             <MessageCircle className="w-4 h-4 mr-2" />
             {t("about.contactWhatsapp")}
@@ -143,28 +145,28 @@ export function AboutFasketScreen({ updateAppState }: AboutFasketScreenProps) {
             <Phone className="w-4 h-4 text-primary" />
             <div>
               <p className="text-xs text-gray-500">{t("about.phone")}</p>
-              <p className="font-semibold text-gray-900">{FASKET_CONFIG.supportPhone}</p>
+              <p className="font-semibold text-gray-900">{supportConfig.supportPhone}</p>
             </div>
           </div>
           <div className="inline-card flex items-center gap-2 border border-border">
             <Mail className="w-4 h-4 text-primary" />
             <div>
               <p className="text-xs text-gray-500">{t("about.email")}</p>
-              <p className="font-semibold text-gray-900">{FASKET_CONFIG.supportEmail}</p>
+              <p className="font-semibold text-gray-900">{supportConfig.supportEmail}</p>
             </div>
           </div>
           <div className="inline-card flex items-center gap-2 border border-border">
             <Globe className="w-4 h-4 text-primary" />
             <div>
               <p className="text-xs text-gray-500">{t("about.website")}</p>
-              <p className="font-semibold text-gray-900">{FASKET_CONFIG.websiteUrl}</p>
+              <p className="font-semibold text-gray-900">{supportConfig.websiteUrl}</p>
             </div>
           </div>
           <div className="inline-card flex items-center gap-2 border border-border">
             <MessageCircle className="w-4 h-4 text-primary" />
             <div>
               <p className="text-xs text-gray-500">{t("about.whatsapp")}</p>
-              <p className="font-semibold text-gray-900">{FASKET_CONFIG.whatsappNumber}</p>
+              <p className="font-semibold text-gray-900">{supportConfig.whatsappNumber}</p>
             </div>
           </div>
         </div>
@@ -172,14 +174,14 @@ export function AboutFasketScreen({ updateAppState }: AboutFasketScreenProps) {
           <Button
             variant="outline"
             className="rounded-xl w-full"
-            onClick={() => openExternalUrl(FASKET_CONFIG.webAppUrl)}
+            onClick={() => openExternalUrl(supportConfig.webAppUrl)}
           >
             <ExternalLink className="w-4 h-4 mr-2" />
             {t("about.openWebApp")}
           </Button>
           <Button
             className="rounded-xl w-full"
-            onClick={() => openExternalUrl(buildSupportMailto(t("about.emailSubject")))}
+            onClick={() => openExternalUrl(buildSupportMailto(t("about.emailSubject"), supportConfig.supportEmail))}
           >
             <Mail className="w-4 h-4 mr-2" />
             {t("about.contactEmail")}
@@ -201,8 +203,8 @@ export function AboutFasketScreen({ updateAppState }: AboutFasketScreenProps) {
           <Button
             variant="outline"
             className="rounded-xl w-full sm:w-auto"
-            onClick={() => openExternalUrl(FASKET_CONFIG.playStoreUrl)}
-            disabled={!FASKET_CONFIG.playStoreUrl}
+            onClick={() => openExternalUrl(supportConfig.playStoreUrl)}
+            disabled={!supportConfig.playStoreUrl}
           >
             <Star className="w-4 h-4 mr-2" />
             {t("about.rateApp")}
@@ -210,7 +212,7 @@ export function AboutFasketScreen({ updateAppState }: AboutFasketScreenProps) {
           <Button
             variant="ghost"
             className="rounded-xl w-full sm:w-auto"
-            onClick={() => openExternalUrl(FASKET_CONFIG.websiteUrl)}
+            onClick={() => openExternalUrl(supportConfig.websiteUrl)}
           >
             <Globe className="w-4 h-4 mr-2" />
             {t("about.landingCta", "Open landing page")}

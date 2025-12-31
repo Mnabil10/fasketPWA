@@ -5,6 +5,7 @@ import type { CartPreviewItem } from "../types";
 
 export type LocalCartItem = {
   productId: string;
+  branchId?: string | null;
   name: string;
   image?: string;
   priceCents: number;
@@ -34,6 +35,7 @@ export const useLocalCartStore = create<LocalCartState>()(
         const nextQty = Math.max(1, Math.min(MAX_QTY, (existing?.quantity || 0) + qty));
         items[product.id] = {
           productId: product.id,
+          branchId: product.branchId ?? null,
           name: product.name,
           image: product.imageUrl ?? undefined,
           priceCents: product.priceCents,
@@ -70,6 +72,7 @@ export function mapLocalCartToPreview(items: Record<string, LocalCartItem>): Car
   return Object.values(items).map((item) => ({
     id: item.productId,
     productId: item.productId,
+    branchId: item.branchId ?? null,
     name: item.name,
     image: item.image,
     price: ((item.salePriceCents ?? item.priceCents) || item.priceCents) / 100,
@@ -77,6 +80,7 @@ export function mapLocalCartToPreview(items: Record<string, LocalCartItem>): Car
     category: item.category,
     product: {
       id: item.productId,
+      branchId: item.branchId ?? null,
       name: item.name,
       imageUrl: item.image,
       priceCents: item.priceCents,

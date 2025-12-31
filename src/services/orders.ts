@@ -1,7 +1,7 @@
 // src/services/orders.ts
 import { api } from "../api/client";
 import type { ApiCart } from "./cart";
-import type { OrderDetail, OrderReceipt, OrderSummary } from "../types/api";
+import type { OrderDetail, OrderGroupSummary, OrderReceipt, OrderSummary } from "../types/api";
 
 type OrdersPayload =
   | OrderSummary[]
@@ -121,6 +121,52 @@ function normalizeOrderDetail(payload: any): OrderDetail {
   } as OrderDetail;
 }
 
+function normalizeOrderGroupSummary(payload: any): OrderGroupSummary | null {
+  const node =
+    payload?.orderGroup && typeof payload.orderGroup === "object"
+      ? payload.orderGroup
+      : payload?.data && typeof payload.data === "object"
+        ? payload.data
+        : payload;
+
+  if (!node || typeof node !== "object") return null;
+  if (!node.orderGroupId && !Array.isArray(node.orders)) return null;
+
+  const orders = Array.isArray(node.orders)
+    ? node.orders.map((order: any) => ({
+        id: order.id,
+        code: order.code ?? order.id ?? null,
+        status: mapOrderStatus(order.status),
+        subtotalCents: order.subtotalCents ?? 0,
+        shippingFeeCents: order.shippingFeeCents ?? 0,
+        discountCents: order.discountCents ?? 0,
+        totalCents: order.totalCents ?? 0,
+        providerId: order.providerId ?? null,
+        branchId: order.branchId ?? null,
+        createdAt: order.createdAt ?? node.createdAt,
+      }))
+    : [];
+
+  return {
+    orderGroupId: node.orderGroupId ?? node.id,
+    code: node.code ?? null,
+    status: mapOrderStatus(node.status),
+    subtotalCents: node.subtotalCents ?? 0,
+    shippingFeeCents: node.shippingFeeCents ?? 0,
+    discountCents: node.discountCents ?? 0,
+    totalCents: node.totalCents ?? 0,
+    createdAt: node.createdAt ?? new Date().toISOString(),
+    orders,
+    skippedBranchIds: node.skippedBranchIds ?? undefined,
+  } as OrderGroupSummary;
+}
+
+function normalizeOrderDetailOrGroup(payload: any): OrderDetail | OrderGroupSummary {
+  const group = normalizeOrderGroupSummary(payload);
+  if (group) return group;
+  return normalizeOrderDetail(payload);
+}
+
 function normalizeOrderReceipt(payload: any): OrderReceipt {
   const node =
     payload?.receipt && typeof payload.receipt === "object"
@@ -207,6 +253,60 @@ export type PlaceOrderBody = {
   idempotencyKey?: string;
 };
 
+export type GuestOrderItem = {
+  productId: string;
+  qty: number;
+  branchId?: string | null;
+};
+
+export type GuestAddressInput = {
+  fullAddress: string;
+  city?: string;
+  region?: string;
+  street?: string;
+  building?: string;
+  apartment?: string;
+  notes?: string;
+  lat: number;
+  lng: number;
+};
+
+export type GuestOrderQuoteRequest = {
+  items: GuestOrderItem[];
+  address: GuestAddressInput;
+  splitFailurePolicy?: "PARTIAL" | "CANCEL_GROUP";
+};
+
+export type GuestOrderGroup = {
+  branchId: string;
+  providerId?: string | null;
+  branchName?: string | null;
+  branchNameAr?: string | null;
+  subtotalCents: number;
+  shippingFeeCents: number;
+  distanceKm?: number | null;
+  ratePerKmCents?: number | null;
+  deliveryMode?: string | null;
+  deliveryRequiresLocation?: boolean;
+  deliveryUnavailable?: boolean;
+};
+
+export type GuestOrderQuote = {
+  subtotalCents: number;
+  shippingFeeCents: number;
+  totalCents: number;
+  groups: GuestOrderGroup[];
+  skippedBranchIds?: string[];
+};
+
+export type PlaceGuestOrderBody = GuestOrderQuoteRequest & {
+  name: string;
+  phone: string;
+  note?: string;
+  paymentMethod?: "COD" | "CARD";
+  idempotencyKey?: string;
+};
+
 /** GET /orders */
 export async function listMyOrders(params?: { page?: number; pageSize?: number; status?: string }): Promise<OrderSummary[]> {
   const search = new URLSearchParams();
@@ -225,7 +325,7 @@ export async function getOrderById(id: string): Promise<OrderDetail> {
 }
 
 /** POST /orders */
-export async function placeOrder(body: PlaceOrderBody): Promise<OrderDetail> {
+export async function placeOrder(body: PlaceOrderBody): Promise<OrderDetail | OrderGroupSummary> {
   if (!body.addressId) {
     throw new Error("addressId is required");
   }
@@ -235,7 +335,7 @@ export async function placeOrder(body: PlaceOrderBody): Promise<OrderDetail> {
       ? crypto.randomUUID()
       : `order-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
   const { data } = await api.post("/orders", { ...body, idempotencyKey });
-  return normalizeOrderDetail(data?.data ?? data);
+  return normalizeOrderDetailOrGroup(data?.data ?? data);
 }
 
 export async function getOrderReceipt(id: string): Promise<OrderReceipt> {
@@ -269,4 +369,62 @@ export async function getDriverLocation(id: string) {
   } catch {
     return null;
   }
+}
+
+function normalizeGuestQuote(payload: any): GuestOrderQuote {
+  const node = payload?.data ?? payload ?? {};
+  const groups = Array.isArray(node.groups)
+    ? node.groups.map((group: any) => ({
+        branchId: group.branchId,
+        providerId: group.providerId ?? null,
+        branchName: group.branchName ?? null,
+        branchNameAr: group.branchNameAr ?? null,
+        subtotalCents: group.subtotalCents ?? 0,
+        shippingFeeCents: group.shippingFeeCents ?? 0,
+        distanceKm: group.distanceKm ?? null,
+        ratePerKmCents: group.ratePerKmCents ?? null,
+        deliveryMode: group.deliveryMode ?? null,
+        deliveryRequiresLocation: group.deliveryRequiresLocation ?? false,
+        deliveryUnavailable: group.deliveryUnavailable ?? false,
+      }))
+    : [];
+  const subtotalCents = node.subtotalCents ?? 0;
+  const shippingFeeCents = node.shippingFeeCents ?? 0;
+  const totalCents = node.totalCents ?? subtotalCents + shippingFeeCents;
+  return {
+    subtotalCents,
+    shippingFeeCents,
+    totalCents,
+    groups,
+    skippedBranchIds: node.skippedBranchIds ?? undefined,
+  };
+}
+
+export async function quoteGuestOrder(body: GuestOrderQuoteRequest): Promise<GuestOrderQuote> {
+  const { data } = await api.post("/orders/guest/quote", body, { skipAuth: true });
+  return normalizeGuestQuote(data?.data ?? data);
+}
+
+export async function placeGuestOrder(body: PlaceGuestOrderBody): Promise<OrderDetail | OrderGroupSummary> {
+  const idempotencyKey =
+    body.idempotencyKey ??
+    (typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `guest-order-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
+  const { data } = await api.post("/orders/guest", { ...body, idempotencyKey }, { skipAuth: true });
+  return normalizeOrderDetailOrGroup(data?.data ?? data);
+}
+
+export async function trackGuestOrders(params: { phone: string; code?: string }): Promise<OrderGroupSummary> {
+  const search = new URLSearchParams();
+  search.set("phone", params.phone);
+  if (params.code) {
+    search.set("code", params.code);
+  }
+  const { data } = await api.get(`/orders/guest/track?${search.toString()}`, { skipAuth: true });
+  const summary = normalizeOrderGroupSummary(data?.data ?? data);
+  if (!summary) {
+    throw new Error("Order not found");
+  }
+  return summary;
 }

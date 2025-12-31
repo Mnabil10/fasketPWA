@@ -16,6 +16,7 @@ import type { CartPreviewItem } from "../types";
 import type { ApiCart } from "../../services/cart";
 import { mapApiErrorToMessage } from "../../utils/mapApiErrorToMessage";
 import { extractNoticeMessage } from "../../utils/extractNoticeMessage";
+import { isFeatureEnabled } from "../utils/mobileAppConfig";
 
 interface CartScreenProps {
   appState: AppState;
@@ -77,6 +78,7 @@ export function CartScreen({ appState, updateAppState }: CartScreenProps) {
   const cart = useCart({ userId: appState.user?.id, addressId: primaryAddress?.id ?? null });
   const apiErrorToast = useApiErrorToast("cart.updateError");
   const isAuthenticated = Boolean(appState.user);
+  const guestCheckoutEnabled = isFeatureEnabled(appState.settings?.mobileApp, "guestCheckout", true);
   const [pendingItemId, setPendingItemId] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<"inc" | "dec" | "remove" | null>(null);
   const isRTL = i18n.dir() === "rtl";
@@ -89,6 +91,11 @@ export function CartScreen({ appState, updateAppState }: CartScreenProps) {
   const loading = cart.isLoading || cart.isFetching || cart.isMerging;
   const cartError = cart.isError ? cart.error : cart.mergeError;
   const showEmptyState = !loading && displayItems.length === 0 && !cartError;
+  const cartGroups = cart.rawCart?.groups ?? [];
+  const deliveryRequiresLocation = Boolean(
+    cart.rawCart?.delivery?.requiresLocation || cartGroups.some((group) => group.deliveryRequiresLocation)
+  );
+  const locationMissing = !primaryAddress || primaryAddress.lat == null || primaryAddress.lng == null;
   const subtotalDisplay = fmtEGP(cart.subtotal);
   const shippingDisplay = fmtEGP(fromCents(cart.shippingFeeCents));
   const couponDisplay = cart.discountCents ? fmtEGP(fromCents(cart.discountCents)) : null;
@@ -111,11 +118,14 @@ export function CartScreen({ appState, updateAppState }: CartScreenProps) {
         value: `${cart.deliveryEstimateMinutes} ${t("checkout.summary.minutes", "min")}`,
       })
     : t("cart.summaryEtaFallback");
+  const addressWarningText = deliveryRequiresLocation
+    ? t("cart.locationRequired", "Add a delivery location to calculate delivery fees.")
+    : t("cart.addressWarning");
   const showAddressWarning = Boolean(
     appState.user &&
-    !addressesQuery.isLoading &&
-    !addressesQuery.isFetching &&
-    (!primaryAddress || !primaryAddress.zoneId)
+      !addressesQuery.isLoading &&
+      !addressesQuery.isFetching &&
+      (deliveryRequiresLocation ? locationMissing : !primaryAddress || !primaryAddress.zoneId)
   );
   const cartErrorMessage = cartError
     ? mapApiErrorToMessage(cartError, "cart.loadError")
@@ -164,12 +174,23 @@ export function CartScreen({ appState, updateAppState }: CartScreenProps) {
 
   const handleCheckout = () => {
     if (!isAuthenticated) {
-      showToast({
-        type: "info",
-        message: t("cart.loginToCheckout", "Sign in to checkout and sync your cart."),
-        actionLabel: t("auth.signIn"),
-        onAction: () => updateAppState({ currentScreen: "auth" }),
-      });
+      if (!guestCheckoutEnabled) {
+        showToast({
+          type: "info",
+          message: t("cart.loginToCheckout", "Sign in to checkout and sync your cart."),
+          actionLabel: t("auth.signIn"),
+          onAction: () => updateAppState({ currentScreen: "auth" }),
+        });
+        return;
+      }
+      if (isOffline) {
+        showToast({
+          type: "error",
+          message: t("cart.offlineCheckout", "You are offline. Please reconnect to continue."),
+        });
+        return;
+      }
+      updateAppState({ currentScreen: "checkout" });
       return;
     }
     if (isOffline) {
@@ -341,7 +362,7 @@ export function CartScreen({ appState, updateAppState }: CartScreenProps) {
           <div className="bg-amber-50 text-amber-900 text-sm rounded-xl p-3 flex flex-col gap-2">
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4" />
-              <span>{t("cart.addressWarning")}</span>
+              <span>{addressWarningText}</span>
             </div>
             <Button
               variant="outline"
@@ -367,6 +388,25 @@ export function CartScreen({ appState, updateAppState }: CartScreenProps) {
             <p className="text-sm font-semibold text-gray-900">{etaLabel}</p>
           </div>
         </div>
+        {cartGroups.length > 0 && (
+          <div className="rounded-xl bg-gray-50 p-3 text-xs text-gray-600 space-y-2">
+            <p className="font-semibold text-gray-900">{t("cart.groupsTitle", "Delivery by branch")}</p>
+            {cartGroups.map((group) => {
+              const branchName = i18n.language?.startsWith("ar")
+                ? group.branchNameAr || group.branchName || group.branchId
+                : group.branchName || group.branchNameAr || group.branchId;
+              const feeLabel = group.deliveryUnavailable
+                ? t("cart.deliveryUnavailable", "Unavailable")
+                : fmtEGP(fromCents(group.shippingFeeCents ?? 0));
+              return (
+                <div key={group.branchId} className="flex items-center justify-between">
+                  <span className="text-gray-700">{branchName}</span>
+                  <span className="font-medium text-gray-900">{feeLabel}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
         <div className="flex items-center justify-between text-gray-600 text-sm">
           <span>{t("cart.subtotalLabel", "Subtotal")}</span>
           <span className="font-medium text-gray-900 price-text">{subtotalDisplay}</span>
@@ -402,14 +442,20 @@ export function CartScreen({ appState, updateAppState }: CartScreenProps) {
         <p className="text-xs text-gray-500">
           {isAuthenticated
             ? t("cart.summaryNote", "Delivery fees and discounts are calculated at checkout.")
-            : t("cart.localSummaryNote", "Login to see delivery fees and synced totals.")}
+            : guestCheckoutEnabled
+              ? t("cart.guestSummaryNote", "Delivery fees are calculated at checkout.")
+              : t("cart.localSummaryNote", "Login to see delivery fees and synced totals.")}
         </p>
         <Button
           onClick={handleCheckout}
           className="w-full h-12 rounded-xl"
           disabled={displayItems.length === 0 || pendingAction !== null}
         >
-          {isAuthenticated ? t("cart.checkout", "Go to checkout") : t("cart.saveAndLogin", "Save & login to checkout")}
+          {isAuthenticated
+            ? t("cart.checkout", "Go to checkout")
+            : guestCheckoutEnabled
+              ? t("cart.checkoutGuest", "Checkout as guest")
+              : t("cart.saveAndLogin", "Save & login to checkout")}
         </Button>
       </div>
       <MobileNav appState={appState} updateAppState={updateAppState} />

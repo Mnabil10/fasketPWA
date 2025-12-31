@@ -2,14 +2,14 @@ import { useTranslation } from "react-i18next";
 import { useToast } from "../providers/ToastProvider";
 import { FASKET_CONFIG } from "../../config/fasketConfig";
 
-export function useShareFasket() {
+export function useShareFasket(urlOverride?: string) {
   const { t } = useTranslation();
   const { showToast } = useToast();
 
   return async () => {
     const title = t("share.title", "Fasket - Grocery Delivery in Badr");
     const text = t("share.text", "Download Fasket and order your groceries in Badr City:");
-    const url = FASKET_CONFIG.webAppUrl;
+    const url = urlOverride ?? FASKET_CONFIG.webAppUrl;
 
     if (typeof navigator !== "undefined" && navigator.share) {
       try {

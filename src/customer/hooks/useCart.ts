@@ -14,7 +14,7 @@ import type { CartPreviewItem } from "../types";
 import { mergeLocalCartIntoServer } from "../utils/cartSync";
 import { useNetworkStatus } from "./useNetworkStatus";
 
-type AddPayload = { productId: string; qty: number; product?: Product };
+type AddPayload = { productId: string; qty: number; product?: Product; branchId?: string | null };
 type UpdatePayload = { itemId?: string; productId: string; qty: number };
 type RemovePayload = { itemId?: string; productId: string };
 
@@ -159,7 +159,8 @@ export function useCart(options?: UseCartOptions): UseCartResult {
   }
 
   const addMutation = useMutation({
-    mutationFn: ({ productId, qty }: AddPayload) => addItem({ productId, qty }, { addressId }),
+    mutationFn: ({ productId, qty, branchId }: AddPayload) =>
+      addItem({ productId, qty, branchId }, { addressId }),
     onMutate: async (variables) => {
       await queryClient.cancelQueries({ queryKey: cartQueryKey });
       return optimisticUpdate((cart) => {
@@ -167,9 +168,17 @@ export function useCart(options?: UseCartOptions): UseCartResult {
         const priceCents =
           variables.product?.salePriceCents ??
           variables.product?.priceCents ??
-          cart.items.find((it) => it.productId === variables.productId)?.priceCents ??
+          cart.items.find(
+            (it) =>
+              it.productId === variables.productId &&
+              (it.branchId ?? null) === (variables.branchId ?? null)
+          )?.priceCents ??
           0;
-        const existing = cart.items.find((it) => it.productId === variables.productId);
+        const existing = cart.items.find(
+          (it) =>
+            it.productId === variables.productId &&
+            (it.branchId ?? null) === (variables.branchId ?? null)
+        );
         if (existing) {
           existing.qty += variables.qty;
         } else {
@@ -177,6 +186,7 @@ export function useCart(options?: UseCartOptions): UseCartResult {
             id: `temp-${variables.productId}-${Date.now()}`,
             cartId: cart.cartId,
             productId: variables.productId,
+            branchId: variables.branchId ?? null,
             qty: variables.qty,
             priceCents,
             product: variables.product
@@ -214,7 +224,9 @@ export function useCart(options?: UseCartOptions): UseCartResult {
       await queryClient.cancelQueries({ queryKey: cartQueryKey });
       return optimisticUpdate((cart) => {
         if (!cart) return cart;
-        const item = cart.items.find((it) => it.id === variables.itemId || it.productId === variables.productId);
+        const item = variables.itemId
+          ? cart.items.find((it) => it.id === variables.itemId)
+          : cart.items.find((it) => it.productId === variables.productId);
         if (!item) return cart;
         const diff = variables.qty - item.qty;
         item.qty = variables.qty;
@@ -243,7 +255,9 @@ export function useCart(options?: UseCartOptions): UseCartResult {
       await queryClient.cancelQueries({ queryKey: cartQueryKey });
       return optimisticUpdate((cart) => {
         if (!cart) return cart;
-        const idx = cart.items.findIndex((it) => it.id === variables.itemId || it.productId === variables.productId);
+        const idx = variables.itemId
+          ? cart.items.findIndex((it) => it.id === variables.itemId)
+          : cart.items.findIndex((it) => it.productId === variables.productId);
         if (idx === -1) return cart;
         const [removed] = cart.items.splice(idx, 1);
         cart.subtotalCents -= removed.priceCents * removed.qty;
@@ -272,6 +286,7 @@ export function useCart(options?: UseCartOptions): UseCartResult {
     if (!product?.id) {
       throw new Error("Product must include an id");
     }
+    const branchId = product.branchId ?? null;
     if (!isAuthenticated) {
       addLocal(product, qty);
       return;
@@ -279,7 +294,7 @@ export function useCart(options?: UseCartOptions): UseCartResult {
     if (isOffline) {
       throw new Error("You are offline. Cannot add items to the cart.");
     }
-    await addMutation.mutateAsync({ productId: product.id, qty, product });
+    await addMutation.mutateAsync({ productId: product.id, qty, product, branchId });
   }
 
   async function updateQuantity(payload: { itemId?: string; productId: string; qty: number }) {

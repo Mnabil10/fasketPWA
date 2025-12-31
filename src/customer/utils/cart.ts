@@ -6,6 +6,7 @@ export function mapServerCartToUiItems(server: { items: any[] } | null): CartPre
   return server.items.map((it) => ({
     id: it.id,
     productId: it.productId,
+    branchId: it.branchId ?? null,
     name: it.product?.name ?? "",
     image: it.product?.imageUrl ?? undefined,
     price: fromCents(it.priceCents),

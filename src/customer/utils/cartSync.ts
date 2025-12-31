@@ -27,7 +27,7 @@ export async function mergeLocalCartIntoServer(lang?: "ar" | "en") {
     if (serverItem) {
       await updateItemQty(serverItem.id, serverItem.qty + item.quantity);
     } else {
-      await addItem({ productId: item.productId, qty: item.quantity });
+      await addItem({ productId: item.productId, qty: item.quantity, branchId: item.branchId ?? null });
     }
   }
   store.clear();

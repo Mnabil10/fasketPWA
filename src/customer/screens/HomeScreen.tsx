@@ -30,6 +30,7 @@ import { trackAddToCart } from "../../lib/analytics";
 import { mapApiErrorToMessage } from "../../utils/mapApiErrorToMessage";
 import { FASKET_GRADIENTS } from "../../styles/designSystem";
 import type { CachedResult } from "../../lib/offlineCache";
+import { getLocalizedString, isFeatureEnabled } from "../utils/mobileAppConfig";
 
 interface HomeScreenProps {
   appState: AppState;
@@ -39,6 +40,8 @@ interface HomeScreenProps {
 export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
+  const mobileConfig = appState.settings?.mobileApp ?? null;
+  const lang = i18n.language?.startsWith("ar") ? "ar" : "en";
   const cartHook = useCart({ userId: appState.user?.id });
   const { isOffline } = useNetworkStatus();
   const apiErrorToast = useApiErrorToast("products.error");
@@ -49,9 +52,23 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
   const [showHistory, setShowHistory] = useState(false);
   const { history, addQuery, clearHistory } = useSearchHistory("home");
 
+  const sectionConfigs = mobileConfig?.home?.sections ?? [];
+  const sectionByType = useMemo(() => {
+    const map = new Map<string, (typeof sectionConfigs)[number]>();
+    sectionConfigs.forEach((section) => {
+      if (section?.type) {
+        map.set(section.type, section);
+      }
+    });
+    return map;
+  }, [sectionConfigs]);
+  const bestLimit = sectionByType.get("bestSelling")?.limit ?? 8;
+  const hotLimit = sectionByType.get("hotOffers")?.limit ?? 8;
+  const categoriesLimit = sectionByType.get("categories")?.limit ?? 12;
+
   const categoriesQuery = useCategories();
-  const bestQuery = useProducts({ type: "best-selling", limit: 8 });
-  const hotQuery = useProducts({ type: "hot-offers", limit: 8 });
+  const bestQuery = useProducts({ type: "best-selling", limit: bestLimit });
+  const hotQuery = useProducts({ type: "hot-offers", limit: hotLimit });
   const searchQuery = useProducts(
     { search: debouncedQ || undefined },
     { enabled: showingSearch && Boolean(debouncedQ) }
@@ -68,6 +85,15 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
   ];
 
   const promos = useMemo(() => {
+    const promoConfig = mobileConfig?.home?.promos ?? [];
+    if (promoConfig.length > 0) {
+      return promoConfig.map((promo, index) => ({
+        id: index + 1,
+        title: getLocalizedString(promo.title, lang, ""),
+        subtitle: getLocalizedString(promo.subtitle, lang, ""),
+        image: promo.imageUrl,
+      }));
+    }
     const content = t("home.promotions", { returnObjects: true }) as Array<{ title: string; subtitle: string }>;
     return promoImages.map((image, index) => ({
       id: index + 1,
@@ -75,7 +101,7 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
       subtitle: content[index]?.subtitle ?? "",
       image,
     }));
-  }, [t, i18n.language]);
+  }, [t, lang, mobileConfig?.home?.promos]);
 
   const handleAddToCart = async (product: Product) => {
     try {
@@ -98,12 +124,37 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
     ? t("home.greeting", { name: appState.user?.name?.split(" ")[0] || "" })
     : t("home.greetingGuest");
 
-  const highlightPills = [
-    { icon: Clock, label: t("home.deliveryEta", "30-45 min delivery") },
-    { icon: Truck, label: t("home.coveragePromise", "We cover all of Badr City") },
-    { icon: Star, label: t("home.qualityPromise", "Handpicked quality products") },
-  ];
-  const topCategories = (categoriesQuery.data?.data ?? []).slice(0, 12);
+  const heroConfig = mobileConfig?.home?.hero ?? {};
+  const heroPrompt = getLocalizedString(heroConfig.prompt, lang, t("home.prompt"));
+  const heroTitle = getLocalizedString(heroConfig.title, lang, greeting);
+  const heroSubtitle = getLocalizedString(
+    heroConfig.subtitle,
+    lang,
+    t("home.subtitlePremium", "Your premium online supermarket in Badr City.")
+  );
+  const heroGradient = mobileConfig?.theme?.heroGradient || `var(--hero-gradient, ${FASKET_GRADIENTS.hero})`;
+
+  const resolvePillIcon = (name?: string) => {
+    const key = (name || "").toLowerCase();
+    if (key === "clock" || key === "time") return Clock;
+    if (key === "truck" || key === "delivery") return Truck;
+    if (key === "star" || key === "quality") return Star;
+    return Sparkles;
+  };
+
+  const highlightPills =
+    heroConfig.pills && heroConfig.pills.length > 0
+      ? heroConfig.pills.map((pill) => ({
+          icon: resolvePillIcon(pill.icon),
+          label: getLocalizedString(pill.label, lang, ""),
+        }))
+      : [
+          { icon: Clock, label: t("home.deliveryEta", "30-45 min delivery") },
+          { icon: Truck, label: t("home.coveragePromise", "We cover all of Badr City") },
+          { icon: Star, label: t("home.qualityPromise", "Handpicked quality products") },
+        ];
+  const loyaltyWidgetEnabled = Boolean(appState.user && isFeatureEnabled(mobileConfig, "loyalty", true));
+  const topCategories = (categoriesQuery.data?.data ?? []).slice(0, categoriesLimit);
 
   const renderProductsSection = (
     title: string,
@@ -168,140 +219,42 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
     );
   };
 
-  return (
-    <div className="page-shell">
-      <NetworkBanner stale={staleData} />
-      <div
-        className="section-card space-y-4 glass-surface"
-        style={{ background: FASKET_GRADIENTS.hero }}
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div className="space-y-1">
-            <p className="text-sm text-gray-700 flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-primary" />
-              {t("home.prompt")}
-            </p>
-            <h1 className="text-2xl font-bold text-gray-900 leading-tight">{greeting}</h1>
-            <p className="text-sm text-gray-700">
-              {t("home.subtitlePremium", "Your premium online supermarket in Badr City.")}
-            </p>
-            <div className="flex flex-wrap gap-2 pt-2">
-              {highlightPills.map((pill) => (
-                <div
-                  key={pill.label}
-                  className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-white/70 border border-border shadow-sm text-xs text-gray-700"
-                >
-                  <pill.icon className="w-4 h-4 text-primary" />
-                  <span>{pill.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" className="p-2 rounded-full">
-              <Bell className="w-5 h-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="p-2 relative rounded-full"
-              onClick={() => goToCart(updateAppState)}
-            >
-              <ShoppingCart className="w-5 h-5" />
-              {cartHook.items.length > 0 && (
-                <div className="absolute -top-1 -right-1 bg-primary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {cartHook.items.length}
-                </div>
-              )}
-            </Button>
-          </div>
-        </div>
+  const heroSectionEnabled = sectionByType.get("hero")?.enabled !== false;
+  const defaultSections = [
+    { id: "promos", type: "promos" },
+    { id: "categories", type: "categories" },
+    { id: "best-selling", type: "bestSelling" },
+    { id: "hot-offers", type: "hotOffers" },
+  ];
+  const configuredSections = sectionConfigs
+    .filter((section) => section?.type && section.type !== "hero")
+    .filter((section) => section.enabled !== false)
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const sectionsToRender = configuredSections.length > 0 ? configuredSections : defaultSections;
 
-        <form className="relative" onSubmit={handleSearchSubmit}>
-          <Search
-            className={`absolute top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 ${
-              i18n.dir() === "rtl" ? "right-4" : "left-4"
-            }`}
-          />
-          <Input
-            placeholder={t("home.searchPlaceholder")}
-            className={`h-12 rounded-2xl bg-white/80 border-none shadow-inner ${i18n.dir() === "rtl" ? "pr-12 text-right" : "pl-12"}`}
-            value={q}
-            onFocus={() => setShowHistory(true)}
-            onBlur={() => setTimeout(() => setShowHistory(false), 100)}
-            onChange={(e) => setQ(e.target.value)}
-          />
-          <button type="submit" className="hidden" />
-          {showHistory && history.length > 0 && (
-            <div className="absolute z-10 mt-2 left-0 right-0 bg-white rounded-2xl shadow-card border max-h-48 overflow-auto">
-              <div className="flex items-center justify-between px-3 py-2 text-xs text-gray-500">
-                <span className="flex items-center gap-1">
-                  <History className="w-3 h-3" /> {t("products.recentSearches", "Recent searches")}
-                </span>
-                <button className="text-primary" type="button" onClick={() => clearHistory()}>
-                  {t("products.clearHistory", "Clear")}
-                </button>
-              </div>
-              {history.map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => {
-                    setQ(item);
-                    addQuery(item);
-                  }}
-                  className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm"
-                >
-                  {item}
-                </button>
-              ))}
-            </div>
-          )}
-        </form>
+  const resolveSectionTitle = (section: any, fallbackKey: string, fallbackDefault?: string) => {
+    const fallbackText = fallbackDefault ? t(fallbackKey, fallbackDefault) : t(fallbackKey);
+    return getLocalizedString(section?.title, lang, fallbackText);
+  };
+  const resolveSectionSubtitle = (section: any, fallbackKey: string, fallbackDefault?: string) => {
+    const fallbackText = fallbackDefault ? t(fallbackKey, fallbackDefault) : t(fallbackKey);
+    return getLocalizedString(section?.subtitle, lang, fallbackText);
+  };
 
-        {appState.user && (
-          <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-3">
-            <div className="bg-white/80 rounded-2xl border border-border shadow-card p-4 flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">{t("home.loyaltyWidget.title")}</p>
-                <p className="text-2xl font-semibold text-primary">
-                  {appState.user.loyaltyPoints ?? appState.user.points ?? 0}
-                </p>
-                <p className="text-xs text-gray-500">{t("home.loyaltyWidget.subtitle")}</p>
-              </div>
-              <Button
-                size="sm"
-                className="rounded-xl"
-                variant="outline"
-                onClick={() => updateAppState({ currentScreen: "checkout" })}
-              >
-                {t("home.loyaltyWidget.cta")}
-              </Button>
-            </div>
-            <div className="rounded-2xl bg-primary text-white p-4 shadow-card space-y-1">
-              <p className="text-xs text-white/80">{t("home.deliveryEta", "30-45 min delivery")}</p>
-              <p className="text-lg font-semibold">{t("home.coveragePromise", "We cover all of Badr City")}</p>
-              <Button
-                variant="secondary"
-                size="sm"
-                className="rounded-xl"
-                onClick={() => updateAppState({ currentScreen: "categories" })}
-              >
-                {t("home.promotionsCta")}
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="flex-1 overflow-y-auto space-y-5">
-        {!showingSearch && (
-          <div className="section-card space-y-4">
+  const renderSection = (section: any) => {
+    switch (section.type) {
+      case "promos":
+        if (!promos.length) return null;
+        return (
+          <div key={section.id || "promos"} className="section-card space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-gray-500">{t("home.sections.hotOffers")}</p>
-                <h2 className="text-xl font-semibold text-gray-900">{t("home.sections.bestSelling")}</h2>
+                <p className="text-xs text-gray-500">
+                  {resolveSectionSubtitle(section, "home.sections.hotOffers")}
+                </p>
+                <h2 className="text-xl font-semibold text-gray-900">
+                  {resolveSectionTitle(section, "home.sections.bestSelling")}
+                </h2>
               </div>
               <Button
                 variant="ghost"
@@ -332,24 +285,22 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
                     </Button>
                   </div>
                   <div className="w-28 h-28 rounded-xl overflow-hidden border border-white/20 flex-shrink-0">
-                    <ImageWithFallback
-                      src={promo.image}
-                      alt={promo.title}
-                      className="w-full h-full object-cover"
-                    />
+                    <ImageWithFallback src={promo.image} alt={promo.title} className="w-full h-full object-cover" />
                   </div>
                 </div>
               ))}
             </div>
           </div>
-        )}
-
-        {!showingSearch && (
-          <div className="section-card space-y-4 motion-fade">
+        );
+      case "categories":
+        return (
+          <div key={section.id || "categories"} className="section-card space-y-4 motion-fade">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-gray-500">{t("home.sections.categories")}</p>
-                <h2 className="text-xl font-semibold text-gray-900">{t("home.categoryHeadline", "Shop by category")}</h2>
+                <p className="text-xs text-gray-500">{resolveSectionSubtitle(section, "home.sections.categories")}</p>
+                <h2 className="text-xl font-semibold text-gray-900">
+                  {resolveSectionTitle(section, "home.categoryHeadline", "Shop by category")}
+                </h2>
               </div>
               <Button
                 variant="ghost"
@@ -382,11 +333,7 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
                   >
                     <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center mb-2 overflow-hidden">
                       {c.imageUrl ? (
-                        <ImageWithFallback
-                          src={c.imageUrl}
-                          alt={c.name}
-                          className="w-full h-full object-cover"
-                        />
+                        <ImageWithFallback src={c.imageUrl} alt={c.name} className="w-full h-full object-cover" />
                       ) : (
                         <Sparkles className="w-5 h-5 text-primary" />
                       )}
@@ -398,16 +345,148 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
               </div>
             )}
           </div>
-        )}
+        );
+      case "bestSelling":
+        return renderProductsSection(resolveSectionTitle(section, "home.sections.bestSelling"), bestQuery);
+      case "hotOffers":
+        return renderProductsSection(resolveSectionTitle(section, "home.sections.hotOffers"), hotQuery);
+      default:
+        return null;
+    }
+  };
 
-        {showingSearch &&
-          renderProductsSection(t("home.sections.searchResults"), searchQuery, () =>
-            updateAppState({ currentScreen: "categories" })
+  return (
+    <div className="page-shell">
+      <NetworkBanner stale={staleData} />
+      {heroSectionEnabled && (
+        <div className="section-card space-y-4 glass-surface" style={{ background: heroGradient }}>
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-1">
+              <p className="text-sm text-gray-700 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-primary" />
+                {heroPrompt}
+              </p>
+              <h1 className="text-2xl font-bold text-gray-900 leading-tight">{heroTitle}</h1>
+              <p className="text-sm text-gray-700">{heroSubtitle}</p>
+              {highlightPills.length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-2">
+                  {highlightPills.map((pill) => (
+                    <div
+                      key={pill.label}
+                      className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-white/70 border border-border shadow-sm text-xs text-gray-700"
+                    >
+                      <pill.icon className="w-4 h-4 text-primary" />
+                      <span>{pill.label}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" className="p-2 rounded-full">
+                <Bell className="w-5 h-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="p-2 relative rounded-full"
+                onClick={() => goToCart(updateAppState)}
+              >
+                <ShoppingCart className="w-5 h-5" />
+                {cartHook.items.length > 0 && (
+                  <div className="absolute -top-1 -right-1 bg-primary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {cartHook.items.length}
+                  </div>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          <form className="relative" onSubmit={handleSearchSubmit}>
+            <Search
+              className={`absolute top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 ${
+                i18n.dir() === "rtl" ? "right-4" : "left-4"
+              }`}
+            />
+            <Input
+              placeholder={t("home.searchPlaceholder")}
+              className={`h-12 rounded-2xl bg-white/80 border-none shadow-inner ${i18n.dir() === "rtl" ? "pr-12 text-right" : "pl-12"}`}
+              value={q}
+              onFocus={() => setShowHistory(true)}
+              onBlur={() => setTimeout(() => setShowHistory(false), 100)}
+              onChange={(e) => setQ(e.target.value)}
+            />
+            <button type="submit" className="hidden" />
+            {showHistory && history.length > 0 && (
+              <div className="absolute z-10 mt-2 left-0 right-0 bg-white rounded-2xl shadow-card border max-h-48 overflow-auto">
+                <div className="flex items-center justify-between px-3 py-2 text-xs text-gray-500">
+                  <span className="flex items-center gap-1">
+                    <History className="w-3 h-3" /> {t("products.recentSearches", "Recent searches")}
+                  </span>
+                  <button className="text-primary" type="button" onClick={() => clearHistory()}>
+                    {t("products.clearHistory", "Clear")}
+                  </button>
+                </div>
+                {history.map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      setQ(item);
+                      addQuery(item);
+                    }}
+                    className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm"
+                  >
+                    {item}
+                  </button>
+                ))}
+              </div>
+            )}
+          </form>
+
+          {loyaltyWidgetEnabled && (
+            <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-3">
+              <div className="bg-white/80 rounded-2xl border border-border shadow-card p-4 flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">{t("home.loyaltyWidget.title")}</p>
+                  <p className="text-2xl font-semibold text-primary">
+                    {appState.user?.loyaltyPoints ?? appState.user?.points ?? 0}
+                  </p>
+                  <p className="text-xs text-gray-500">{t("home.loyaltyWidget.subtitle")}</p>
+                </div>
+                <Button
+                  size="sm"
+                  className="rounded-xl"
+                  variant="outline"
+                  onClick={() => updateAppState({ currentScreen: "checkout" })}
+                >
+                  {t("home.loyaltyWidget.cta")}
+                </Button>
+              </div>
+              <div className="rounded-2xl bg-primary text-white p-4 shadow-card space-y-1">
+                <p className="text-xs text-white/80">{t("home.deliveryEta", "30-45 min delivery")}</p>
+                <p className="text-lg font-semibold">{t("home.coveragePromise", "We cover all of Badr City")}</p>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="rounded-xl"
+                  onClick={() => updateAppState({ currentScreen: "categories" })}
+                >
+                  {t("home.promotionsCta")}
+                </Button>
+              </div>
+            </div>
           )}
+        </div>
+      )}
 
-        {!showingSearch && renderProductsSection(t("home.sections.bestSelling"), bestQuery)}
-
-        {!showingSearch && renderProductsSection(t("home.sections.hotOffers"), hotQuery)}
+      <div className="flex-1 overflow-y-auto space-y-5">
+        {showingSearch
+          ? renderProductsSection(t("home.sections.searchResults"), searchQuery, () =>
+              updateAppState({ currentScreen: "categories" })
+            )
+          : sectionsToRender.map((section) => renderSection(section))}
       </div>
 
       <MobileNav appState={appState} updateAppState={updateAppState} />

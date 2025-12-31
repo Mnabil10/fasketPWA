@@ -3,6 +3,7 @@ import type { Product } from "../types/api";
 export type CartPreviewItem = {
   id: string;
   productId: string;
+  branchId?: string | null;
   name: string;
   image?: string;
   price: number;
@@ -10,4 +11,3 @@ export type CartPreviewItem = {
   category?: string;
   product?: Partial<Product>;
 };
-

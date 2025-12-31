@@ -16,7 +16,15 @@ import { ProfileScreen } from "./screens/ProfileScreen";
 import { AddressesScreen } from "./screens/AddressesScreen";
 import { LoyaltyHistoryScreen } from "./screens/LoyaltyHistoryScreen";
 import { AboutFasketScreen } from "./screens/AboutFasketScreen";
-import type { AppSettings, Category, OrderDetail, OrderSummary, Product, UserProfile } from "../types/api";
+import type {
+  AppSettings,
+  Category,
+  OrderDetail,
+  OrderGroupSummary,
+  OrderSummary,
+  Product,
+  UserProfile,
+} from "../types/api";
 import { getMyProfile } from "../services/users.service";
 import { clearSessionTokens, ensureSessionHydrated, getSessionTokens, onSessionInvalid } from "../store/session";
 import { useLocalCartStore } from "./stores/localCart";
@@ -34,6 +42,7 @@ import { useToast } from "./providers/ToastProvider";
 import { App as CapacitorApp } from "@capacitor/app";
 import { goToCart, goToCategory, goToHome, goToOrders, goToProduct } from "./navigation/navigation";
 import { HelpScreen } from "./screens/HelpScreen";
+import { applyMobileAppTheme } from "./utils/mobileAppTheme";
 
 export type Screen =
   | "splash"
@@ -55,7 +64,7 @@ export type Screen =
   | "loyalty-history"
   | "about";
 
-const authRequiredScreens = new Set<Screen>(["checkout", "orders", "order-detail", "profile", "addresses", "loyalty-history"]);
+const authRequiredScreens = new Set<Screen>(["orders", "order-detail", "profile", "addresses", "loyalty-history"]);
 
 export interface AppState {
   bootstrapping: boolean;
@@ -69,9 +78,20 @@ export interface AppState {
   selectedProduct: Partial<Product> | null;
   selectedOrderId: string | null;
   selectedOrderSummary: OrderSummary | null;
-  selectedOrder: OrderDetail | null;
+  selectedOrder: OrderDetail | OrderGroupSummary | null;
   lastOrderId: string | null;
-  lastOrder: OrderDetail | null;
+  lastOrder: OrderDetail | OrderGroupSummary | null;
+  guestSession: {
+    name?: string;
+    phone?: string;
+    address?: {
+      fullAddress?: string;
+      lat?: number;
+      lng?: number;
+      notes?: string;
+    };
+  } | null;
+  guestTracking: { phone?: string; code?: string } | null;
   settings: AppSettings | null;
   settingsLoaded: boolean;
 }
@@ -93,6 +113,8 @@ const initialState: AppState = {
   selectedOrder: null,
   lastOrderId: null,
   lastOrder: null,
+  guestSession: null,
+  guestTracking: null,
   settings: null,
   settingsLoaded: false,
 };
@@ -197,12 +219,14 @@ export function CustomerApp() {
   const handleAuthSuccess = useCallback(async () => {
     try {
       const profile = await getMyProfile();
-      updateAppState({
-        user: profile,
-        currentScreen: "home",
-        bootstrapping: false,
-        postOnboardingScreen: "home",
-      });
+        updateAppState({
+          user: profile,
+          currentScreen: "home",
+          bootstrapping: false,
+          postOnboardingScreen: "home",
+          guestSession: null,
+          guestTracking: null,
+        });
     } catch (error) {
       clearSessionTokens();
       updateAppState({
@@ -422,6 +446,12 @@ export function CustomerApp() {
   }, [appState.user?.id, i18n.language]);
 
   useEffect(() => {
+    if (appState.settings?.mobileApp) {
+      applyMobileAppTheme(appState.settings.mobileApp);
+    }
+  }, [appState.settings?.mobileApp]);
+
+  useEffect(() => {
     if (!appState.user?.id) return;
     initPush()
       .then(() => registerDeviceToken(appState.user!.id, notificationPrefs))
@@ -516,13 +546,21 @@ export function CustomerApp() {
     const needsAuth = authRequiredScreens.has(appState.currentScreen);
     if (isAuthMode || (needsAuth && !appState.user)) {
       const mode: "auth" | "register" = appState.currentScreen === "register" ? "register" : "auth";
-      return <AuthScreen mode={mode} onAuthSuccess={handleAuthSuccess} onToggleMode={toggleAuthMode} />;
+      return (
+        <AuthScreen
+          mode={mode}
+          onAuthSuccess={handleAuthSuccess}
+          onToggleMode={toggleAuthMode}
+          branding={appState.settings?.mobileApp?.branding}
+        />
+      );
     }
 
     switch (appState.currentScreen) {
       case "splash":
         return (
           <SplashScreen
+            branding={appState.settings?.mobileApp?.branding}
             onComplete={() =>
               updateAppState((prev) => {
                 if (prev.splashComplete) return {};

@@ -40,6 +40,7 @@
     "home": "Home",
     "categories": "Categories",
     "cart": "Cart",
+    "help": "Help",
     "orders": "Orders",
     "profile": "Account"
   },
@@ -227,10 +228,12 @@
   "cart": {
     "title": "Shopping Cart",
     "emptyTitle": "Your cart is empty",
-    "emptySubtitle": "Add some items to continue shopping.",
-    "startShopping": "Start Shopping",
-    "summaryNote": "Delivery fee & discounts are applied at checkout.",
-    "checkout": "Proceed to Checkout",
+      "emptySubtitle": "Add some items to continue shopping.",
+      "startShopping": "Start Shopping",
+      "summaryNote": "Delivery fee & discounts are applied at checkout.",
+      "guestSummaryNote": "Delivery fees are calculated at checkout.",
+      "checkout": "Proceed to Checkout",
+      "checkoutGuest": "Checkout as guest",
     "loading": "Loading your cart…",
     "clear": "Clear cart",
     "loadError": "We couldn't load your cart. Please try again.",
@@ -256,13 +259,16 @@
   "checkout": {
     "title": "Checkout",
     "subtitle": "Review your order",
-    "stepsLabel": "Cart > Address > Summary > Confirm",
-    "steps": {
-      "cart": "Cart",
-      "address": "Address",
-      "summary": "Summary",
-      "confirm": "Confirm"
-    },
+      "stepsLabel": "Cart > Address > Summary > Confirm",
+      "stepsLabelGuest": "Cart > Details > Location > Confirm",
+      "steps": {
+        "cart": "Cart",
+        "address": "Address",
+        "guest": "Details",
+        "location": "Location",
+        "summary": "Summary",
+        "confirm": "Confirm"
+      },
     "sections": {
       "items": "Items",
       "address": "Delivery address",
@@ -310,35 +316,65 @@
       "processing": "Please wait while we place your order.",
       "emptyCart": "Your cart is empty.",
       "loadError": "We couldn't load your checkout details. Please try again.",
-      "missingCart": "No valid cart found for checkout.",
-      "offline": "You are offline. Connect to the internet to place your order.",
-      "submitError": "Something went wrong while creating your order. Please try again.",
-      "missingZone": "Please select a delivery zone."
-    },
-    "address": {
-      "subtitle": "Create an address to place your order.",
-      "empty": "No saved addresses yet. Add one to continue.",
-      "add": "Add address",
-      "defaultName": "Address",
-      "noCity": "City is required.",
-      "selected": "Delivery address selected."
-    },
-    "payment": {
-      "cod": "Cash on delivery",
-      "card": "Card",
+        "missingCart": "No valid cart found for checkout.",
+        "offline": "You are offline. Connect to the internet to place your order.",
+        "submitError": "Something went wrong while creating your order. Please try again.",
+        "missingZone": "Please select a delivery zone.",
+        "missingLocation": "Location is required for delivery.",
+        "quoteError": "Unable to calculate delivery fees. Please try again."
+      },
+      "address": {
+        "subtitle": "Create an address to place your order.",
+        "empty": "No saved addresses yet. Add one to continue.",
+        "add": "Add address",
+        "defaultName": "Address",
+        "noCity": "City is required.",
+        "selected": "Delivery address selected."
+      },
+      "guest": {
+        "detailsTitle": "Guest details",
+        "addressTitle": "Delivery address",
+        "nameLabel": "Full name",
+        "namePlaceholder": "Enter your name",
+        "phoneLabel": "Phone number",
+        "phonePlaceholder": "Enter your phone",
+        "phoneHint": "We will use your phone to send order updates and tracking.",
+        "fullAddress": "Full address",
+        "addressPlaceholder": "Street, building, area",
+        "latLabel": "Latitude",
+        "lngLabel": "Longitude",
+        "useLocation": "Use current location",
+        "notesLabel": "Address notes",
+        "notesPlaceholder": "Apartment, landmark, delivery notes",
+        "quoteLoading": "Calculating delivery...",
+        "skippedBranches": "Some items are unavailable and were skipped.",
+        "disabled": "Guest checkout is disabled. Please sign in to continue.",
+        "nameRequired": "Name is required.",
+        "phoneRequired": "Phone is required.",
+        "addressRequired": "Enter full address and location to continue.",
+        "noRewards": "Guest orders do not use coupons or loyalty rewards.",
+        "locationUnavailable": "Location services are not available.",
+        "locationSet": "Location updated.",
+        "locationError": "Unable to get your location."
+      },
+      "payment": {
+        "cod": "Cash on delivery",
+        "card": "Card",
       "codOnly": "Cash on delivery only",
       "codOnlyDesc": "Currently we only support cash on delivery."
     },
-    "coupon": {
-      "applied": "Coupon applied successfully.",
-      "appliedLabel": "Discount coupon applied.",
-      "apply": "Apply",
-      "applying": "Applying coupon...",
-      "error": "Invalid or expired coupon.",
-      "placeholder": "Enter coupon code",
-      "required": "Please enter a coupon code.",
-      "title": "Discount coupon"
-    },
+      "coupon": {
+        "applied": "Coupon applied successfully.",
+        "appliedLabel": "Discount coupon applied.",
+        "apply": "Apply",
+        "applying": "Applying coupon...",
+        "guest": "Coupons are only for registered users.",
+        "disabled": "Coupons are currently disabled.",
+        "error": "Invalid or expired coupon.",
+        "placeholder": "Enter coupon code",
+        "required": "Please enter a coupon code.",
+        "title": "Discount coupon"
+      },
     "item": {
       "unknown": "Unknown item"
     },
@@ -409,14 +445,15 @@
     "buttons": {
       "track": "Track your order",
       "continue": "Continue shopping",
-      "call": "Visit website"
+      "call": "Call support"
     },
     "specialOfferTitle": "Special offer",
     "specialOfferSubtitle": "Get 20% off your next order when you rate your delivery.",
     "recommendationsTitle": "You might also like",
     "ratingLabel": "Rate your experience",
     "etaFallback": "Preparing your order",
-    "addressMissing": "No address provided"
+    "addressMissing": "No address provided",
+    "guestHint": "Track your order using your phone number from the Help screen."
   },
   "about": {
     "title": "About Fasket",
@@ -607,6 +644,30 @@
       "redeem": "Redeemed",
       "adjust": "Adjustment"
     }
+  },
+  "help": {
+    "title": "Help & self-service",
+    "subtitle": "Track orders, delivery areas, and prices without waiting.",
+    "track_order": "Track order by phone",
+    "order_placeholder": "Order code (optional)",
+    "phone_placeholder": "Enter phone number",
+    "phoneRequired": "Phone number is required.",
+    "track": "Track",
+    "order_not_found": "Order not found. Try WhatsApp support.",
+    "whatsapp": "Contact WhatsApp",
+    "delivery_areas": "Delivery areas",
+    "loaded": "Loaded",
+    "load_areas": "Load areas",
+    "zones_error": "Unable to load delivery areas",
+    "no_zones": "No areas available",
+    "product_lookup": "Product price lookup",
+    "product_placeholder": "Enter product name",
+    "search": "Search",
+    "products_error": "Unable to search products",
+    "no_products": "No products found",
+    "whatsapp_prefill": "Hi, I need help with {{intent}}",
+    "groupOrders": "Orders in this group",
+    "loggedInHint": "Signed in? You can view your orders from the Orders tab."
   },
   "notifications": {
     "loyaltyEarned": "You earned {{points}} points!",

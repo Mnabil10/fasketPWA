@@ -53,8 +53,11 @@ export function ProductsScreen({ appState, updateAppState }: ProductsScreenProps
   });
 
   const handleRefresh = async (event: CustomEvent<RefresherEventDetail>) => {
-    await Promise.all([productsQuery.refetch(), cart.refetch()]);
-    event.detail.complete();
+    try {
+      await Promise.allSettled([productsQuery.refetch(), cart.refetch()]);
+    } finally {
+      event.detail.complete();
+    }
   };
 
   const items = productsQuery.data?.data ?? [];

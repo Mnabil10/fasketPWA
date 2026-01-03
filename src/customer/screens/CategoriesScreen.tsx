@@ -43,8 +43,11 @@ export function CategoriesScreen({ appState, updateAppState }: CategoriesScreenP
   const categoriesErrorMessage = mapApiErrorToMessage(categoriesQuery.error, "categories.errorLoading");
 
   const handleRefresh = async (event: CustomEvent<RefresherEventDetail>) => {
-    await Promise.all([categoriesQuery.refetch(), featuredQuery.refetch()]);
-    event.detail.complete();
+    try {
+      await Promise.allSettled([categoriesQuery.refetch(), featuredQuery.refetch()]);
+    } finally {
+      event.detail.complete();
+    }
   };
 
   const filteredCategories = useMemo(() => {

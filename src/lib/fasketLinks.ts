@@ -31,6 +31,19 @@ export async function openWhatsapp(message: string, phoneOverride?: string) {
   await openExternalUrl(url);
 }
 
+export function buildMapUrl(location: { lat: number; lng: number; label?: string | null }) {
+  if (!Number.isFinite(location.lat) || !Number.isFinite(location.lng)) return null;
+  const lat = location.lat;
+  const lng = location.lng;
+  return `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=17/${lat}/${lng}`;
+}
+
+export async function openMapLocation(location: { lat: number; lng: number; label?: string | null }) {
+  const url = buildMapUrl(location);
+  if (!url) return;
+  await openExternalUrl(url);
+}
+
 export function buildSupportMailto(subject?: string, emailOverride?: string) {
   const encodedSubject = subject ? encodeURIComponent(subject) : "";
   const email = emailOverride ?? FASKET_CONFIG.supportEmail;

@@ -4,7 +4,7 @@ import type { RefresherEventDetail } from "@ionic/react";
 import { useTranslation } from "react-i18next";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
-import { Badge } from "../../ui/badge";
+import { Switch } from "../../ui/switch";
 import { ArrowLeft, Search, Filter, SlidersHorizontal, Grid, List, History } from "lucide-react";
 import { MobileNav } from "../MobileNav";
 import { AppState, type UpdateAppState } from "../CustomerApp";
@@ -33,14 +33,23 @@ export function ProductsScreen({ appState, updateAppState }: ProductsScreenProps
   const [sortBy, setSortBy] = useState<"popularity" | "price-low" | "price-high" | "rating" | "name">("popularity");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showFilters, setShowFilters] = useState(false);
+  const [inStockOnly, setInStockOnly] = useState(false);
+  const [onSaleOnly, setOnSaleOnly] = useState(false);
+  const [minPriceInput, setMinPriceInput] = useState("");
+  const [maxPriceInput, setMaxPriceInput] = useState("");
   const [showHistory, setShowHistory] = useState(false);
   const { history, addQuery, clearHistory } = useSearchHistory("products");
 
   const isRTL = i18n.dir() === "rtl";
 
+  const minPriceValue = useMemo(() => parsePriceInput(minPriceInput), [minPriceInput]);
+  const maxPriceValue = useMemo(() => parsePriceInput(maxPriceInput), [maxPriceInput]);
+
   const productsQuery = useProducts({
     search: debouncedQuery || undefined,
     categoryId: appState.selectedCategory?.id,
+    minPrice: minPriceValue,
+    maxPrice: maxPriceValue,
   });
 
   const handleRefresh = async (event: CustomEvent<RefresherEventDetail>) => {
@@ -51,8 +60,33 @@ export function ProductsScreen({ appState, updateAppState }: ProductsScreenProps
   const items = productsQuery.data?.data ?? [];
   const dataStale = productsQuery.data?.stale ?? false;
 
+  const filtered = useMemo(() => {
+    let arr = [...items];
+    if (inStockOnly) {
+      arr = arr.filter((product) => (product.stock ?? 0) > 0);
+    }
+    if (onSaleOnly) {
+      arr = arr.filter(
+        (product) =>
+          product.salePriceCents != null &&
+          product.salePriceCents < (product.priceCents ?? product.salePriceCents)
+      );
+    }
+    const minPriceCents = minPriceValue != null ? Math.round(minPriceValue * 100) : undefined;
+    const maxPriceCents = maxPriceValue != null ? Math.round(maxPriceValue * 100) : undefined;
+    if (minPriceCents != null || maxPriceCents != null) {
+      arr = arr.filter((product) => {
+        const price = effectivePriceCents(product);
+        if (minPriceCents != null && price < minPriceCents) return false;
+        if (maxPriceCents != null && price > maxPriceCents) return false;
+        return true;
+      });
+    }
+    return arr;
+  }, [items, inStockOnly, onSaleOnly, minPriceValue, maxPriceValue]);
+
   const sorted = useMemo(() => {
-    const arr = [...items];
+    const arr = [...filtered];
     switch (sortBy) {
       case "price-low":
         return arr.sort((a, b) => effectivePriceCents(a) - effectivePriceCents(b));
@@ -66,7 +100,7 @@ export function ProductsScreen({ appState, updateAppState }: ProductsScreenProps
       default:
         return arr;
     }
-  }, [items, sortBy]);
+  }, [filtered, sortBy]);
 
   const handleAddToCart = async (product: Product) => {
     try {
@@ -76,6 +110,13 @@ export function ProductsScreen({ appState, updateAppState }: ProductsScreenProps
     } catch (err: any) {
       apiErrorToast(err, "products.error");
     }
+  };
+
+  const handleClearFilters = () => {
+    setInStockOnly(false);
+    setOnSaleOnly(false);
+    setMinPriceInput("");
+    setMaxPriceInput("");
   };
 
   const renderProducts = () => {
@@ -139,7 +180,8 @@ export function ProductsScreen({ appState, updateAppState }: ProductsScreenProps
       <NetworkBanner stale={dataStale} />
       <IonRefresher slot="fixed" onIonRefresh={handleRefresh}>
         <IonRefresherContent
-          pullingText={t("products.pullToRefresh", "Pull to refresh products")}
+          pullingText=""
+          refreshingText=""
           refreshingSpinner="crescent"
         />
       </IonRefresher>
@@ -256,18 +298,51 @@ export function ProductsScreen({ appState, updateAppState }: ProductsScreenProps
       </div>
 
       {showFilters && (
-        <div className="bg-white border-b border-gray-200 px-4 py-4">
-          <div className="flex items-center gap-2 mb-3">
+        <div className="bg-white border-b border-gray-200 px-4 py-4 space-y-4">
+          <div className="flex items-center gap-2">
             <SlidersHorizontal className="w-4 h-4 text-gray-600" />
             <span className="font-medium">{t("products.filterTitle")}</span>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="outline" className="cursor-pointer">
-              {t("products.filters.inStock")}
-            </Badge>
-            <Badge variant="outline" className="cursor-pointer">
-              {t("products.filters.onSale")}
-            </Badge>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="flex items-center justify-between rounded-xl border border-gray-200 px-3 py-2">
+              <span className="text-sm text-gray-700">{t("products.filters.inStock")}</span>
+              <Switch checked={inStockOnly} onCheckedChange={setInStockOnly} />
+            </label>
+            <label className="flex items-center justify-between rounded-xl border border-gray-200 px-3 py-2">
+              <span className="text-sm text-gray-700">{t("products.filters.onSale")}</span>
+              <Switch checked={onSaleOnly} onCheckedChange={setOnSaleOnly} />
+            </label>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1">
+              <span className="text-xs text-gray-500">{t("products.filters.minPrice", "Min price")}</span>
+              <Input
+                type="number"
+                inputMode="decimal"
+                min={0}
+                value={minPriceInput}
+                onChange={(e) => setMinPriceInput(e.target.value)}
+                placeholder={t("products.filters.minPricePlaceholder", "0")}
+                className="h-10"
+              />
+            </div>
+            <div className="space-y-1">
+              <span className="text-xs text-gray-500">{t("products.filters.maxPrice", "Max price")}</span>
+              <Input
+                type="number"
+                inputMode="decimal"
+                min={0}
+                value={maxPriceInput}
+                onChange={(e) => setMaxPriceInput(e.target.value)}
+                placeholder={t("products.filters.maxPricePlaceholder", "0")}
+                className="h-10"
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={handleClearFilters}>
+              {t("products.filters.clear", "Clear filters")}
+            </Button>
           </div>
         </div>
       )}
@@ -281,4 +356,13 @@ export function ProductsScreen({ appState, updateAppState }: ProductsScreenProps
 
 function effectivePriceCents(product: Product) {
   return (product.salePriceCents ?? product.priceCents) || product.priceCents;
+}
+
+function parsePriceInput(value: string) {
+  if (!value) return undefined;
+  const normalized = value.replace(/[^\d.]/g, "");
+  if (!normalized) return undefined;
+  const parsed = Number.parseFloat(normalized);
+  if (!Number.isFinite(parsed) || parsed < 0) return undefined;
+  return parsed;
 }

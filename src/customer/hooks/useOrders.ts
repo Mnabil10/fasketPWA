@@ -1,11 +1,13 @@
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
-import { listMyOrders, getOrderById, type PlaceOrderBody } from "../../services/orders";
-import type { OrderDetail, OrderSummary } from "../../types/api";
+import { listMyOrders, getOrderById, getDriverLocation, getOrderTimeline, type PlaceOrderBody } from "../../services/orders";
+import type { DriverLocation, OrderDetail, OrderSummary, OrderTimelineEntry } from "../../types/api";
 import { getSessionTokens } from "../../store/session";
 import { useNetworkStatus } from "./useNetworkStatus";
 
 type OrdersKey = ["orders", { status?: string | undefined; page?: number | undefined; pageSize?: number | undefined }];
 type OrderDetailKey = ["order", string];
+type OrderTimelineKey = ["order-timeline", string];
+type OrderDriverLocationKey = ["order-driver-location", string];
 
 type UseOrdersOptions<TData = OrderSummary[]> = Omit<
   UseQueryOptions<OrderSummary[], Error, TData, OrdersKey>,
@@ -14,6 +16,20 @@ type UseOrdersOptions<TData = OrderSummary[]> = Omit<
 
 type UseOrderDetailOptions<TData = OrderDetail> = Omit<
   UseQueryOptions<OrderDetail, Error, TData, OrderDetailKey>,
+  "queryKey" | "queryFn"
+> & {
+  enabled?: boolean;
+};
+
+type UseOrderTimelineOptions<TData = OrderTimelineEntry[]> = Omit<
+  UseQueryOptions<OrderTimelineEntry[], Error, TData, OrderTimelineKey>,
+  "queryKey" | "queryFn"
+> & {
+  enabled?: boolean;
+};
+
+type UseOrderDriverLocationOptions<TData = DriverLocation | null> = Omit<
+  UseQueryOptions<DriverLocation | null, Error, TData, OrderDriverLocationKey>,
   "queryKey" | "queryFn"
 > & {
   enabled?: boolean;
@@ -60,6 +76,56 @@ export function useOrderDetail<TData = OrderDetail>(
     enabled: isAuthenticated && !isOffline && Boolean(orderId) && (enabled ?? true),
     networkMode: "online",
     staleTime: 15 * 1000,
+    gcTime: 5 * 60 * 1000,
+    retry: 1,
+    ...restOptions,
+  });
+}
+
+export function useOrderTimeline<TData = OrderTimelineEntry[]>(
+  orderId?: string | null,
+  options?: UseOrderTimelineOptions<TData>
+) {
+  const { isOffline } = useNetworkStatus();
+  const { accessToken } = getSessionTokens();
+  const isAuthenticated = Boolean(accessToken);
+  const { enabled, ...restOptions } = options ?? {};
+  return useQuery({
+    queryKey: ["order-timeline", orderId || "unknown"],
+    queryFn: () => {
+      if (!orderId) {
+        throw new Error("Order id is required");
+      }
+      return getOrderTimeline(orderId);
+    },
+    enabled: isAuthenticated && !isOffline && Boolean(orderId) && (enabled ?? true),
+    networkMode: "online",
+    staleTime: 20 * 1000,
+    gcTime: 5 * 60 * 1000,
+    retry: 1,
+    ...restOptions,
+  });
+}
+
+export function useOrderDriverLocation<TData = DriverLocation | null>(
+  orderId?: string | null,
+  options?: UseOrderDriverLocationOptions<TData>
+) {
+  const { isOffline } = useNetworkStatus();
+  const { accessToken } = getSessionTokens();
+  const isAuthenticated = Boolean(accessToken);
+  const { enabled, ...restOptions } = options ?? {};
+  return useQuery({
+    queryKey: ["order-driver-location", orderId || "unknown"],
+    queryFn: () => {
+      if (!orderId) {
+        throw new Error("Order id is required");
+      }
+      return getDriverLocation(orderId);
+    },
+    enabled: isAuthenticated && !isOffline && Boolean(orderId) && (enabled ?? true),
+    networkMode: "online",
+    staleTime: 5 * 1000,
     gcTime: 5 * 60 * 1000,
     retry: 1,
     ...restOptions,

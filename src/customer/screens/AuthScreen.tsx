@@ -27,6 +27,7 @@ interface AuthScreenProps {
   mode: "auth" | "register";
   onAuthSuccess: () => Promise<void> | void;
   onToggleMode: () => void;
+  onContinueAsGuest: () => void;
   branding?: MobileAppConfig["branding"] | null;
 }
 
@@ -41,7 +42,7 @@ type FormState = {
   newPassword: string;
 };
 
-export function AuthScreen({ mode, onAuthSuccess, onToggleMode, branding }: AuthScreenProps) {
+export function AuthScreen({ mode, onAuthSuccess, onToggleMode, onContinueAsGuest, branding }: AuthScreenProps) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language?.startsWith("ar") ? "ar" : "en";
   const brandName = getLocalizedString(branding?.appName, lang, t("common.appName", "Fasket"));
@@ -190,6 +191,12 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode, branding }: Auth
     const nextMode = step === "login" ? "register" : "login";
     setStep(nextMode);
     onToggleMode();
+  };
+
+  const handleContinueAsGuest = () => {
+    setErr(null);
+    setIsLoading(false);
+    onContinueAsGuest();
   };
 
   const handleVerifySignup = async () => {
@@ -404,6 +411,15 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode, branding }: Auth
             {err && <div className="text-sm text-red-600 bg-red-50 rounded-lg p-3">{err}</div>}
             <Button type="submit" disabled={isLoading} className="w-full h-12 rounded-xl">
               {isLoading ? t("common.loading") : t("auth.signIn")}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isLoading}
+              className="w-full h-12 rounded-xl"
+              onClick={handleContinueAsGuest}
+            >
+              {t("auth.continueAsGuest", "Continue as guest")}
             </Button>
             <div className="flex justify-between text-sm text-primary mt-2">
               <button type="button" onClick={() => setStep("forgot")}>{t("auth.forgot", "Forgot password?")}</button>

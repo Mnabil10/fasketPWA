@@ -11,7 +11,7 @@ export const supportedLanguages = [
 ];
 
 const saved = typeof window !== 'undefined' ? localStorage.getItem('lang') : null;
-const fallbackLng = 'en';
+const fallbackLng = 'ar';
 
 i18n
   .use(initReactI18next)

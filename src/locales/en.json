@@ -88,6 +88,7 @@
     "passwordHint": "Use at least 8 characters with letters and numbers.",
     "passwordMinLength": "Password must be at least 8 characters and contain letters and numbers.",
     "signIn": "Sign In",
+    "continueAsGuest": "Continue as guest",
     "signUp": "Create Account",
     "haveAccount": "Already have an account?",
     "noAccount": "Don't have an account?",

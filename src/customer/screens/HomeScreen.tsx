@@ -24,9 +24,11 @@ import {
   RetryBlock,
 } from "../components";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
-import { goToCart, goToCategory, goToProduct } from "../navigation/navigation";
+import { hashFromUrl, parseHash } from "../navigation/deepLinking";
+import { goToCart, goToCategory, goToHome, goToOrders, goToProduct } from "../navigation/navigation";
 import type { Product } from "../../types/api";
-import { trackAddToCart } from "../../lib/analytics";
+import { trackAddToCart, trackPromoClick } from "../../lib/analytics";
+import { openExternalUrl } from "../../lib/fasketLinks";
 import { mapApiErrorToMessage } from "../../utils/mapApiErrorToMessage";
 import { FASKET_GRADIENTS } from "../../styles/designSystem";
 import type { CachedResult } from "../../lib/offlineCache";
@@ -36,6 +38,15 @@ interface HomeScreenProps {
   appState: AppState;
   updateAppState: UpdateAppState;
 }
+
+type PromoTile = {
+  id: number | string;
+  title: string;
+  subtitle: string;
+  image: string;
+  action?: string | null;
+  link?: string | null;
+};
 
 export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
   const { t, i18n } = useTranslation();
@@ -84,7 +95,7 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
     "https://images.unsplash.com/photo-1665521032636-e8d2f6927053?auto=format&fit=crop&w=1080&q=80",
   ];
 
-  const promos = useMemo(() => {
+  const promos: PromoTile[] = useMemo(() => {
     const promoConfig = mobileConfig?.home?.promos ?? [];
     if (promoConfig.length > 0) {
       return promoConfig.map((promo, index) => ({
@@ -92,6 +103,8 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
         title: getLocalizedString(promo.title, lang, ""),
         subtitle: getLocalizedString(promo.subtitle, lang, ""),
         image: promo.imageUrl,
+        action: promo.action ?? null,
+        link: promo.link ?? null,
       }));
     }
     const content = t("home.promotions", { returnObjects: true }) as Array<{ title: string; subtitle: string }>;
@@ -100,6 +113,8 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
       title: content[index]?.title ?? "",
       subtitle: content[index]?.subtitle ?? "",
       image,
+      action: null,
+      link: null,
     }));
   }, [t, lang, mobileConfig?.home?.promos]);
 
@@ -111,6 +126,75 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
     } catch (error: any) {
       apiErrorToast(error, "products.error");
     }
+  };
+
+  const navigateToHash = (hash: string) => {
+    const target = parseHash(hash);
+    if (!target) return false;
+    if (target.screen === "products" && target.categorySlug) {
+      goToCategory(target.categorySlug, updateAppState);
+      return true;
+    }
+    if (target.screen === "product-detail" && target.productSlug) {
+      goToProduct(target.productSlug, updateAppState);
+      return true;
+    }
+    if (target.screen === "home") {
+      goToHome(updateAppState);
+      return true;
+    }
+    if (target.screen === "cart") {
+      goToCart(updateAppState);
+      return true;
+    }
+    if (target.screen === "orders") {
+      goToOrders(updateAppState);
+      return true;
+    }
+    updateAppState({ currentScreen: target.screen });
+    return true;
+  };
+
+  const handlePromoAction = async (promo: PromoTile) => {
+    const rawAction = `${promo.action ?? promo.link ?? ""}`.trim();
+    trackPromoClick(String(promo.id), promo.action ?? null, promo.link ?? null);
+    if (!rawAction) {
+      updateAppState({ currentScreen: "categories" });
+      return;
+    }
+
+    if (/^(https?:\/\/|mailto:|tel:)/i.test(rawAction)) {
+      await openExternalUrl(rawAction);
+      return;
+    }
+
+    if (rawAction.startsWith("category:")) {
+      const slug = rawAction.slice("category:".length).trim();
+      if (slug) goToCategory(slug, updateAppState);
+      return;
+    }
+
+    if (rawAction.startsWith("product:")) {
+      const slug = rawAction.slice("product:".length).trim();
+      if (slug) goToProduct(slug, updateAppState);
+      return;
+    }
+
+    if (rawAction.startsWith("screen:")) {
+      const screen = rawAction.slice("screen:".length).trim();
+      if (screen) {
+        const hash = hashFromUrl(`/${screen}`);
+        if (hash && navigateToHash(hash)) return;
+      }
+      updateAppState({ currentScreen: "categories" });
+      return;
+    }
+
+    const normalized = rawAction.startsWith("#") || rawAction.startsWith("/") ? rawAction : `/${rawAction}`;
+    const hash = hashFromUrl(normalized);
+    if (hash && navigateToHash(hash)) return;
+
+    updateAppState({ currentScreen: "categories" });
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -279,7 +363,7 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
                       variant="secondary"
                       size="sm"
                       className="rounded-full"
-                      onClick={() => updateAppState({ currentScreen: "categories" })}
+                      onClick={() => handlePromoAction(promo)}
                     >
                       {t("home.promotionsCta")}
                     </Button>

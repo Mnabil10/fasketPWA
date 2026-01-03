@@ -1,6 +1,10 @@
+import { api } from "../api/client";
+import { getSessionTokens } from "../store/session";
+
 type AnalyticsPayload = Record<string, any>;
 
 const STORAGE_KEY = "fasket-analytics-events";
+const DEVICE_KEY = "fasket-analytics-device-id";
 const MAX_EVENTS = 50;
 
 function getStorage() {
@@ -33,6 +37,19 @@ function persistEvents(events: Array<{ name: string; params?: AnalyticsPayload; 
   } catch {
     // ignore quota issues
   }
+}
+
+function getDeviceId() {
+  const storage = getStorage();
+  if (!storage) return "web";
+  const existing = storage.getItem(DEVICE_KEY);
+  if (existing) return existing;
+  const generated =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `device-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  storage.setItem(DEVICE_KEY, generated);
+  return generated;
 }
 
 export function trackEvent(name: string, params?: AnalyticsPayload) {
@@ -68,6 +85,10 @@ export function trackOrderFailed(reason?: string) {
   trackEvent("order_failed", { reason });
 }
 
+export function trackPromoClick(promoId: string, action?: string | null, link?: string | null) {
+  trackEvent("promo_click", { promoId, action, link });
+}
+
 export const analytics = {
   trackAppOpen,
   trackViewProduct,
@@ -75,6 +96,7 @@ export const analytics = {
   trackCheckoutStarted,
   trackOrderPlaced,
   trackOrderFailed,
+  trackPromoClick,
 };
 
 export function getStoredEvents() {
@@ -83,4 +105,28 @@ export function getStoredEvents() {
 
 export function clearStoredEvents() {
   persistEvents([]);
+}
+
+export async function flushAnalytics(source = "mobile") {
+  const { accessToken } = getSessionTokens();
+  if (!accessToken) return { success: false, skipped: true };
+  const events = loadEvents();
+  if (!events.length) return { success: true, skipped: true };
+  const deviceId = getDeviceId();
+  const payload = {
+    source,
+    deviceId,
+    events: events.map((evt) => ({
+      name: evt.name,
+      ts: new Date(evt.ts).toISOString(),
+      params: evt.params,
+    })),
+  };
+  try {
+    await api.post("/analytics/events", payload);
+    clearStoredEvents();
+    return { success: true, count: events.length };
+  } catch {
+    return { success: false, count: 0 };
+  }
 }

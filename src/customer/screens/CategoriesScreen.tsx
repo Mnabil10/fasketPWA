@@ -75,7 +75,8 @@ export function CategoriesScreen({ appState, updateAppState }: CategoriesScreenP
       <NetworkBanner stale={staleData} />
       <IonRefresher slot="fixed" onIonRefresh={handleRefresh}>
         <IonRefresherContent
-          pullingText={t("categories.pullToRefresh", "Pull to refresh categories")}
+          pullingText=""
+          refreshingText=""
           refreshingSpinner="crescent"
         />
       </IonRefresher>

@@ -1,7 +1,14 @@
 // src/services/orders.ts
 import { api } from "../api/client";
 import type { ApiCart } from "./cart";
-import type { OrderDetail, OrderGroupSummary, OrderReceipt, OrderSummary } from "../types/api";
+import type {
+  DriverLocation,
+  OrderDetail,
+  OrderGroupSummary,
+  OrderReceipt,
+  OrderSummary,
+  OrderTimelineEntry,
+} from "../types/api";
 
 type OrdersPayload =
   | OrderSummary[]
@@ -267,8 +274,8 @@ export type GuestAddressInput = {
   building?: string;
   apartment?: string;
   notes?: string;
-  lat: number;
-  lng: number;
+  lat?: number;
+  lng?: number;
 };
 
 export type GuestOrderQuoteRequest = {
@@ -353,19 +360,19 @@ export async function reorderOrder(id: string): Promise<ApiCart> {
   return (data?.data?.cart ?? data?.data ?? data) as ApiCart;
 }
 
-export async function getOrderTimeline(id: string) {
+export async function getOrderTimeline(id: string): Promise<OrderTimelineEntry[]> {
   try {
     const { data } = await api.get(`/orders/${id}/timeline`);
-    return (data?.data ?? data) as Array<{ from?: string | null; to?: string; note?: string; createdAt: string }>;
+    return (data?.data ?? data) as OrderTimelineEntry[];
   } catch {
     return [];
   }
 }
 
-export async function getDriverLocation(id: string) {
+export async function getDriverLocation(id: string): Promise<DriverLocation | null> {
   try {
     const { data } = await api.get(`/orders/${id}/driver-location`);
-    return data?.data ?? data;
+    return (data?.data ?? data) as DriverLocation | null;
   } catch {
     return null;
   }

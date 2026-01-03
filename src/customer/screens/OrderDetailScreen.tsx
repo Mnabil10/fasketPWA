@@ -9,10 +9,10 @@ import { AppState, type UpdateAppState } from "../CustomerApp";
 import { fmtEGP, fromCents } from "../../lib/money";
 import { MobileNav } from "../MobileNav";
 import { NetworkBanner, RetryBlock, SkeletonList, EmptyState } from "../components";
-import { useOrderDetail, useNetworkStatus } from "../hooks";
+import { useOrderDetail, useNetworkStatus, useOrderTimeline, useOrderDriverLocation } from "../hooks";
 import { goToOrders } from "../navigation/navigation";
 import { mapApiErrorToMessage } from "../../utils/mapApiErrorToMessage";
-import { openWhatsapp } from "../../lib/fasketLinks";
+import { openMapLocation, openWhatsapp } from "../../lib/fasketLinks";
 import type { OrderDetail, OrderGroupSummary } from "../../types/api";
 
 interface OrderDetailScreenProps {
@@ -58,33 +58,73 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
   const orderDetail = !isGroup && order ? (order as OrderDetail) : null;
   const groupOrder = isGroup && order ? (order as OrderGroupSummary) : null;
   const loadErrorMessage = mapApiErrorToMessage(orderQuery.error, "orderDetail.messages.notFound");
+  const distancePricingEnabled = appState.settings?.delivery?.distancePricingEnabled ?? true;
 
   const statusKey = order?.status?.toUpperCase?.() || "PENDING";
   const statusMeta = STATUS_VARIANTS[statusKey] || { icon: Clock, variant: "outline" };
   const StatusIcon = statusMeta.icon;
 
+  const timelineQuery = useOrderTimeline(fallbackId, {
+    enabled: !isGroup && Boolean(fallbackId),
+  });
+  const shouldTrackDriver =
+    distancePricingEnabled &&
+    !isGroup &&
+    Boolean(orderDetail?.driver?.id || orderDetail?.driver?.fullName) &&
+    statusKey === "DELIVERING";
+  const driverLocationQuery = useOrderDriverLocation(fallbackId, {
+    enabled: shouldTrackDriver && Boolean(fallbackId),
+    refetchInterval: shouldTrackDriver ? 15000 : false,
+  });
+  const driverLocation = driverLocationQuery.data ?? null;
+  const showTrackingCard =
+    distancePricingEnabled && !isGroup && Boolean(orderDetail?.driver?.id || orderDetail?.driver?.fullName);
+  const hasDriverLocation =
+    Number.isFinite(driverLocation?.lat) && Number.isFinite(driverLocation?.lng);
+
   const timeline = React.useMemo(() => {
     if (!order || isGroup) return [];
     const steps = [
       { key: "PENDING", label: t("orders.status.pending", "Pending") },
-      { key: "PROCESSING", label: t("orders.status.processing", "Processing") },
-      { key: "OUT_FOR_DELIVERY", label: t("orders.status.out_for_delivery", "Out for delivery") },
-      { key: "DELIVERED", label: t("orders.status.delivered", "Delivered") },
+      { key: "CONFIRMED", label: t("orders.status.confirmed", "Confirmed") },
+      { key: "DELIVERING", label: t("orders.status.delivering", "Out for delivery") },
+      { key: "COMPLETED", label: t("orders.status.completed", "Delivered") },
     ];
-    const history = (orderDetail?.statusHistory || []).map((h) => ({
-      status: (h.to || "").toUpperCase(),
-      at: h.createdAt || orderDetail?.createdAt,
-      note: h.note,
+    const history = (timelineQuery.data ?? []).map((entry) => ({
+      status: (entry.to || "").toUpperCase(),
+      at: entry.createdAt || orderDetail?.createdAt,
+      note: entry.note ?? null,
     }));
+    const hasCancel =
+      history.some((entry) => entry.status === "CANCELED") || statusKey === "CANCELED";
+    const mergedSteps = hasCancel
+      ? [...steps, { key: "CANCELED", label: t("orders.status.canceled", "Canceled") }]
+      : steps;
     const reached = new Set(history.map((h) => h.status));
-    const currentReached = steps.findIndex((s) => s.key === statusKey);
-    return steps.map((step, idx) => {
+    const currentReached = mergedSteps.findIndex((s) => s.key === statusKey);
+    return mergedSteps.map((step, idx) => {
       const historyMatch = history.find((h) => h.status === step.key);
       const at = historyMatch?.at || (idx === 0 ? orderDetail?.createdAt : null);
-      const completed = reached.has(step.key) || idx <= currentReached;
+      const completed = reached.has(step.key) || (currentReached >= 0 && idx <= currentReached);
       return { ...step, at, completed, note: historyMatch?.note };
     });
-  }, [orderDetail?.createdAt, orderDetail?.statusHistory, statusKey, t, isGroup]);
+  }, [orderDetail?.createdAt, statusKey, t, isGroup, timelineQuery.data]);
+
+  const etaText = React.useMemo(() => {
+    if (!orderDetail) return null;
+    if (orderDetail.estimatedDeliveryTime) {
+      return dayjs(orderDetail.estimatedDeliveryTime).format(t("orders.dateFormat", "DD MMM YYYY - HH:mm"));
+    }
+    if (orderDetail.deliveryEtaMinutes != null) {
+      const minutes = orderDetail.deliveryEtaMinutes;
+      return t("orderDetail.etaMinutes", { count: minutes, defaultValue: `${minutes} min` });
+    }
+    return null;
+  }, [orderDetail?.estimatedDeliveryTime, orderDetail?.deliveryEtaMinutes, t]);
+
+  const driverLocationTimestamp = driverLocation?.recordedAt
+    ? dayjs(driverLocation.recordedAt).format(t("orders.dateFormat", "DD MMM YYYY - HH:mm"))
+    : null;
 
   const addressLine = orderDetail?.address
     ? [orderDetail.address.label, orderDetail.address.street, orderDetail.address.city, orderDetail.address.zone]
@@ -172,6 +212,17 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
                       <p className="font-medium text-gray-900">{addressLine}</p>
                     </div>
                   </div>
+                  {etaText && (
+                    <div className="flex items-start gap-2">
+                      <Clock className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm text-gray-500 mb-1">
+                          {t("orderDetail.etaLabel", "Estimated arrival")}
+                        </p>
+                        <p className="font-medium text-gray-900">{etaText}</p>
+                      </div>
+                    </div>
+                  )}
                   {(orderDetail?.deliveryZone?.nameEn || orderDetail?.deliveryZoneName) && (
                     <div className="flex items-start gap-2">
                       <Truck className="w-4 h-4 text-gray-500 flex-shrink-0" />
@@ -293,6 +344,43 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
                 </div>
               </div>
             </section>
+
+            {showTrackingCard && (
+              <section className="section-card space-y-3">
+                <div className="flex items-center justify-between">
+                  <h2 className="font-medium text-gray-900">{t("orderDetail.trackingTitle", "Live tracking")}</h2>
+                  {driverLocationQuery.isFetching && (
+                    <span className="text-xs text-gray-500">{t("orderDetail.trackingUpdating", "Updating")}</span>
+                  )}
+                </div>
+                <div className="text-sm text-gray-600">
+                  {hasDriverLocation
+                    ? t("orderDetail.trackingLastSeen", {
+                        date: driverLocationTimestamp ?? "",
+                        defaultValue: `Last update ${driverLocationTimestamp ?? ""}`.trim(),
+                      })
+                    : t("orderDetail.trackingWaiting", "Waiting for driver location updates.")}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() =>
+                    hasDriverLocation
+                      ? openMapLocation({
+                          lat: driverLocation!.lat,
+                          lng: driverLocation!.lng,
+                          label: orderDetail?.driver?.fullName ?? "Driver location",
+                        })
+                      : undefined
+                  }
+                  disabled={!hasDriverLocation || isOffline}
+                >
+                  <MapPin className="w-4 h-4 mr-2" />
+                  {t("orderDetail.trackingOpenMap", "Open live map")}
+                </Button>
+              </section>
+            )}
 
             {!isGroup && (
               <section className="section-card space-y-2">

@@ -38,6 +38,7 @@ export type DeliveryConfig = {
   maxEtaMinutes?: number;
   currencyCode?: string;
   feeCurrency?: string;
+  distancePricingEnabled?: boolean;
 };
 
 export type LocalizedString = string | { en?: string; ar?: string };
@@ -85,7 +86,13 @@ export type MobileAppConfig = {
       subtitle?: LocalizedString;
       pills?: Array<{ label: LocalizedString; icon?: string }>;
     };
-    promos?: Array<{ imageUrl: string; title?: LocalizedString; subtitle?: LocalizedString }>;
+    promos?: Array<{
+      imageUrl: string;
+      title?: LocalizedString;
+      subtitle?: LocalizedString;
+      action?: string | null;
+      link?: string | null;
+    }>;
     sections?: Array<{
       id?: string;
       type?: string;
@@ -316,6 +323,24 @@ export type OrderGroupSummary = {
   createdAt: string;
   orders: OrderGroupItem[];
   skippedBranchIds?: string[];
+};
+
+export type OrderTimelineEntry = {
+  id?: string;
+  from?: string | null;
+  to?: string | null;
+  note?: string | null;
+  createdAt: string;
+};
+
+export type DriverLocation = {
+  driverId: string;
+  lat: number;
+  lng: number;
+  accuracy?: number | null;
+  heading?: number | null;
+  speed?: number | null;
+  recordedAt: string;
 };
 
 export type OrderSummary = {

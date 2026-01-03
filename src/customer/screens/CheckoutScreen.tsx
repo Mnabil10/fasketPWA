@@ -82,9 +82,10 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
 
   const serverCart = cart.rawCart;
   const previewItems = cart.items;
+  const distancePricingEnabled = appState.settings?.delivery?.distancePricingEnabled ?? true;
   const guestLat = parseCoordinate(guestLatInput);
   const guestLng = parseCoordinate(guestLngInput);
-  const guestLocationValid = guestLat != null && guestLng != null;
+  const guestLocationValid = !distancePricingEnabled || (guestLat != null && guestLng != null);
   const guestAddressValid = guestAddress.trim().length > 0;
 
   const guestItems = useMemo(
@@ -120,9 +121,11 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
   const couponsEnabled = isFeatureEnabled(appState.settings?.mobileApp, "coupons", true);
   const loyaltyFeatureEnabled = isFeatureEnabled(appState.settings?.mobileApp, "loyalty", true);
   const loyaltyEnabled = !isGuest && Boolean(loyaltySettings?.enabled && loyaltyFeatureEnabled && maxRedeemablePoints > 0);
-  const deliveryRequiresLocation = isGuest
-    ? true
-    : Boolean(serverCart?.delivery?.requiresLocation || cartGroups.some((group) => group.deliveryRequiresLocation));
+  const deliveryRequiresLocation = distancePricingEnabled
+    ? isGuest
+      ? true
+      : Boolean(serverCart?.delivery?.requiresLocation || cartGroups.some((group) => group.deliveryRequiresLocation))
+    : false;
   const etaLabel = estimatedDeliveryMinutes
     ? t("checkout.summary.etaValue", { value: `${estimatedDeliveryMinutes} ${t("checkout.summary.minutes", "min")}` })
     : t("checkout.summary.etaValue", { value: "30-45 min" });
@@ -163,12 +166,18 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
   const debouncedGuestLng = useDebouncedValue(guestLngInput, 350);
 
   const checkoutSteps = isGuest
-    ? [
-        t("checkout.steps.cart", "Cart"),
-        t("checkout.steps.guest", "Details"),
-        t("checkout.steps.location", "Location"),
-        t("checkout.steps.confirm", "Confirm"),
-      ]
+    ? distancePricingEnabled
+      ? [
+          t("checkout.steps.cart", "Cart"),
+          t("checkout.steps.guest", "Details"),
+          t("checkout.steps.location", "Location"),
+          t("checkout.steps.confirm", "Confirm"),
+        ]
+      : [
+          t("checkout.steps.cart", "Cart"),
+          t("checkout.steps.guest", "Details"),
+          t("checkout.steps.confirm", "Confirm"),
+        ]
     : [
         t("checkout.steps.cart", "Cart"),
         t("checkout.steps.address", "Address"),
@@ -232,7 +241,7 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
     const addressValue = debouncedGuestAddress.trim();
     const lat = parseCoordinate(debouncedGuestLat ?? "");
     const lng = parseCoordinate(debouncedGuestLng ?? "");
-    if (!addressValue || lat == null || lng == null) {
+    if (!addressValue || (distancePricingEnabled && (lat == null || lng == null))) {
       setGuestQuote(null);
       setGuestQuoteError(null);
       return;
@@ -243,13 +252,15 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
     guestQuoteRef.current = requestId;
     setGuestQuoteLoading(true);
     setGuestQuoteError(null);
+    const addressPayload: { fullAddress: string; lat?: number; lng?: number } = {
+      fullAddress: addressValue,
+    };
+    if (lat != null) addressPayload.lat = lat;
+    if (lng != null) addressPayload.lng = lng;
+
     quoteGuestOrder({
       items: guestItems,
-      address: {
-        fullAddress: addressValue,
-        lat,
-        lng,
-      },
+      address: addressPayload,
     })
       .then((quote) => {
         if (guestQuoteRef.current !== requestId) return;
@@ -272,6 +283,7 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
     debouncedGuestAddress,
     debouncedGuestLat,
     debouncedGuestLng,
+    distancePricingEnabled,
     isOffline,
   ]);
 
@@ -333,7 +345,7 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
       showToast({ type: "error", message: t("checkout.guest.addressRequired", "Full address is required.") });
       return;
     }
-    if (!guestLocationValid || guestLat == null || guestLng == null) {
+    if (distancePricingEnabled && (!guestLocationValid || guestLat == null || guestLng == null)) {
       showToast({ type: "error", message: t("checkout.messages.missingLocation", "Location is required for delivery.") });
       return;
     }
@@ -346,18 +358,20 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
     setSaving(true);
     try {
       const note = deliveryNotes.trim();
+      const addressPayload: { fullAddress: string; lat?: number; lng?: number; notes?: string } = {
+        fullAddress,
+        notes: guestAddressNotes.trim() || undefined,
+      };
+      if (guestLat != null) addressPayload.lat = guestLat;
+      if (guestLng != null) addressPayload.lng = guestLng;
+
       const res = await placeGuestOrder({
         name,
         phone,
         note: note ? note : undefined,
         idempotencyKey,
         items: guestItems,
-        address: {
-          fullAddress,
-          lat: guestLat,
-          lng: guestLng,
-          notes: guestAddressNotes.trim() || undefined,
-        },
+        address: addressPayload,
       });
       cart.clearLocal();
       const isGroup = isOrderGroupSummary(res);
@@ -780,32 +794,36 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
                     className="min-h-[80px]"
                   />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <Label>{t("checkout.guest.latLabel", "Latitude")}</Label>
-                    <Input
-                      type="number"
-                      step="0.000001"
-                      value={guestLatInput}
-                      onChange={(e) => setGuestLatInput(e.target.value)}
-                      placeholder="30.123456"
-                    />
-                  </div>
-                  <div>
-                    <Label>{t("checkout.guest.lngLabel", "Longitude")}</Label>
-                    <Input
-                      type="number"
-                      step="0.000001"
-                      value={guestLngInput}
-                      onChange={(e) => setGuestLngInput(e.target.value)}
-                      placeholder="31.123456"
-                    />
-                  </div>
-                </div>
-                <Button variant="outline" size="sm" onClick={handleUseCurrentLocation} className="rounded-xl">
-                  <MapPin className="w-4 h-4 mr-1" />
-                  {t("checkout.guest.useLocation", "Use current location")}
-                </Button>
+                {distancePricingEnabled && (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <Label>{t("checkout.guest.latLabel", "Latitude")}</Label>
+                        <Input
+                          type="number"
+                          step="0.000001"
+                          value={guestLatInput}
+                          onChange={(e) => setGuestLatInput(e.target.value)}
+                          placeholder="30.123456"
+                        />
+                      </div>
+                      <div>
+                        <Label>{t("checkout.guest.lngLabel", "Longitude")}</Label>
+                        <Input
+                          type="number"
+                          step="0.000001"
+                          value={guestLngInput}
+                          onChange={(e) => setGuestLngInput(e.target.value)}
+                          placeholder="31.123456"
+                        />
+                      </div>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={handleUseCurrentLocation} className="rounded-xl">
+                      <MapPin className="w-4 h-4 mr-1" />
+                      {t("checkout.guest.useLocation", "Use current location")}
+                    </Button>
+                  </>
+                )}
                 <div>
                   <Label>{t("checkout.guest.notesLabel", "Address notes")}</Label>
                   <Textarea

@@ -9,7 +9,7 @@ export const withLang = (params: Record<string, any> = {}, lang?: "ar"|"en") => 
   return p.toString() ? `?${p.toString()}` : "";
 };
 
-export function getActiveLang(fallback: "ar" | "en" = "en"): "ar" | "en" {
+export function getActiveLang(fallback: "ar" | "en" = "ar"): "ar" | "en" {
   const current = i18n?.language;
   if (typeof current === "string") {
     return current.toLowerCase().startsWith("ar") ? "ar" : "en";

@@ -34,7 +34,7 @@ import { listCategories } from "../services/catalog";
 import i18n from "../i18n";
 import type { CartPreviewItem } from "./types";
 import { useCart } from "./hooks";
-import { trackAppOpen } from "../lib/analytics";
+import { flushAnalytics, trackAppOpen } from "../lib/analytics";
 import { getAppSettings } from "../services/settings";
 import { initPush, registerDeviceToken, subscribeToNotifications } from "../lib/notifications";
 import { useNotificationPreferences } from "./stores/notificationPreferences";
@@ -139,12 +139,51 @@ export function CustomerApp() {
   const notificationPrefs = useNotificationPreferences((state) => state.preferences);
   const [appState, setAppState] = useState<AppState>(initialState);
   const prevUserId = useRef<string | null>(null);
+  const analyticsFlushRef = useRef<string | null>(null);
+  const swipeStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
 
   const updateAppState: UpdateAppState = useCallback((updates) => {
     setAppState((prev) => ({
       ...prev,
       ...(typeof updates === "function" ? updates(prev) : updates),
     }));
+  }, []);
+
+  const handleTouchStart = useCallback((event: React.TouchEvent<HTMLDivElement>) => {
+    if (event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    swipeStartRef.current = { x: touch.clientX, y: touch.clientY, time: Date.now() };
+  }, []);
+
+  const handleTouchEnd = useCallback((event: React.TouchEvent<HTMLDivElement>) => {
+    const start = swipeStartRef.current;
+    swipeStartRef.current = null;
+    if (!start || event.changedTouches.length !== 1) return;
+    const touch = event.changedTouches[0];
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+    const absX = Math.abs(deltaX);
+    const absY = Math.abs(deltaY);
+    const elapsed = Date.now() - start.time;
+    const edgeSize = 24;
+    const minDistance = 60;
+    const maxVertical = 80;
+    const maxDuration = 700;
+
+    if (elapsed > maxDuration) return;
+    if (absX < minDistance || absX < absY || absY > maxVertical) return;
+
+    const width = typeof window !== "undefined" ? window.innerWidth : 0;
+    const isRTL = i18n.dir() === "rtl";
+    const startedFromEdge = isRTL ? width - start.x <= edgeSize : start.x <= edgeSize;
+    if (!startedFromEdge) return;
+
+    const correctDirection = isRTL ? deltaX < -minDistance : deltaX > minDistance;
+    if (!correctDirection) return;
+
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      window.history.back();
+    }
   }, []);
 
   const handleDeepLinkPath = useCallback(
@@ -239,6 +278,11 @@ export function CustomerApp() {
     }
   }, [updateAppState]);
 
+  const handleContinueAsGuest = useCallback(() => {
+    goToHome(updateAppState);
+    updateAppState({ postOnboardingScreen: "home", user: null });
+  }, [updateAppState]);
+
   const toggleAuthMode = useCallback(() => {
     updateAppState((prev) => ({
       currentScreen: prev.currentScreen === "register" ? "auth" : "register",
@@ -248,6 +292,17 @@ export function CustomerApp() {
   useEffect(() => {
     trackAppOpen();
   }, []);
+
+  useEffect(() => {
+    const userId = appState.user?.id ?? null;
+    if (!userId) {
+      analyticsFlushRef.current = null;
+      return;
+    }
+    if (analyticsFlushRef.current === userId) return;
+    analyticsFlushRef.current = userId;
+    flushAnalytics().catch(() => undefined);
+  }, [appState.user?.id]);
 
   useEffect(() => {
     if (!CapacitorApp?.addListener) return;
@@ -551,6 +606,7 @@ export function CustomerApp() {
           mode={mode}
           onAuthSuccess={handleAuthSuccess}
           onToggleMode={toggleAuthMode}
+          onContinueAsGuest={handleContinueAsGuest}
           branding={appState.settings?.mobileApp?.branding}
         />
       );
@@ -616,5 +672,13 @@ export function CustomerApp() {
     }
   };
 
-  return <div className="relative w-full min-h-screen overflow-x-hidden">{renderScreen()}</div>;
+  return (
+    <div
+      className="relative w-full min-h-screen overflow-x-hidden"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
+      {renderScreen()}
+    </div>
+  );
 }

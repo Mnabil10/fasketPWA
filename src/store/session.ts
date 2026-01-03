@@ -20,7 +20,7 @@ let state: SessionState = {
   accessToken: null,
   refreshToken: null,
   user: null,
-  language: "en",
+  language: "ar",
   hydrated: false,
 };
 
@@ -39,7 +39,7 @@ async function hydrateFromStorage() {
       ...state,
       accessToken,
       refreshToken,
-      language: (storedLang as SessionState["language"]) || (localLang as SessionState["language"]) || "en",
+      language: (storedLang as SessionState["language"]) || (localLang as SessionState["language"]) || "ar",
       hydrated: true,
     };
   } catch {

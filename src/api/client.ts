@@ -101,12 +101,13 @@ api.interceptors.request.use(async (config: WithRetryConfig) => {
   headers.set("Accept-Language", lang);
   headers.set("Content-Type", "application/json");
 
-  if (
-    lang &&
-    (config.method ?? "get").toString().toLowerCase() === "get" &&
-    (!(config.params as Record<string, unknown> | undefined)?.lang)
-  ) {
-    config.params = { ...(config.params as Record<string, unknown>), lang };
+  const method = (config.method ?? "get").toString().toLowerCase();
+  const url = typeof config.url === "string" ? config.url : "";
+  const params = config.params as Record<string, unknown> | undefined;
+  const hasLangInParams = Boolean(params && "lang" in params);
+  const hasLangInUrl = /[?&]lang=/.test(url);
+  if (lang && method === "get" && !hasLangInParams && !hasLangInUrl) {
+    config.params = { ...(params || {}), lang };
   }
 
   if (!config.skipAuth && !isAuthPath(config.url)) {

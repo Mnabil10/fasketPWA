@@ -22,8 +22,9 @@ type OrdersPayload =
 
 const ORDER_STATUS_MAP: Record<string, string> = {
   PROCESSING: "CONFIRMED",
-  OUT_FOR_DELIVERY: "DELIVERING",
-  DELIVERED: "COMPLETED",
+  DELIVERING: "OUT_FOR_DELIVERY",
+  SHIPPED: "OUT_FOR_DELIVERY",
+  COMPLETED: "DELIVERED",
 };
 
 function mapOrderStatus(status: string | undefined | null) {
@@ -31,7 +32,9 @@ function mapOrderStatus(status: string | undefined | null) {
   const key = status.toString().toUpperCase();
   if (ORDER_STATUS_MAP[key]) return ORDER_STATUS_MAP[key];
   if (key === "CANCELED" || key === "CANCELLED") return "CANCELED";
-  if (key === "CONFIRMED" || key === "DELIVERING" || key === "COMPLETED" || key === "PENDING") return key;
+  if (key === "PENDING" || key === "CONFIRMED" || key === "PREPARING" || key === "OUT_FOR_DELIVERY" || key === "DELIVERED" || key === "FAILED") {
+    return key;
+  }
   return "PENDING";
 }
 

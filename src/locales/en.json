@@ -25,9 +25,12 @@
     "addressInvalidZone": "The selected delivery area is not available.",
     "addressZoneInactive": "This delivery area is not available right now.",
     "addressZoneRequired": "Please choose a delivery area.",
+    "driverNotFound": "Driver not found.",
+    "driverInactive": "Driver is not available right now.",
     "cartEmpty": "Your cart is empty. Add items to continue.",
     "cartProductUnavailable": "One or more items are unavailable.",
     "checkoutAddressRequired": "Select an address so we can calculate shipping.",
+    "validationFailed": "Please check the information and try again.",
     "loyaltyNotEnoughPoints": "You don't have enough points to redeem this amount.",
     "loyaltyDisabled": "Loyalty points are currently unavailable.",
     "loyaltyRuleViolation": "This amount of points can't be redeemed for this order.",
@@ -90,9 +93,9 @@
     "signIn": "Sign In",
     "continueAsGuest": "Continue as guest",
     "signUp": "Create Account",
-    "haveAccount": "Already have an account?",
-    "noAccount": "Don't have an account?",
-    "forgotPassword": "Forgot Password?",
+    "haveAccount": "Already have an account'",
+    "noAccount": "Don't have an account'",
+    "forgotPassword": "Forgot Password'",
     "resetDialogTitle": "Reset Password",
     "resetDialogDescription": "Enter your phone number to receive a reset code.",
     "resetDialogSubmit": "Send Reset Code",
@@ -104,7 +107,7 @@
   "home": {
     "greeting": "Hi, {{name}}!",
     "greetingGuest": "Welcome to Fasket",
-    "prompt": "What do you need today?",
+    "prompt": "What do you need today'",
     "searchPlaceholder": "Search fresh fruits, snacks, and essentials",
     "subtitlePremium": "Your premium online supermarket in Badr City.",
     "deliveryEta": "30-45 min delivery",
@@ -145,7 +148,7 @@
   },
   "categories": {
     "title": "Categories",
-    "searchPlaceholder": "Search categories…",
+    "searchPlaceholder": "Search categories...",
     "pullToRefresh": "Pull to refresh categories",
     "filters": {
       "all": "All",
@@ -162,7 +165,7 @@
   },
   "products": {
     "title": "Products",
-    "searchPlaceholder": "Search products…",
+    "searchPlaceholder": "Search products...",
     "pullToRefresh": "Pull to refresh products",
     "featuredBadge": "Featured",
     "filterButton": "Filter",
@@ -191,7 +194,7 @@
     },
     "emptyTitle": "No products found",
     "emptySubtitle": "Try searching with different keywords.",
-    "loading": "Loading products…",
+    "loading": "Loading products...",
     "error": "Failed to load products.",
     "itemsCount": "{{count}} items",
     "buttons": {
@@ -235,7 +238,7 @@
       "guestSummaryNote": "Delivery fees are calculated at checkout.",
       "checkout": "Proceed to Checkout",
       "checkoutGuest": "Checkout as guest",
-    "loading": "Loading your cart…",
+    "loading": "Loading your cart...",
     "clear": "Clear cart",
     "loadError": "We couldn't load your cart. Please try again.",
     "imageUnavailable": "Image unavailable",
@@ -303,7 +306,7 @@
     },
     "buttons": {
       "addAddress": "+ Add new",
-      "placeOrder": "Place Order • {{total}}"
+      "placeOrder": "Place Order ({{total}})"
     },
     "notesPlaceholder": "Leave delivery instructions (optional)",
     "paymentMethods": {
@@ -395,6 +398,8 @@
     "status": {
       "pending": "Pending",
       "confirmed": "Confirmed",
+      "preparing": "Preparing",
+      "out_for_delivery": "Out for delivery",
       "delivering": "Out for delivery",
       "completed": "Completed",
       "processing": "Processing",
@@ -404,7 +409,7 @@
       "failed": "Failed"
     },
     "count": "{{count}} orders",
-    "dateFormat": "DD MMM YYYY · HH:mm",
+    "dateFormat": "DD MMM YYYY HH:mm",
     "totalLabel": "{{amount}}",
     "emptyCta": "Browse products to place your first order.",
     "startShopping": "Start shopping",
@@ -419,7 +424,7 @@
     "summary": "Summary",
     "createdAt": "Placed on {{date}}",
     "messages": {
-      "loading": "Loading order…",
+      "loading": "Loading order...",
       "notFound": "Order not found.",
       "missing": "We could not find this order."
     },
@@ -432,8 +437,8 @@
     "loyaltyDiscount": "Loyalty discount",
     "pointsEarned": "Points earned",
     "pointsRedeemed": "Points used",
-    "helpTitle": "Need help with this order?",
-    "helpSubtitle": "Message us on WhatsApp and we’ll assist quickly.",
+    "helpTitle": "Need help with this order'",
+    "helpSubtitle": "Message us on WhatsApp and we'll assist quickly.",
     "helpButton": "Contact via WhatsApp",
     "helpMessage": "Hi, I need help with my Fasket order #{{id}}"
   },
@@ -541,7 +546,7 @@
       "rate": "Rate the app",
       "rateSoon": "App store link coming soon",
       "whatsapp": "Contact via WhatsApp",
-      "whatsappMessage": "Hi, I’d like to ask about an order from Fasket.",
+      "whatsappMessage": "Hi, I'd like to ask about an order from Fasket.",
       "email": "Support email",
       "emailSubject": "Support request from Fasket app",
       "share": "Share Fasket / Invite a friend",
@@ -574,7 +579,7 @@
   },
   "addresses": {
     "title": "My Addresses",
-    "loading": "Loading addresses…",
+    "loading": "Loading addresses...",
     "empty": "No addresses yet",
     "form": {
       "label": "Label",
@@ -594,8 +599,8 @@
       "delete": "Delete",
       "cancel": "Cancel",
       "save": "Save",
-      "deleting": "Deleting…",
-      "saving": "Saving…",
+      "deleting": "Deleting...",
+      "saving": "Saving...",
       "create": "Create Address"
     },
     "dialogs": {
@@ -625,8 +630,8 @@
     },
     "zoneEta": "{{value}} min",
     "zoneEtaUnknown": "ETA varies",
-    "zoneSelected": "{{zone}} • {{fee}} • {{eta}}",
-    "confirmDeleteTitle": "Delete address?",
+    "zoneSelected": "{{zone}} - {{fee}} - {{eta}}",
+    "confirmDeleteTitle": "Delete address'",
     "confirmDeleteSubtitle": "This action cannot be undone."
   },
   "settings": {
@@ -668,7 +673,7 @@
     "no_products": "No products found",
     "whatsapp_prefill": "Hi, I need help with {{intent}}",
     "groupOrders": "Orders in this group",
-    "loggedInHint": "Signed in? You can view your orders from the Orders tab."
+    "loggedInHint": "Signed in' You can view your orders from the Orders tab."
   },
   "notifications": {
     "loyaltyEarned": "You earned {{points}} points!",

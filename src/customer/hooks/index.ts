@@ -12,3 +12,4 @@ export * from "./useDeliveryZones";
 export * from "./useLoyaltyHistory";
 export * from "./useAppSettings";
 export * from "./useLoyalty";
+export * from "./useReviews";

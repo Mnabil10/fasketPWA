@@ -1,19 +1,21 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "../../ui/button";
-import { ArrowLeft, Clock, Truck, CheckCircle2, XCircle, AlertTriangle, MapPin, CreditCard, MessageCircle } from "lucide-react";
+import { ArrowLeft, Clock, Truck, CheckCircle2, XCircle, AlertTriangle, MapPin, CreditCard, MessageCircle, Star } from "lucide-react";
 import { Badge } from "../../ui/badge";
 import { Separator } from "../../ui/separator";
+import { Textarea } from "../../ui/textarea";
 import dayjs from "dayjs";
 import { AppState, type UpdateAppState } from "../CustomerApp";
 import { fmtEGP, fromCents } from "../../lib/money";
 import { MobileNav } from "../MobileNav";
 import { NetworkBanner, RetryBlock, SkeletonList, EmptyState } from "../components";
-import { useOrderDetail, useNetworkStatus, useOrderTimeline, useOrderDriverLocation } from "../hooks";
+import { useOrderDetail, useNetworkStatus, useOrderTimeline, useOrderDriverLocation, useOrderReview, useSaveReview, useApiErrorToast } from "../hooks";
 import { goToOrders } from "../navigation/navigation";
 import { mapApiErrorToMessage } from "../../utils/mapApiErrorToMessage";
 import { openMapLocation, openWhatsapp } from "../../lib/fasketLinks";
 import type { OrderDetail, OrderGroupSummary } from "../../types/api";
+import { useToast } from "../providers/ToastProvider";
 
 interface OrderDetailScreenProps {
   appState: AppState;
@@ -26,18 +28,22 @@ const STATUS_VARIANTS: Record<
 > = {
   PENDING: { icon: Clock, variant: "secondary" },
   CONFIRMED: { icon: CheckCircle2, variant: "default" },
+  PREPARING: { icon: Clock, variant: "default" },
+  OUT_FOR_DELIVERY: { icon: Truck, variant: "default" },
+  DELIVERED: { icon: CheckCircle2, variant: "default" },
+  CANCELED: { icon: XCircle, variant: "destructive" },
+  FAILED: { icon: AlertTriangle, variant: "destructive" },
   DELIVERING: { icon: Truck, variant: "default" },
   COMPLETED: { icon: CheckCircle2, variant: "default" },
   PROCESSING: { icon: Clock, variant: "default" },
   SHIPPED: { icon: Truck, variant: "default" },
-  DELIVERED: { icon: CheckCircle2, variant: "default" },
-  CANCELED: { icon: XCircle, variant: "destructive" },
-  FAILED: { icon: AlertTriangle, variant: "destructive" },
 };
 
 export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScreenProps) {
   const { t } = useTranslation();
   const { isOffline } = useNetworkStatus();
+  const { showToast } = useToast();
+  const apiErrorToast = useApiErrorToast("reviews.error");
   const selectedOrder = appState.selectedOrder;
   const isGroupSummary = (value: any): value is OrderGroupSummary =>
     Boolean(value && typeof value === "object" && Array.isArray(value.orders) && value.orderGroupId);
@@ -64,6 +70,24 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
   const statusMeta = STATUS_VARIANTS[statusKey] || { icon: Clock, variant: "outline" };
   const StatusIcon = statusMeta.icon;
 
+  const reviewQuery = useOrderReview(!isGroup ? fallbackId : null, {
+    enabled: !isGroup && Boolean(fallbackId),
+  });
+  const saveReview = useSaveReview(!isGroup ? fallbackId : null);
+  const existingReview = reviewQuery.data ?? null;
+  const [rating, setRating] = React.useState<number>(existingReview?.rating ?? 0);
+  const [comment, setComment] = React.useState<string>(existingReview?.comment ?? "");
+
+  React.useEffect(() => {
+    if (!existingReview) {
+      setRating(0);
+      setComment("");
+      return;
+    }
+    setRating(existingReview.rating ?? 0);
+    setComment(existingReview.comment ?? "");
+  }, [existingReview?.id]);
+
   const timelineQuery = useOrderTimeline(fallbackId, {
     enabled: !isGroup && Boolean(fallbackId),
   });
@@ -71,7 +95,7 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
     distancePricingEnabled &&
     !isGroup &&
     Boolean(orderDetail?.driver?.id || orderDetail?.driver?.fullName) &&
-    statusKey === "DELIVERING";
+    (statusKey === "OUT_FOR_DELIVERY" || statusKey === "DELIVERING");
   const driverLocationQuery = useOrderDriverLocation(fallbackId, {
     enabled: shouldTrackDriver && Boolean(fallbackId),
     refetchInterval: shouldTrackDriver ? 15000 : false,
@@ -87,8 +111,9 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
     const steps = [
       { key: "PENDING", label: t("orders.status.pending", "Pending") },
       { key: "CONFIRMED", label: t("orders.status.confirmed", "Confirmed") },
-      { key: "DELIVERING", label: t("orders.status.delivering", "Out for delivery") },
-      { key: "COMPLETED", label: t("orders.status.completed", "Delivered") },
+      { key: "PREPARING", label: t("orders.status.preparing", "Preparing") },
+      { key: "OUT_FOR_DELIVERY", label: t("orders.status.out_for_delivery", "Out for delivery") },
+      { key: "DELIVERED", label: t("orders.status.delivered", "Delivered") },
     ];
     const history = (timelineQuery.data ?? []).map((entry) => ({
       status: (entry.to || "").toUpperCase(),
@@ -139,6 +164,37 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
 
   const goBack = () => {
     goToOrders(updateAppState);
+  };
+
+  const canReview = !isGroup && statusKey === "DELIVERED";
+
+  const reviewStatusLabel = (value?: string | null) => {
+    if (!value) return "";
+    const key = value.toLowerCase();
+    if (key === "approved") return t("reviews.statusApproved", "Approved");
+    if (key === "rejected") return t("reviews.statusRejected", "Rejected");
+    return t("reviews.statusPending", "Pending");
+  };
+
+  const handleSubmitReview = async () => {
+    if (!fallbackId) return;
+    if (!rating || rating < 1) {
+      showToast({ type: "warning", message: t("reviews.selectRating", "Please select a rating") });
+      return;
+    }
+    try {
+      await saveReview.mutateAsync({
+        reviewId: existingReview?.id ?? null,
+        rating,
+        comment: comment.trim() || undefined,
+      });
+      showToast({
+        type: "success",
+        message: existingReview ? t("reviews.updated", "Review updated") : t("reviews.submitted", "Review submitted"),
+      });
+    } catch (error) {
+      apiErrorToast(error, "reviews.submitError");
+    }
   };
 
   return (
@@ -399,6 +455,55 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
                     </div>
                   ))}
                 </div>
+              </section>
+            )}
+
+            {canReview && (
+              <section className="section-card space-y-3">
+                <div className="flex items-center justify-between">
+                  <h2 className="font-medium text-gray-900">{t("reviews.title", "Rate this order")}</h2>
+                  {existingReview?.status && (
+                    <Badge variant="outline">{reviewStatusLabel(existingReview.status)}</Badge>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {Array.from({ length: 5 }, (_, idx) => {
+                    const value = idx + 1;
+                    const active = value <= rating;
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        className="p-1"
+                        onClick={() => setRating(value)}
+                        aria-label={t("reviews.star", { count: value, defaultValue: `${value} stars` })}
+                      >
+                        <Star
+                          className={`w-5 h-5 ${active ? "text-yellow-500" : "text-gray-300"}`}
+                          fill={active ? "currentColor" : "none"}
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
+                <Textarea
+                  value={comment}
+                  onChange={(event) => setComment(event.target.value)}
+                  placeholder={t("reviews.commentPlaceholder", "Share your experience (optional)")}
+                  rows={3}
+                />
+                <Button
+                  className="w-full"
+                  onClick={handleSubmitReview}
+                  disabled={saveReview.isPending || isOffline}
+                >
+                  {existingReview ? t("reviews.updateButton", "Update review") : t("reviews.submitButton", "Submit review")}
+                </Button>
+                {reviewQuery.isError && (
+                  <p className="text-xs text-red-600">
+                    {t("reviews.loadError", "Unable to load your review right now.")}
+                  </p>
+                )}
               </section>
             )}
 

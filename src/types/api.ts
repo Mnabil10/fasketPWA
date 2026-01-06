@@ -454,3 +454,17 @@ export type OrderReceipt = {
   loyaltyPointsRedeemed: number;
   currency: string;
 };
+
+export type ReviewStatus = "PENDING" | "APPROVED" | "REJECTED";
+
+export type Review = {
+  id: string;
+  orderId?: string;
+  providerId?: string;
+  rating: number;
+  comment?: string | null;
+  status: ReviewStatus;
+  createdAt: string;
+  updatedAt: string;
+  provider?: { id: string; name: string; nameAr?: string | null } | null;
+};

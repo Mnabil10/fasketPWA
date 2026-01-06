@@ -23,13 +23,15 @@ const STATUS_ICONS: Record<
 > = {
   PENDING: { icon: Clock, variant: "secondary" },
   CONFIRMED: { icon: CheckCircle2, variant: "default" },
+  PREPARING: { icon: Clock, variant: "default" },
+  OUT_FOR_DELIVERY: { icon: Truck, variant: "default" },
+  DELIVERED: { icon: CheckCircle2, variant: "default" },
+  CANCELED: { icon: XCircle, variant: "destructive" },
+  FAILED: { icon: AlertTriangle, variant: "destructive" },
   DELIVERING: { icon: Truck, variant: "default" },
   COMPLETED: { icon: CheckCircle2, variant: "default" },
   PROCESSING: { icon: Clock, variant: "default" },
   SHIPPED: { icon: Truck, variant: "default" },
-  DELIVERED: { icon: CheckCircle2, variant: "default" },
-  CANCELED: { icon: XCircle, variant: "destructive" },
-  FAILED: { icon: AlertTriangle, variant: "destructive" },
 };
 
 function StatusPill({ statusKey, label }: { statusKey: string; label: string }) {

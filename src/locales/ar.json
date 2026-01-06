@@ -395,6 +395,8 @@
     "status": {
       "pending": "قيد المراجعة",
       "confirmed": "تم التأكيد",
+      "preparing": "??? ???????",
+      "out_for_delivery": "??? ???????",
       "delivering": "قيد التوصيل",
       "completed": "اكتمل",
       "processing": "قيد التحضير",

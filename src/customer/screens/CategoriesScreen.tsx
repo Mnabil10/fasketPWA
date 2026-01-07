@@ -1,6 +1,4 @@
 import React, { useMemo, useState } from "react";
-import { IonRefresher, IonRefresherContent } from "@ionic/react";
-import type { RefresherEventDetail } from "@ionic/react";
 import { useTranslation } from "react-i18next";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
@@ -43,14 +41,6 @@ export function CategoriesScreen({ appState, updateAppState }: CategoriesScreenP
   const staleData = categoriesStale || featuredStale;
   const featuredError = mapApiErrorToMessage(featuredQuery.error, "categories.errorOffers");
   const categoriesErrorMessage = mapApiErrorToMessage(categoriesQuery.error, "categories.errorLoading");
-
-  const handleRefresh = async (event: CustomEvent<RefresherEventDetail>) => {
-    try {
-      await Promise.allSettled([categoriesQuery.refetch(), featuredQuery.refetch()]);
-    } finally {
-      event.detail.complete();
-    }
-  };
 
   const filteredCategories = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -110,13 +100,6 @@ export function CategoriesScreen({ appState, updateAppState }: CategoriesScreenP
   return (
     <div className="page-shell">
       <NetworkBanner stale={staleData} />
-      <IonRefresher slot="fixed" onIonRefresh={handleRefresh}>
-        <IonRefresherContent
-          pullingText=""
-          refreshingText=""
-          refreshingSpinner="crescent"
-        />
-      </IonRefresher>
       <div className="section-card">
         <div className="flex items-center mb-4">
           <Button

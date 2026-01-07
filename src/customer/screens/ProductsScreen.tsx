@@ -1,6 +1,4 @@
 import React, { useMemo, useState } from "react";
-import { IonRefresher, IonRefresherContent } from "@ionic/react";
-import type { RefresherEventDetail } from "@ionic/react";
 import { useTranslation } from "react-i18next";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
@@ -57,14 +55,6 @@ export function ProductsScreen({ appState, updateAppState }: ProductsScreenProps
     },
     { enabled: Boolean(providerId) }
   );
-
-  const handleRefresh = async (event: CustomEvent<RefresherEventDetail>) => {
-    try {
-      await Promise.allSettled([productsQuery.refetch(), cart.refetch()]);
-    } finally {
-      event.detail.complete();
-    }
-  };
 
   const items = productsQuery.data?.data ?? [];
   const dataStale = productsQuery.data?.stale ?? false;
@@ -219,13 +209,6 @@ export function ProductsScreen({ appState, updateAppState }: ProductsScreenProps
   return (
     <div className="page-shell">
       <NetworkBanner stale={dataStale} />
-      <IonRefresher slot="fixed" onIonRefresh={handleRefresh}>
-        <IonRefresherContent
-          pullingText=""
-          refreshingText=""
-          refreshingSpinner="crescent"
-        />
-      </IonRefresher>
       <div className="section-card">
         <div className="flex items-center mb-4">
           <Button

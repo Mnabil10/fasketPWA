@@ -10,6 +10,7 @@ export type UseProductsParams = {
   search?: string;
   categoryId?: string | null;
   categorySlug?: string | null;
+  providerId?: string | null;
   minPrice?: number;
   maxPrice?: number;
   orderBy?: "createdAt" | "priceCents" | "name";
@@ -29,6 +30,7 @@ type ProductsQueryKey = [
     search?: string;
     categoryId?: string | null;
     categorySlug?: string | null;
+    providerId?: string | null;
     minPrice?: number;
     maxPrice?: number;
     orderBy?: "createdAt" | "priceCents" | "name";
@@ -54,6 +56,7 @@ export function useProducts<TData = CachedResult<Product[]>>(
   const search = params?.search?.trim() || undefined;
   const categoryId = params?.categoryId || undefined;
   const categorySlug = params?.categorySlug || undefined;
+  const providerId = params?.providerId || undefined;
   const minPrice = params?.minPrice;
   const maxPrice = params?.maxPrice;
   const orderBy = params?.orderBy;
@@ -72,6 +75,7 @@ export function useProducts<TData = CachedResult<Product[]>>(
         search,
         categoryId,
         categorySlug,
+        providerId,
         minPrice,
         maxPrice,
         orderBy,
@@ -83,15 +87,16 @@ export function useProducts<TData = CachedResult<Product[]>>(
     ],
     queryFn: () => {
       if (type === "best-selling") {
-        return bestSelling({ pageSize: limit ?? pageSize ?? 10, lang });
+        return bestSelling({ pageSize: limit ?? pageSize ?? 10, lang, providerId });
       }
       if (type === "hot-offers") {
-        return hotOffers({ pageSize: limit ?? pageSize ?? 10, lang });
+        return hotOffers({ pageSize: limit ?? pageSize ?? 10, lang, providerId });
       }
       return listProducts({
         q: search,
         categoryId,
         categorySlug,
+        providerId,
         min: minPrice,
         max: maxPrice,
         orderBy,

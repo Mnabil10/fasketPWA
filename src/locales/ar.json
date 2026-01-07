@@ -134,6 +134,16 @@
       "subtitle": "اربح نقاطًا مع كل طلب واستبدلها عند الدفع.",
       "cta": "استخدم النقاط الآن"
     },
+    "searchProviderPlaceholder": "اختر مزودًا لبدء البحث",
+    "selectProviderPrompt": "اختر مزودًا لتصفح المنتجات.",
+    "providersTitle": "المزودون",
+    "providersSubtitle": "اختر مزودًا لبدء التسوق",
+    "providersSelected": "المختار",
+    "providersNew": "جديد",
+    "providersEmptyTitle": "لا يوجد مزودون حاليًا",
+    "providersEmptySubtitle": "يرجى المحاولة لاحقًا.",
+    "providersPromptTitle": "اختر مزودًا للمتابعة",
+    "providersPromptSubtitle": "لكل مزود تصنيفات ومنتجات خاصة به.",
     "filters": {
       "inStock": "متوفر"
     },
@@ -143,6 +153,12 @@
     "qualityPromise": "نضمن لك أفضل جودة ممكنة",
     "categoryHeadline": "استكشف أحدث العروض",
     "categoryCta": "ابدأ استكشاف الفئات"
+  },
+  "providers": {
+    "selectTitle": "اختر مزودًا",
+    "selectSubtitle": "اختر مزودًا لتصفح التصنيفات.",
+    "selectAction": "عرض المزودين",
+    "error": "تعذر تحميل المزودين."
   },
   "categories": {
     "title": "التصنيفات",
@@ -252,6 +268,7 @@
     "loyaltyLabel": "خصم الولاء",
     "manageAddresses": "إدارة العناوين",
     "shippingLabel": "رسوم التوصيل",
+    "serviceFeeLabel": "رسوم الخدمة",
     "summaryEtaFallback": "سيتم تأكيد وقت التوصيل عند إتمام الطلب.",
     "totalLabel": "الإجمالي",
     "etaLabel": "الوقت المتوقع للتسليم",
@@ -273,6 +290,7 @@
     "summary": {
       "subtotal": "الإجمالي الفرعي",
       "delivery": "رسوم التوصيل",
+      "serviceFee": "رسوم الخدمة",
       "eta": "الوقت المتوقع",
       "total": "الإجمالي",
       "etaValue": "الوقت المتوقع للوصول: {{value}}",
@@ -280,6 +298,10 @@
       "discount": "الخصم",
       "etaUnknown": "الوقت المتوقع غير متوفر.",
       "freeDelivery": "توصيل مجاني"
+    },
+    "deliveryTerms": {
+      "text": "حفاظًا على أمان كابتن التوصيل ووسيلة النقل، التسليم الافتراضي يكون عند باب العمارة، وفي حالة توفر مكان آمن، يستطيع الكابتن الصعود لباب الشقة إذا أمكن.",
+      "required": "يرجى الموافقة على شرط التوصيل."
     },
     "actions": {
       "placeOrder": "إتمام الطلب",

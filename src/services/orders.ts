@@ -125,6 +125,7 @@ function normalizeOrderDetail(payload: any): OrderDetail {
     items,
     loyaltyPointsRedeemed: node.loyaltyPointsRedeemed ?? node.loyaltyPointsUsed ?? null,
     loyaltyPointsEarned: node.loyaltyPointsEarned ?? null,
+    serviceFeeCents: node.serviceFeeCents ?? undefined,
     deliveryEtaMinutes,
     deliveryEstimateMinutes: node.deliveryEstimateMinutes ?? deliveryEtaMinutes,
     estimatedDeliveryTime,
@@ -149,6 +150,7 @@ function normalizeOrderGroupSummary(payload: any): OrderGroupSummary | null {
         status: mapOrderStatus(order.status),
         subtotalCents: order.subtotalCents ?? 0,
         shippingFeeCents: order.shippingFeeCents ?? 0,
+        serviceFeeCents: order.serviceFeeCents ?? 0,
         discountCents: order.discountCents ?? 0,
         totalCents: order.totalCents ?? 0,
         providerId: order.providerId ?? null,
@@ -163,6 +165,7 @@ function normalizeOrderGroupSummary(payload: any): OrderGroupSummary | null {
     status: mapOrderStatus(node.status),
     subtotalCents: node.subtotalCents ?? 0,
     shippingFeeCents: node.shippingFeeCents ?? 0,
+    serviceFeeCents: node.serviceFeeCents ?? 0,
     discountCents: node.discountCents ?? 0,
     totalCents: node.totalCents ?? 0,
     createdAt: node.createdAt ?? new Date().toISOString(),
@@ -304,6 +307,7 @@ export type GuestOrderGroup = {
 export type GuestOrderQuote = {
   subtotalCents: number;
   shippingFeeCents: number;
+  serviceFeeCents?: number;
   totalCents: number;
   groups: GuestOrderGroup[];
   skippedBranchIds?: string[];
@@ -400,10 +404,12 @@ function normalizeGuestQuote(payload: any): GuestOrderQuote {
     : [];
   const subtotalCents = node.subtotalCents ?? 0;
   const shippingFeeCents = node.shippingFeeCents ?? 0;
-  const totalCents = node.totalCents ?? subtotalCents + shippingFeeCents;
+  const serviceFeeCents = node.serviceFeeCents ?? 0;
+  const totalCents = node.totalCents ?? subtotalCents + shippingFeeCents + serviceFeeCents;
   return {
     subtotalCents,
     shippingFeeCents,
+    serviceFeeCents,
     totalCents,
     groups,
     skippedBranchIds: node.skippedBranchIds ?? undefined,

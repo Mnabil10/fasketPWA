@@ -31,6 +31,7 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
   const [quantity, setQuantity] = useState(1);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [addingCart, setAddingCart] = useState(false);
+  const selectedProviderId = appState.selectedProvider?.id ?? appState.selectedProviderId ?? null;
 
   const detailQuery = useProductDetail(
     { idOrSlug: productKey, initialData: hasInitial ? (selected as Product) : null },
@@ -39,13 +40,14 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
   const productResult = detailQuery.data;
   const product = productResult?.data ?? null;
   const productStale = productResult?.stale ?? false;
+  const resolvedProviderId = selectedProviderId ?? product?.providerId ?? null;
 
   const similarQuery = useProducts(
-    { categoryId: product?.category?.id, enabled: Boolean(product?.category?.id) },
+    { categoryId: product?.category?.id, providerId: resolvedProviderId, enabled: Boolean(product?.category?.id) },
     { enabled: Boolean(product?.category?.id) }
   );
 
-  const fallbackOffers = useProducts({ type: "hot-offers", limit: 6 });
+  const fallbackOffers = useProducts({ type: "hot-offers", limit: 6, providerId: resolvedProviderId });
 
   const similarProducts = useMemo(() => {
     const categoryId = product?.category?.id ?? null;

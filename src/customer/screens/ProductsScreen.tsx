@@ -39,18 +39,24 @@ export function ProductsScreen({ appState, updateAppState }: ProductsScreenProps
   const [maxPriceInput, setMaxPriceInput] = useState("");
   const [showHistory, setShowHistory] = useState(false);
   const { history, addQuery, clearHistory } = useSearchHistory("products");
+  const selectedProvider = appState.selectedProvider ?? null;
+  const providerId = selectedProvider?.id ?? null;
 
   const isRTL = i18n.dir() === "rtl";
 
   const minPriceValue = useMemo(() => parsePriceInput(minPriceInput), [minPriceInput]);
   const maxPriceValue = useMemo(() => parsePriceInput(maxPriceInput), [maxPriceInput]);
 
-  const productsQuery = useProducts({
-    search: debouncedQuery || undefined,
-    categoryId: appState.selectedCategory?.id,
-    minPrice: minPriceValue,
-    maxPrice: maxPriceValue,
-  });
+  const productsQuery = useProducts(
+    {
+      search: debouncedQuery || undefined,
+      categoryId: appState.selectedCategory?.id,
+      providerId,
+      minPrice: minPriceValue,
+      maxPrice: maxPriceValue,
+    },
+    { enabled: Boolean(providerId) }
+  );
 
   const handleRefresh = async (event: CustomEvent<RefresherEventDetail>) => {
     try {
@@ -178,6 +184,38 @@ export function ProductsScreen({ appState, updateAppState }: ProductsScreenProps
     );
   };
 
+  if (!providerId) {
+    return (
+      <div className="page-shell">
+        <NetworkBanner />
+        <div className="section-card">
+          <div className="flex items-center mb-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => updateAppState({ currentScreen: "home" })}
+              className="p-2 mr-2"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <h1 className="font-poppins text-xl text-gray-900" style={{ fontWeight: 600 }}>
+              {t("products.title")}
+            </h1>
+          </div>
+        </div>
+        <div className="flex-1 flex items-center justify-center text-center px-4">
+          <EmptyState
+            title={t("providers.selectTitle", "Choose a provider")}
+            subtitle={t("providers.selectSubtitle", "Select a provider to browse products.")}
+            actionLabel={t("providers.selectAction", "Browse providers")}
+            onAction={() => updateAppState({ currentScreen: "home" })}
+          />
+        </div>
+        <MobileNav appState={appState} updateAppState={updateAppState} />
+      </div>
+    );
+  }
+
   return (
     <div className="page-shell">
       <NetworkBanner stale={dataStale} />
@@ -198,9 +236,12 @@ export function ProductsScreen({ appState, updateAppState }: ProductsScreenProps
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="font-poppins text-xl text-gray-900" style={{ fontWeight: 600 }}>
-            {appState.selectedCategory?.name || t("products.title")}
-          </h1>
+          <div>
+            <h1 className="font-poppins text-xl text-gray-900" style={{ fontWeight: 600 }}>
+              {appState.selectedCategory?.name || t("products.title")}
+            </h1>
+            {selectedProvider?.name && <p className="text-xs text-gray-500">{selectedProvider.name}</p>}
+          </div>
         </div>
         <div className="relative mb-2">
           <Search

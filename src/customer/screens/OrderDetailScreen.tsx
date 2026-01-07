@@ -369,6 +369,10 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
                   <span>{t("checkout.summary.delivery")}</span>
                   <span className="price-text">{fmtEGP(fromCents(order.shippingFeeCents || 0))}</span>
                 </div>
+                <div className="flex justify-between">
+                  <span>{t("checkout.summary.serviceFee", "Service fee")}</span>
+                  <span className="price-text">{fmtEGP(fromCents(order.serviceFeeCents || 0))}</span>
+                </div>
                 {order.discountCents ? (
                   <div className="flex justify-between text-red-500">
                     <span>{t("checkout.summary.discount", "Discount")}</span>

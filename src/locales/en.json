@@ -110,11 +110,21 @@
     "greetingGuest": "Welcome to Fasket",
     "prompt": "What do you need today'",
     "searchPlaceholder": "Search fresh fruits, snacks, and essentials",
+    "searchProviderPlaceholder": "Select a provider to start searching",
     "subtitlePremium": "Your premium online supermarket in Badr City.",
     "deliveryEta": "30-45 min delivery",
     "coveragePromise": "We cover all of Badr City",
     "qualityPromise": "Handpicked quality products",
+    "selectProviderPrompt": "Select a provider to browse products.",
     "notifications": "Notifications",
+    "providersTitle": "Providers",
+    "providersSubtitle": "Pick a provider to start shopping",
+    "providersSelected": "Selected",
+    "providersNew": "New",
+    "providersEmptyTitle": "No providers available",
+    "providersEmptySubtitle": "Please check back soon.",
+    "providersPromptTitle": "Choose a provider to continue",
+    "providersPromptSubtitle": "Providers have their own categories and products.",
     "sections": {
       "categories": "Shop by category",
       "bestSelling": "Popular this week",
@@ -146,6 +156,12 @@
       "subtitle": "Earn points with every order and redeem them at checkout.",
       "cta": "Redeem now"
     }
+  },
+  "providers": {
+    "selectTitle": "Choose a provider",
+    "selectSubtitle": "Select a provider to browse categories.",
+    "selectAction": "Browse providers",
+    "error": "Failed to load providers."
   },
   "categories": {
     "title": "Categories",
@@ -257,6 +273,7 @@
     "loyaltyLabel": "Loyalty",
     "manageAddresses": "Manage addresses",
     "shippingLabel": "Delivery fee",
+    "serviceFeeLabel": "Service fee",
     "etaLabel": "Estimated delivery time",
     "summaryEtaFallback": "Delivery time will be confirmed at checkout.",
     "totalLabel": "Total"
@@ -286,6 +303,7 @@
     "summary": {
       "subtotal": "Subtotal",
       "delivery": "Delivery fee",
+      "serviceFee": "Service fee",
       "eta": "Estimated time",
       "total": "Total",
       "etaValue": "Estimated delivery: {{value}}",
@@ -297,6 +315,10 @@
     "trust": {
       "title": "We deliver anywhere inside Badr City",
       "support": "Support available on WhatsApp for updates."
+    },
+    "deliveryTerms": {
+      "text": "For the safety of our delivery captain and vehicle, delivery is at the building entrance by default. If a safe place is available, the captain can go up to the apartment door when possible.",
+      "required": "Please accept the delivery terms."
     },
     "actions": {
       "placeOrder": "Place order",

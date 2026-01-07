@@ -164,6 +164,17 @@ export type Category = {
   id: string; name: string; nameAr?: string; slug: string; imageUrl?: string | null; parentId?: string | null;
 };
 
+export type ProviderSummary = {
+  id: string;
+  name: string;
+  nameAr?: string | null;
+  slug?: string | null;
+  logoUrl?: string | null;
+  ratingAvg?: number | null;
+  ratingCount?: number | null;
+  type?: string | null;
+};
+
 export type Product = {
   id: string;
   name: string;
@@ -276,6 +287,7 @@ export type Cart = {
   totalCents?: number;
   discountCents?: number;
   shippingFeeCents?: number;
+  serviceFeeCents?: number;
   couponCode?: string | null;
   coupon?: { code: string; discountCents?: number } | null;
   couponNotice?: Record<string, unknown> | null;
@@ -307,6 +319,7 @@ export type OrderGroupItem = {
   shippingFeeCents: number;
   discountCents: number;
   totalCents: number;
+  serviceFeeCents?: number;
   providerId?: string | null;
   branchId?: string | null;
   createdAt: string;
@@ -320,6 +333,7 @@ export type OrderGroupSummary = {
   shippingFeeCents: number;
   discountCents: number;
   totalCents: number;
+  serviceFeeCents?: number;
   createdAt: string;
   orders: OrderGroupItem[];
   skippedBranchIds?: string[];
@@ -373,6 +387,7 @@ export type OrderDetail = {
   paymentMethod: "COD" | "CARD";
   subtotalCents: number;
   shippingFeeCents: number;
+  serviceFeeCents?: number;
   discountCents: number;
   totalCents: number;
   createdAt: string;

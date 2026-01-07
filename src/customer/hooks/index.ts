@@ -3,6 +3,7 @@ export * from "./useCategories";
 export * from "./useProducts";
 export * from "./useProductDetail";
 export * from "./useCart";
+export * from "./useProviders";
 export * from "./useOrders";
 export * from "./useAddresses";
 export * from "./useSearchHistory";

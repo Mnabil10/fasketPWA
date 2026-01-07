@@ -40,6 +40,7 @@ export type ListProductsParams = {
   q?: string;
   categoryId?: string;
   categorySlug?: string;
+  providerId?: string;
   min?: number;
   max?: number;
   orderBy?: "createdAt" | "priceCents" | "name";
@@ -115,6 +116,7 @@ export const listProducts = (params: ListProductsParams = {}): Promise<CachedRes
       q: params.q,
       categoryId: params.categoryId,
       categorySlug: params.categorySlug,
+      providerId: params.providerId,
       min: params.min,
       max: params.max,
       orderBy: params.orderBy,
@@ -130,6 +132,7 @@ export const listProducts = (params: ListProductsParams = {}): Promise<CachedRes
       params.q,
       params.categoryId,
       params.categorySlug,
+      params.providerId,
       params.min,
       params.max,
       params.orderBy,
@@ -173,6 +176,7 @@ export const listCategories = (
         sort?: "asc" | "desc";
         page?: number;
         pageSize?: number;
+        providerId?: string;
         lang?: "ar" | "en";
       }
     | "ar"
@@ -186,13 +190,14 @@ export const listCategories = (
       sort: normalized.sort,
       page: normalized.page ?? 1,
       pageSize: normalized.pageSize ?? 20,
+      providerId: normalized.providerId,
     },
     lang
   );
   return withOfflineCache(
     cacheKey(
       "categories",
-      [lang, normalized.q, normalized.sort, normalized.page ?? 1, normalized.pageSize ?? 20]
+      [lang, normalized.q, normalized.sort, normalized.providerId, normalized.page ?? 1, normalized.pageSize ?? 20]
     ),
     async () => {
       const res = await request<CategoriesPayload>({ url: `/categories${qs}`, method: "GET" });
@@ -206,12 +211,13 @@ export const listCategories = (
 export const bestSelling = (params?: {
   page?: number;
   pageSize?: number;
+  providerId?: string;
   lang?: "ar" | "en";
 }): Promise<CachedResult<Product[]>> => {
   const lang = params?.lang ?? getActiveLang("en");
-  const qs = withLang({ page: params?.page ?? 1, pageSize: params?.pageSize ?? 20 }, lang);
+  const qs = withLang({ page: params?.page ?? 1, pageSize: params?.pageSize ?? 20, providerId: params?.providerId }, lang);
   return withOfflineCache(
-    cacheKey("best-selling", [lang, params?.page ?? 1, params?.pageSize ?? 20]),
+    cacheKey("best-selling", [lang, params?.providerId, params?.page ?? 1, params?.pageSize ?? 20]),
     async () => {
       const res = await request<ProductsPayload>({ url: `/products/public/best-selling${qs}`, method: "GET" });
       return normalizeProducts(res);
@@ -224,12 +230,13 @@ export const bestSelling = (params?: {
 export const hotOffers = (params?: {
   page?: number;
   pageSize?: number;
+  providerId?: string;
   lang?: "ar" | "en";
 }): Promise<CachedResult<Product[]>> => {
   const lang = params?.lang ?? getActiveLang("en");
-  const qs = withLang({ page: params?.page ?? 1, pageSize: params?.pageSize ?? 20 }, lang);
+  const qs = withLang({ page: params?.page ?? 1, pageSize: params?.pageSize ?? 20, providerId: params?.providerId }, lang);
   return withOfflineCache(
-    cacheKey("hot-offers", [lang, params?.page ?? 1, params?.pageSize ?? 20]),
+    cacheKey("hot-offers", [lang, params?.providerId, params?.page ?? 1, params?.pageSize ?? 20]),
     async () => {
       const res = await request<ProductsPayload>({ url: `/products/public/hot-offers${qs}`, method: "GET" });
       return normalizeProducts(res);

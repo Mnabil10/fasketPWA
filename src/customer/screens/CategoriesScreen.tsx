@@ -31,9 +31,11 @@ export function CategoriesScreen({ appState, updateAppState }: CategoriesScreenP
   const [selectedFilter, setSelectedFilter] = useState<"all" | "popular" | "trending">("all");
   const { history, addQuery, clearHistory } = useSearchHistory("categories");
   const cart = useCart({ userId: appState.user?.id });
+  const selectedProvider = appState.selectedProvider ?? null;
+  const providerId = selectedProvider?.id ?? null;
 
-  const categoriesQuery = useCategories();
-  const featuredQuery = useProducts({ type: "hot-offers", limit: 6 });
+  const categoriesQuery = useCategories({ providerId }, { enabled: Boolean(providerId) });
+  const featuredQuery = useProducts({ type: "hot-offers", limit: 6, providerId }, { enabled: Boolean(providerId) });
   const categories = categoriesQuery.data?.data ?? [];
   const categoriesStale = categoriesQuery.data?.stale ?? false;
   const featuredProducts = featuredQuery.data?.data ?? [];
@@ -73,6 +75,38 @@ export function CategoriesScreen({ appState, updateAppState }: CategoriesScreenP
     }
   };
 
+  if (!providerId) {
+    return (
+      <div className="page-shell">
+        <NetworkBanner />
+        <div className="section-card">
+          <div className="flex items-center mb-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => goToHome(updateAppState)}
+              className="p-2 mr-2"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <h1 className="font-poppins text-xl text-gray-900" style={{ fontWeight: 600 }}>
+              {t("categories.title")}
+            </h1>
+          </div>
+        </div>
+        <div className="flex-1 flex items-center justify-center text-center px-4">
+          <EmptyState
+            title={t("providers.selectTitle", "Choose a provider")}
+            subtitle={t("providers.selectSubtitle", "Select a provider to browse categories.")}
+            actionLabel={t("providers.selectAction", "Browse providers")}
+            onAction={() => goToHome(updateAppState)}
+          />
+        </div>
+        <MobileNav appState={appState} updateAppState={updateAppState} />
+      </div>
+    );
+  }
+
   return (
     <div className="page-shell">
       <NetworkBanner stale={staleData} />
@@ -93,9 +127,14 @@ export function CategoriesScreen({ appState, updateAppState }: CategoriesScreenP
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="font-poppins text-xl text-gray-900" style={{ fontWeight: 600 }}>
-            {t("categories.title")}
-          </h1>
+          <div>
+            <h1 className="font-poppins text-xl text-gray-900" style={{ fontWeight: 600 }}>
+              {t("categories.title")}
+            </h1>
+            {selectedProvider?.name && (
+              <p className="text-xs text-gray-500">{selectedProvider.name}</p>
+            )}
+          </div>
         </div>
 
         <div className="relative mb-2">

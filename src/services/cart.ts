@@ -39,6 +39,7 @@ export type ApiCart = {
   subtotalCents: number;
   totalCents?: number;
   shippingFeeCents?: number;
+  serviceFeeCents?: number;
   deliveryEstimateMinutes?: number | null;
   discountCents?: number;
   couponCode?: string | null;

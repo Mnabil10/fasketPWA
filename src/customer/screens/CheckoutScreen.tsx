@@ -67,6 +67,7 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
   const [couponFeedback, setCouponFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const idempotencyKeyRef = useRef<string | null>(null);
   const savingRef = useRef(false);
+  const [deliveryTermsAccepted, setDeliveryTermsAccepted] = useState(false);
 
   const parseCoordinate = (value: string) => {
     const trimmed = value.trim();
@@ -109,10 +110,12 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
   const cartGroups = isGuest ? guestQuote?.groups ?? [] : serverCart?.groups ?? [];
   const subtotalCents = isGuest ? guestQuote?.subtotalCents ?? cart.subtotalCents : cart.subtotalCents;
   const shippingFeeCents = isGuest ? guestQuote?.shippingFeeCents ?? 0 : cart.shippingFeeCents;
+  const serviceFeeCents = isGuest ? guestQuote?.serviceFeeCents ?? 0 : cart.serviceFeeCents;
   const discountCents = isGuest ? 0 : cart.discountCents;
   const loyaltyDiscountCents = isGuest ? 0 : cart.loyaltyDiscountCents;
   const subtotal = fromCents(subtotalCents);
   const shippingFee = fromCents(shippingFeeCents);
+  const serviceFee = fromCents(serviceFeeCents);
   const couponDiscount = fromCents(discountCents);
   const loyaltyDiscount = fromCents(loyaltyDiscountCents);
   const cartId = serverCart?.cartId ?? null;
@@ -124,7 +127,10 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
   const loyaltySettings = appState.settings?.loyalty;
   const redeemRate = loyaltySettings?.redeemRate && loyaltySettings.redeemRate > 0 ? loyaltySettings.redeemRate : 100;
   const previewRedeemValue = loyaltyToRedeem > 0 ? loyaltyToRedeem / redeemRate : 0;
-  const total = Math.max(0, subtotal + shippingFee - couponDiscount - loyaltyDiscount - previewRedeemValue);
+  const total = Math.max(
+    0,
+    subtotal + shippingFee + serviceFee - couponDiscount - loyaltyDiscount - previewRedeemValue
+  );
   const appliedCoupon = cart.couponCode;
   const couponsEnabled = isFeatureEnabled(appState.settings?.mobileApp, "coupons", true);
   const loyaltyFeatureEnabled = isFeatureEnabled(appState.settings?.mobileApp, "loyalty", true);
@@ -165,9 +171,9 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
           defaultValue: `Loyalty discount capped at ${loyaltySettings.maxDiscountPercent}% of order total.`,
         })
       );
-      }
-      return notes;
-    }, [loyaltyEnabled, maxRedeemablePoints, loyaltySettings, t]);
+    }
+    return notes;
+  }, [loyaltyEnabled, maxRedeemablePoints, loyaltySettings, t]);
 
   const debouncedGuestAddress = useDebouncedValue(guestAddress, 350);
   const debouncedGuestLat = useDebouncedValue(guestLatInput, 350);
@@ -314,7 +320,11 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
     Boolean(guestPhone.trim()) &&
     guestAddressValid &&
     guestLocationValid;
-  const canPlaceOrder = previewItems.length > 0 && !isOffline && (isGuest ? guestReady : Boolean(selectedAddressId && cartId));
+  const canPlaceOrder =
+    previewItems.length > 0 &&
+    !isOffline &&
+    deliveryTermsAccepted &&
+    (isGuest ? guestReady : Boolean(selectedAddressId && cartId));
 
   const isOrderGroupSummary = (value: any): value is OrderGroupSummary =>
     Boolean(value && typeof value === "object" && Array.isArray(value.orders) && value.orderGroupId);
@@ -330,6 +340,10 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
   }
 
   async function handleGuestOrder() {
+    if (!deliveryTermsAccepted) {
+      showToast({ type: "error", message: t("checkout.deliveryTerms.required", "Please accept the delivery terms.") });
+      return;
+    }
     if (!guestCheckoutEnabled) {
       showToast({ type: "error", message: t("checkout.guest.disabled", "Guest checkout is disabled.") });
       return;
@@ -419,6 +433,10 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
 
   async function handlePlaceOrder() {
     if (savingRef.current) return;
+    if (!deliveryTermsAccepted) {
+      showToast({ type: "error", message: t("checkout.deliveryTerms.required", "Please accept the delivery terms.") });
+      return;
+    }
     if (isGuest) {
       await handleGuestOrder();
       return;
@@ -1000,6 +1018,10 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
             </span>
             <span className="price-text">{shippingFee ? fmtEGP(shippingFee) : t("checkout.summary.freeDelivery", "Free")}</span>
           </div>
+          <div className="flex items-center justify-between text-sm text-gray-600">
+            <span>{t("checkout.summary.serviceFee", "Service fee")}</span>
+            <span className="price-text">{fmtEGP(serviceFee)}</span>
+          </div>
           {cartGroups.length > 0 && (
             <div className="rounded-xl bg-gray-50 p-3 text-xs text-gray-600 space-y-2">
               <p className="font-semibold text-gray-900">
@@ -1053,6 +1075,20 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
             <span>{t("checkout.summary.total")}</span>
             <span className="price-text">{fmtEGP(total)}</span>
           </div>
+          <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-white p-3 text-xs text-gray-700">
+            <input
+              type="checkbox"
+              className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              checked={deliveryTermsAccepted}
+              onChange={(e) => setDeliveryTermsAccepted(e.target.checked)}
+            />
+            <span>
+              {t(
+                "checkout.deliveryTerms.text",
+                "For the safety of our delivery captain and vehicle, delivery is at the building entrance by default. If a safe place is available, the captain can go up to the apartment door when possible."
+              )}
+            </span>
+          </label>
           <div className="rounded-xl bg-gray-50 p-3 text-sm text-gray-700">
             <p className="font-semibold text-gray-900">{t("checkout.trust.title", "We deliver anywhere inside Badr City")}</p>
             <p className="text-xs text-gray-600">

@@ -32,6 +32,7 @@ export type UseCartResult = {
   subtotal: number;
   discountCents: number;
   shippingFeeCents: number;
+  serviceFeeCents: number;
   loyaltyDiscountCents: number;
   loyaltyAppliedPoints: number;
   loyaltyAvailablePoints: number;
@@ -137,6 +138,7 @@ export function useCart(options?: UseCartOptions): UseCartResult {
   const subtotal = isAuthenticated ? (subtotalCents || 0) / 100 : localTotals.subtotal;
   const discountCents = isAuthenticated ? serverCart?.discountCents ?? 0 : 0;
   const shippingFeeCents = isAuthenticated ? serverCart?.shippingFeeCents ?? 0 : 0;
+  const serviceFeeCents = isAuthenticated ? serverCart?.serviceFeeCents ?? 0 : 0;
   const loyaltyDiscountCents = isAuthenticated ? serverCart?.loyaltyDiscountCents ?? 0 : 0;
   const loyaltyAppliedPoints = isAuthenticated ? serverCart?.loyaltyAppliedPoints ?? 0 : 0;
   const loyaltyAvailablePoints = isAuthenticated ? serverCart?.loyaltyAvailablePoints ?? 0 : 0;
@@ -350,6 +352,7 @@ export function useCart(options?: UseCartOptions): UseCartResult {
     subtotal,
     discountCents,
     shippingFeeCents,
+    serviceFeeCents,
     loyaltyDiscountCents,
     loyaltyAppliedPoints,
     loyaltyAvailablePoints,

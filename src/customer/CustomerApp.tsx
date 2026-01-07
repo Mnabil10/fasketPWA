@@ -23,6 +23,7 @@ import type {
   OrderGroupSummary,
   OrderSummary,
   Product,
+  ProviderSummary,
   UserProfile,
 } from "../types/api";
 import { getMyProfile } from "../services/users.service";
@@ -75,6 +76,8 @@ export interface AppState {
   cart: CartPreviewItem[];
   selectedCategory: Category | null;
   selectedCategoryId: string | null;
+  selectedProvider: ProviderSummary | null;
+  selectedProviderId: string | null;
   selectedProduct: Partial<Product> | null;
   selectedOrderId: string | null;
   selectedOrderSummary: OrderSummary | null;
@@ -107,6 +110,8 @@ const initialState: AppState = {
   cart: [],
   selectedCategory: null,
   selectedCategoryId: null,
+  selectedProvider: null,
+  selectedProviderId: null,
   selectedProduct: null,
   selectedOrderId: null,
   selectedOrderSummary: null,

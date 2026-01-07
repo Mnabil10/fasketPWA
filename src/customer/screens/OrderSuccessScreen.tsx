@@ -69,6 +69,7 @@ export function OrderSuccessScreen({ appState, updateAppState }: OrderSuccessScr
   const totalDisplay = order ? fmtEGP(fromCents(order.totalCents)) : "";
   const subtotalDisplay = order ? fmtEGP(fromCents(order.subtotalCents ?? 0)) : "";
   const shippingDisplay = order ? fmtEGP(fromCents(order.shippingFeeCents || 0)) : "";
+  const serviceFeeDisplay = order ? fmtEGP(fromCents(order.serviceFeeCents || 0)) : "";
   const discountDisplay =
     order && order.discountCents ? fmtEGP(fromCents(order.discountCents)) : null;
 
@@ -245,6 +246,10 @@ export function OrderSuccessScreen({ appState, updateAppState }: OrderSuccessScr
           <div className="flex items-center justify-between">
             <span className="text-sm text-gray-500">{t("checkout.summary.delivery")}</span>
             <span className="font-semibold text-gray-900">{shippingDisplay}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-500">{t("checkout.summary.serviceFee", "Service fee")}</span>
+            <span className="font-semibold text-gray-900">{serviceFeeDisplay}</span>
           </div>
           {discountDisplay && (
             <div className="flex items-center justify-between text-red-500">

@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
-import { Search, ShoppingCart, Bell, History, Sparkles, ChevronRight, Clock, Star, Truck } from "lucide-react";
+import { Search, ShoppingCart, Bell, History, Sparkles, ChevronRight, Clock, Star, Truck, Store } from "lucide-react";
 import type { UseQueryResult } from "@tanstack/react-query";
 import { MobileNav } from "../MobileNav";
 import { AppState, type UpdateAppState } from "../CustomerApp";
@@ -13,6 +13,7 @@ import {
   useCategories,
   useNetworkStatus,
   useProducts,
+  useProviders,
   useSearchHistory,
   useApiErrorToast,
 } from "../hooks";
@@ -26,7 +27,7 @@ import {
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { hashFromUrl, parseHash } from "../navigation/deepLinking";
 import { goToCart, goToCategory, goToHome, goToOrders, goToProduct } from "../navigation/navigation";
-import type { Product } from "../../types/api";
+import type { Product, ProviderSummary } from "../../types/api";
 import { trackAddToCart, trackPromoClick } from "../../lib/analytics";
 import { openExternalUrl } from "../../lib/fasketLinks";
 import { mapApiErrorToMessage } from "../../utils/mapApiErrorToMessage";
@@ -56,10 +57,14 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
   const cartHook = useCart({ userId: appState.user?.id });
   const { isOffline } = useNetworkStatus();
   const apiErrorToast = useApiErrorToast("products.error");
+  const providersQuery = useProviders();
+  const selectedProvider = appState.selectedProvider ?? null;
+  const providerId = selectedProvider?.id ?? appState.selectedProviderId ?? null;
+  const providerSelected = Boolean(providerId);
 
   const [q, setQ] = useState("");
   const debouncedQ = useDebouncedValue(q, 250);
-  const showingSearch = debouncedQ.trim().length > 0;
+  const showingSearch = providerSelected && debouncedQ.trim().length > 0;
   const [showHistory, setShowHistory] = useState(false);
   const { history, addQuery, clearHistory } = useSearchHistory("home");
 
@@ -77,23 +82,31 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
   const hotLimit = sectionByType.get("hotOffers")?.limit ?? 8;
   const categoriesLimit = sectionByType.get("categories")?.limit ?? 12;
 
-  const categoriesQuery = useCategories();
-  const bestQuery = useProducts({ type: "best-selling", limit: bestLimit });
-  const hotQuery = useProducts({ type: "hot-offers", limit: hotLimit });
+  const categoriesQuery = useCategories({ providerId }, { enabled: providerSelected });
+  const bestQuery = useProducts(
+    { type: "best-selling", limit: bestLimit, providerId },
+    { enabled: providerSelected }
+  );
+  const hotQuery = useProducts(
+    { type: "hot-offers", limit: hotLimit, providerId },
+    { enabled: providerSelected }
+  );
   const searchQuery = useProducts(
-    { search: debouncedQ || undefined },
-    { enabled: showingSearch && Boolean(debouncedQ) }
+    { search: debouncedQ || undefined, providerId },
+    { enabled: showingSearch && Boolean(debouncedQ) && providerSelected }
   );
   const staleData =
-    (categoriesQuery.data?.stale ?? false) ||
-    (bestQuery.data?.stale ?? false) ||
-    (hotQuery.data?.stale ?? false) ||
-    (searchQuery.data?.stale ?? false);
+    (providersQuery.data?.stale ?? false) ||
+    (providerSelected && (categoriesQuery.data?.stale ?? false)) ||
+    (providerSelected && (bestQuery.data?.stale ?? false)) ||
+    (providerSelected && (hotQuery.data?.stale ?? false)) ||
+    (providerSelected && (searchQuery.data?.stale ?? false));
 
   const promoImages = [
     "https://images.unsplash.com/photo-1705727209465-b292e4129a37?auto=format&fit=crop&w=1080&q=80",
     "https://images.unsplash.com/photo-1665521032636-e8d2f6927053?auto=format&fit=crop&w=1080&q=80",
   ];
+  const providers = providersQuery.data?.data ?? [];
 
   const promos: PromoTile[] = useMemo(() => {
     const promoConfig = mobileConfig?.home?.promos ?? [];
@@ -126,6 +139,16 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
     } catch (error: any) {
       apiErrorToast(error, "products.error");
     }
+  };
+
+  const handleProviderSelect = (provider: ProviderSummary) => {
+    updateAppState({
+      selectedProvider: provider,
+      selectedProviderId: provider.id,
+      selectedCategory: null,
+      selectedCategoryId: null,
+      currentScreen: "categories",
+    });
   };
 
   const navigateToHash = (hash: string) => {
@@ -199,6 +222,13 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!providerSelected) {
+      showToast({
+        type: "info",
+        message: t("home.selectProviderPrompt", "Select a provider to browse products."),
+      });
+      return;
+    }
     addQuery(q);
     if (!showingSearch) return;
     searchQuery.refetch();
@@ -207,6 +237,9 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
   const greeting = appState.user
     ? t("home.greeting", { name: appState.user?.name?.split(" ")[0] || "" })
     : t("home.greetingGuest");
+  const searchPlaceholder = providerSelected
+    ? t("home.searchPlaceholder")
+    : t("home.searchProviderPlaceholder", "Select a provider to start searching");
 
   const heroConfig = mobileConfig?.home?.hero ?? {};
   const heroPrompt = getLocalizedString(heroConfig.prompt, lang, t("home.prompt"));
@@ -303,6 +336,91 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
     );
   };
 
+  const renderProvidersSection = () => {
+    if (providersQuery.isError) {
+      return (
+        <div className="section-card">
+          <RetryBlock
+            message={mapApiErrorToMessage(providersQuery.error, "providers.error")}
+            onRetry={() => providersQuery.refetch()}
+          />
+        </div>
+      );
+    }
+
+    return (
+      <div className="section-card space-y-4 motion-fade">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <p className="text-xs text-gray-500">
+              {t("home.providersSubtitle", "Pick a provider to start shopping")}
+            </p>
+            <h2 className="text-xl font-semibold text-gray-900">
+              {t("home.providersTitle", "Providers")}
+            </h2>
+          </div>
+          {selectedProvider && (
+            <div className="text-[11px] font-semibold text-primary bg-primary/10 px-3 py-1 rounded-full">
+              {t("home.providersSelected", "Selected")}: {selectedProvider.name}
+            </div>
+          )}
+        </div>
+        {providersQuery.isLoading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {Array.from({ length: 6 }).map((_, idx) => (
+              <div key={idx} className="h-24 rounded-2xl bg-white border border-border shadow-card skeleton-soft" />
+            ))}
+          </div>
+        ) : providers.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {providers.map((provider) => {
+              const isSelected = providerId === provider.id;
+              const ratingLabel =
+                provider.ratingCount && provider.ratingCount > 0
+                  ? `${Number(provider.ratingAvg ?? 0).toFixed(1)} (${provider.ratingCount})`
+                  : t("home.providersNew", "New");
+              return (
+                <button
+                  key={provider.id}
+                  onClick={() => handleProviderSelect(provider)}
+                  className={`rounded-2xl border p-3 text-left shadow-card transition-transform duration-200 hover:-translate-y-0.5 ${
+                    isSelected ? "border-primary ring-2 ring-primary/20" : "border-border"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-white shadow-inner flex items-center justify-center overflow-hidden">
+                      {provider.logoUrl ? (
+                        <ImageWithFallback
+                          src={provider.logoUrl}
+                          alt={provider.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Store className="w-5 h-5 text-primary" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 line-clamp-2">{provider.name}</p>
+                      <div className="flex items-center gap-1 text-xs text-gray-500">
+                        <Star className="w-3 h-3 text-amber-500" />
+                        <span>{ratingLabel}</span>
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <EmptyState
+            title={t("home.providersEmptyTitle", "No providers available")}
+            subtitle={t("home.providersEmptySubtitle", "Please check back soon.")}
+          />
+        )}
+      </div>
+    );
+  };
+
   const heroSectionEnabled = sectionByType.get("hero")?.enabled !== false;
   const defaultSections = [
     { id: "promos", type: "promos" },
@@ -314,7 +432,11 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
     .filter((section) => section?.type && section.type !== "hero")
     .filter((section) => section.enabled !== false)
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-  const sectionsToRender = configuredSections.length > 0 ? configuredSections : defaultSections;
+  const sectionsToRender = providerSelected
+    ? configuredSections.length > 0
+      ? configuredSections
+      : defaultSections
+    : [];
 
   const resolveSectionTitle = (section: any, fallbackKey: string, fallbackDefault?: string) => {
     const fallbackText = fallbackDefault ? t(fallbackKey, fallbackDefault) : t(fallbackKey);
@@ -493,7 +615,8 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
               }`}
             />
             <Input
-              placeholder={t("home.searchPlaceholder")}
+              placeholder={searchPlaceholder}
+              disabled={!providerSelected}
               className={`h-12 rounded-2xl bg-white/80 border-none shadow-inner ${i18n.dir() === "rtl" ? "pr-12 text-right" : "pl-12"}`}
               value={q}
               onFocus={() => setShowHistory(true)}
@@ -566,11 +689,19 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
       )}
 
       <div className="flex-1 overflow-y-auto space-y-5">
-        {showingSearch
-          ? renderProductsSection(t("home.sections.searchResults"), searchQuery, () =>
-              updateAppState({ currentScreen: "categories" })
-            )
-          : sectionsToRender.map((section) => renderSection(section))}
+        {renderProvidersSection()}
+        {!providerSelected ? (
+          <EmptyState
+            title={t("home.providersPromptTitle", "Choose a provider to continue")}
+            subtitle={t("home.providersPromptSubtitle", "Providers have their own categories and products.")}
+          />
+        ) : showingSearch ? (
+          renderProductsSection(t("home.sections.searchResults"), searchQuery, () =>
+            updateAppState({ currentScreen: "categories" })
+          )
+        ) : (
+          sectionsToRender.map((section) => renderSection(section))
+        )}
       </div>
 
       <MobileNav appState={appState} updateAppState={updateAppState} />

@@ -19,7 +19,7 @@ import {
 import { Badge } from "../../ui/badge";
 import { ArrowLeft, MapPin, Plus } from "lucide-react";
 import { AppState, type UpdateAppState } from "../CustomerApp";
-import { NetworkBanner, EmptyState, RetryBlock } from "../components";
+import { NetworkBanner, EmptyState, RetryBlock, LocationPicker } from "../components";
 import { useAddresses, useNetworkStatus, useApiErrorToast, useDeliveryZones } from "../hooks";
 import { mapApiErrorToMessage } from "../../utils/mapApiErrorToMessage";
 import { useToast } from "../providers/ToastProvider";
@@ -49,6 +49,7 @@ export function AddressesScreen({ appState, updateAppState }: AddressesScreenPro
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
   const { isOffline } = useNetworkStatus();
+  const distancePricingEnabled = appState.settings?.delivery?.distancePricingEnabled ?? true;
   const apiErrorToast = useApiErrorToast();
   const {
     addresses,
@@ -102,6 +103,11 @@ export function AddressesScreen({ appState, updateAppState }: AddressesScreenPro
   const zoneErrorMessage = deliveryZonesQuery.isError
     ? mapApiErrorToMessage(deliveryZonesQuery.error, "addresses.error.zones")
     : null;
+  const locationValue = useMemo(() => {
+    if (form.lat == null || form.lng == null) return null;
+    if (!Number.isFinite(form.lat) || !Number.isFinite(form.lng)) return null;
+    return { lat: form.lat, lng: form.lng };
+  }, [form.lat, form.lng]);
 
   const headerSubtitle = useMemo(() => {
     if (isLoading) return t("addresses.loading");
@@ -109,12 +115,59 @@ export function AddressesScreen({ appState, updateAppState }: AddressesScreenPro
     return t("addresses.count", { count: addresses.length, defaultValue: `${addresses.length}` });
   }, [isLoading, addresses.length, t]);
 
+  const parseCoordinate = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return undefined;
+    const num = Number(trimmed);
+    return Number.isFinite(num) ? num : undefined;
+  };
+
+  const handleLocationChange = (value: { lat: number; lng: number }) => {
+    setForm((prev) => ({ ...prev, lat: value.lat, lng: value.lng }));
+  };
+
+  const handleUseCurrentLocation = () => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      showToast({
+        type: "error",
+        message: t("addresses.locationUnavailable", "Location services are not available."),
+      });
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = Number(pos.coords.latitude.toFixed(6));
+        const lng = Number(pos.coords.longitude.toFixed(6));
+        setForm((prev) => ({ ...prev, lat, lng }));
+        showToast({
+          type: "success",
+          message: t("addresses.locationSet", "Location updated."),
+        });
+      },
+      () => {
+        showToast({
+          type: "error",
+          message: t("addresses.locationError", "Unable to get your location."),
+        });
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
   const validate = () => {
     const next: Record<string, string> = {};
     if (!form.label?.trim()) next.label = t("addresses.validation.label");
     if (!form.city?.trim()) next.city = t("addresses.validation.city");
     if (!form.zoneId) next.zoneId = t("addresses.validation.zone");
     if (!form.street?.trim()) next.street = t("addresses.validation.street");
+    const hasLocation =
+      typeof form.lat === "number" &&
+      Number.isFinite(form.lat) &&
+      typeof form.lng === "number" &&
+      Number.isFinite(form.lng);
+    if (distancePricingEnabled && !hasLocation) {
+      next.location = t("addresses.validation.location", "Select your location on the map.");
+    }
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -361,6 +414,59 @@ export function AddressesScreen({ appState, updateAppState }: AddressesScreenPro
                 </p>
               )}
               {!selectedZone && form.zone && <p className="text-xs text-gray-500 mt-1">{form.zone}</p>}
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>{t("addresses.form.location", "Location")}</Label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-xl"
+                  onClick={handleUseCurrentLocation}
+                >
+                  <MapPin className="w-4 h-4 mr-1" />
+                  {t("addresses.buttons.useLocation", "Use current location")}
+                </Button>
+              </div>
+              <LocationPicker
+                value={locationValue}
+                onChange={handleLocationChange}
+                placeholder={t("addresses.locationHint", "Tap the map to drop a pin")}
+                active={dialogOpen}
+              />
+              {errors.location && <p className="text-xs text-red-500 mt-1">{errors.location}</p>}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>{t("addresses.form.lat")}</Label>
+                  <Input
+                    type="number"
+                    step="0.000001"
+                    value={form.lat ?? ""}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        lat: parseCoordinate(e.target.value),
+                      }))
+                    }
+                    placeholder="30.123456"
+                  />
+                </div>
+                <div>
+                  <Label>{t("addresses.form.lng")}</Label>
+                  <Input
+                    type="number"
+                    step="0.000001"
+                    value={form.lng ?? ""}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        lng: parseCoordinate(e.target.value),
+                      }))
+                    }
+                    placeholder="31.123456"
+                  />
+                </div>
+              </div>
             </div>
             <div>
               <Label>{t("addresses.form.street")}</Label>

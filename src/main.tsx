@@ -4,6 +4,7 @@ import App from './App';
 import './i18n';
 import './styles/design-tokens.css';
 import './index.css';
+import "leaflet/dist/leaflet.css";
 import { initSentry } from './lib/sentry';
 
 const container = document.getElementById('root');

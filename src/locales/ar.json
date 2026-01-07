@@ -34,7 +34,8 @@
     "addressZoneInactive": "منطقة التوصيل هذه غير متاحة حاليًا.",
     "addressZoneRequired": "يرجى اختيار منطقة توصيل.",
     "checkoutAddressRequired": "اختر عنوانًا لحساب رسوم الشحن.",
-    "loyaltyRuleViolation": "لا يمكن استخدام هذه النقاط على هذا الطلب."
+    "loyaltyRuleViolation": "لا يمكن استخدام هذه النقاط على هذا الطلب.",
+    "paymentMethodDisabled": "????? ????? ??? ????? ?????."
   },
   "nav": {
     "home": "الرئيسية",
@@ -384,7 +385,9 @@
       "noRewards": "طلبات الضيوف لا تستخدم الكوبونات أو نقاط الولاء.",
       "locationUnavailable": "خدمات الموقع غير متاحة.",
       "locationSet": "تم تحديث الموقع.",
-      "locationError": "تعذر الحصول على موقعك."
+      "locationError": "تعذر الحصول على موقعك.",
+      "locationTitle": "??????",
+      "locationHint": "???? ??? ??????? ?????? ??????."
     },
     "stepsLabelGuest": "السلة > البيانات > الموقع > التأكيد"
   },
@@ -550,7 +553,8 @@
       "apartment": "الشقة",
       "lat": "خط العرض",
       "lng": "خط الطول",
-      "labelPlaceholder": "المنزل / العمل / أخرى"
+      "labelPlaceholder": "المنزل / العمل / أخرى",
+      "location": "??????"
     },
     "buttons": {
       "add": "إضافة عنوان",
@@ -560,7 +564,8 @@
       "save": "حفظ",
       "deleting": "جارٍ الحذف...",
       "saving": "جارٍ الحفظ...",
-      "create": "إنشاء عنوان"
+      "create": "إنشاء عنوان",
+      "useLocation": "?????? ????? ??????"
     },
     "dialogs": {
       "addTitle": "إضافة عنوان جديد",
@@ -572,7 +577,8 @@
       "label": "اسم العنوان مطلوب",
       "city": "المدينة مطلوبة",
       "zone": "منطقة التسليم مطلوبة",
-      "street": "الشارع مطلوب"
+      "street": "الشارع مطلوب",
+      "location": "??? ????? ??? ???????."
     },
     "success": {
       "saved": "تم حفظ العنوان",
@@ -591,7 +597,11 @@
     "zoneEtaUnknown": "يختلف الوقت المتوقع للوصول",
     "zoneSelected": "{{zone}} - {{fee}} - {{eta}}",
     "confirmDeleteTitle": "حذف العنوان؟",
-    "confirmDeleteSubtitle": "لا يمكن التراجع عن هذه العملية."
+    "confirmDeleteSubtitle": "لا يمكن التراجع عن هذه العملية.",
+    "locationHint": "???? ??? ??????? ?????? ??????.",
+    "locationUnavailable": "????? ?????? ??? ?????.",
+    "locationSet": "?? ????? ??????.",
+    "locationError": "???? ?????? ??? ?????."
   },
   "settings": {
     "language": "اللغة"

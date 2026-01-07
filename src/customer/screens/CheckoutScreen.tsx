@@ -14,7 +14,7 @@ import { useAddresses, useCart, useNetworkStatus, useApiErrorToast } from "../ho
 import { placeGuestOrder, placeOrder, quoteGuestOrder, type GuestOrderQuote } from "../../services/orders";
 import { fmtEGP, fromCents } from "../../lib/money";
 import type { Address, OrderDetail, OrderGroupSummary } from "../../types/api";
-import { NetworkBanner, EmptyState, RetryBlock } from "../components";
+import { NetworkBanner, EmptyState, RetryBlock, LocationPicker } from "../components";
 import { trackCheckoutStarted, trackOrderFailed, trackOrderPlaced } from "../../lib/analytics";
 import { goToCart } from "../navigation/navigation";
 import { mapApiErrorToMessage } from "../../utils/mapApiErrorToMessage";
@@ -87,6 +87,14 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
   const guestLng = parseCoordinate(guestLngInput);
   const guestLocationValid = !distancePricingEnabled || (guestLat != null && guestLng != null);
   const guestAddressValid = guestAddress.trim().length > 0;
+  const guestLocationValue = useMemo(
+    () => (guestLat != null && guestLng != null ? { lat: guestLat, lng: guestLng } : null),
+    [guestLat, guestLng]
+  );
+  const handleGuestLocationPick = (value: { lat: number; lng: number }) => {
+    setGuestLatInput(value.lat.toFixed(6));
+    setGuestLngInput(value.lng.toFixed(6));
+  };
 
   const guestItems = useMemo(
     () =>
@@ -796,6 +804,21 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
                 </div>
                 {distancePricingEnabled && (
                   <>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>{t("checkout.guest.locationTitle", "Location")}</Label>
+                        <Button variant="outline" size="sm" onClick={handleUseCurrentLocation} className="rounded-xl">
+                          <MapPin className="w-4 h-4 mr-1" />
+                          {t("checkout.guest.useLocation", "Use current location")}
+                        </Button>
+                      </div>
+                      <LocationPicker
+                        value={guestLocationValue}
+                        onChange={handleGuestLocationPick}
+                        placeholder={t("checkout.guest.locationHint", "Tap the map to drop a pin")}
+                        active
+                      />
+                    </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <Label>{t("checkout.guest.latLabel", "Latitude")}</Label>
@@ -818,10 +841,6 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
                         />
                       </div>
                     </div>
-                    <Button variant="outline" size="sm" onClick={handleUseCurrentLocation} className="rounded-xl">
-                      <MapPin className="w-4 h-4 mr-1" />
-                      {t("checkout.guest.useLocation", "Use current location")}
-                    </Button>
                   </>
                 )}
                 <div>

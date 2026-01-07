@@ -37,7 +37,8 @@
     "orderNotFound": "We couldn't find this order.",
     "orderInvalidState": "This order can't be updated right now.",
     "couponInvalid": "This coupon code isn't valid.",
-    "couponExpired": "This coupon has expired."
+    "couponExpired": "This coupon has expired.",
+    "paymentMethodDisabled": "This payment method is currently unavailable."
   },
   "nav": {
     "home": "Home",
@@ -345,6 +346,8 @@
         "phoneHint": "We will use your phone to send order updates and tracking.",
         "fullAddress": "Full address",
         "addressPlaceholder": "Street, building, area",
+        "locationTitle": "Location",
+        "locationHint": "Tap the map to drop a pin.",
         "latLabel": "Latitude",
         "lngLabel": "Longitude",
         "useLocation": "Use current location",
@@ -586,6 +589,7 @@
       "city": "City",
       "zone": "Zone",
       "zonePlaceholder": "Select delivery area",
+      "location": "Location",
       "street": "Street",
       "building": "Building",
       "apartment": "Apartment",
@@ -595,6 +599,7 @@
     },
     "buttons": {
       "add": "Add Address",
+      "useLocation": "Use current location",
       "edit": "Edit",
       "delete": "Delete",
       "cancel": "Cancel",
@@ -609,11 +614,16 @@
     },
     "count": "{{count}} addresses",
     "emptySubtitle": "Add your delivery location to continue.",
+    "locationHint": "Tap the map to drop a pin.",
+    "locationUnavailable": "Location services are not available.",
+    "locationSet": "Location updated.",
+    "locationError": "Unable to get your location.",
     "validation": {
       "label": "Label is required",
       "city": "City is required",
       "zone": "Delivery zone is required",
-      "street": "Street is required"
+      "street": "Street is required",
+      "location": "Select your location on the map."
     },
     "success": {
       "saved": "Address saved",

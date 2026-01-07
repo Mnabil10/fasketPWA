@@ -25,6 +25,7 @@ const ERROR_CODE_MAP: Record<string, string> = {
   CHECKOUT_ADDRESS_REQUIRED: "errors.checkoutAddressRequired",
   COUPON_INVALID: "errors.couponInvalid",
   COUPON_EXPIRED: "errors.couponExpired",
+  PAYMENT_METHOD_DISABLED: "errors.paymentMethodDisabled",
   LOYALTY_DISABLED: "errors.loyaltyDisabled",
   LOYALTY_NOT_ENOUGH_POINTS: "errors.loyaltyNotEnoughPoints",
   LOYALTY_RULE_VIOLATION: "errors.loyaltyRuleViolation",

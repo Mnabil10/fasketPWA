@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "../../ui/button";
 import { Badge } from "../../ui/badge";
-import { CheckCircle, Clock, MapPin, Phone, Star, CreditCard } from "lucide-react";
+import { CheckCircle, Clock, MapPin, Phone, Star, CreditCard, MessageCircle } from "lucide-react";
 import { AppState, type UpdateAppState } from "../CustomerApp";
 import { useProducts, useCart, useApiErrorToast } from "../hooks";
 import type { OrderDetail, OrderGroupSummary, Product } from "../../types/api";
@@ -13,6 +13,7 @@ import { goToHome, goToProduct } from "../navigation/navigation";
 import { useToast } from "../providers/ToastProvider";
 import { openExternalUrl } from "../../lib/fasketLinks";
 import { resolveSupportConfig } from "../utils/mobileAppConfig";
+import { useNotificationPreferences } from "../stores/notificationPreferences";
 
 interface OrderSuccessScreenProps {
   appState: AppState;
@@ -26,8 +27,9 @@ export function OrderSuccessScreen({ appState, updateAppState }: OrderSuccessScr
   const isGuest = !appState.user;
   const lang = i18n.language?.startsWith("ar") ? "ar" : "en";
   const supportConfig = resolveSupportConfig(appState.settings?.mobileApp ?? null, lang);
+  const whatsappOrderUpdatesEnabled = useNotificationPreferences((state) => state.preferences.whatsappOrderUpdates ?? true);
   const isGroupSummary = (value: any): value is OrderGroupSummary =>
-    Boolean(value && typeof value === "object" && Array.isArray(value.orders) && value.orderGroupId);
+    Boolean(value && typeof value === "object" && "orderGroupId" in value);
   const isGroup = isGroupSummary(order);
   const detailOrder = !isGroup && order ? (order as OrderDetail) : null;
   const groupOrder = isGroup && order ? (order as OrderGroupSummary) : null;
@@ -174,8 +176,8 @@ export function OrderSuccessScreen({ appState, updateAppState }: OrderSuccessScr
           {isGroup && (
             <div className="text-sm text-gray-700">
               {t("orderSuccess.groupNotice", {
-                count: groupOrder?.orders.length ?? 0,
-                defaultValue: `Your order was split into ${groupOrder?.orders.length ?? 0} orders.`,
+                count: groupOrder?.orders.length ?? groupOrder?.providers?.length ?? 0,
+                defaultValue: `Your order was split into ${groupOrder?.orders.length ?? groupOrder?.providers?.length ?? 0} orders.`,
               })}
             </div>
           )}
@@ -205,6 +207,20 @@ export function OrderSuccessScreen({ appState, updateAppState }: OrderSuccessScr
               {t("orderSuccess.guestHint", "Track your order using your phone number from the Help screen.")}
             </div>
           )}
+          <div className="flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+            <MessageCircle className="w-4 h-4 text-emerald-600" />
+            <span>
+              {whatsappOrderUpdatesEnabled
+                ? t(
+                    "orderSuccess.whatsappUpdatesHint",
+                    "Order updates are sent via WhatsApp. Check WhatsApp for updates."
+                  )
+                : t(
+                    "orderSuccess.whatsappUpdatesOffHint",
+                    "WhatsApp updates are off. Enable them in Settings."
+                  )}
+            </span>
+          </div>
         </div>
 
         {isGroup && (

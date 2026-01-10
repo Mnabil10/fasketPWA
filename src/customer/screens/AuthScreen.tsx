@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
@@ -12,7 +12,8 @@ import {
   authLogin,
   verifyPhone,
   passwordResetRequest,
-  passwordResetConfirm,
+  passwordResetConfirmOtp,
+  passwordResetFinalize,
   requestOtp,
   authSignupStartSession,
   signupTelegramLinkToken,
@@ -22,6 +23,7 @@ import {
 } from "../../services/auth";
 import { persistSessionTokens } from "../../store/session";
 import { openExternalUrl } from "../../lib/fasketLinks";
+import { App as CapacitorApp } from "@capacitor/app";
 
 interface AuthScreenProps {
   mode: "auth" | "register";
@@ -42,15 +44,20 @@ type FormState = {
   newPassword: string;
 };
 
+const OTP_LENGTH = 6;
+const OTP_RESEND_COOLDOWN_SECONDS = 60;
+const OTP_FALLBACK_EXPIRES_SECONDS = 120;
+
 export function AuthScreen({ mode, onAuthSuccess, onToggleMode, onContinueAsGuest, branding }: AuthScreenProps) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language?.startsWith("ar") ? "ar" : "en";
   const brandName = getLocalizedString(branding?.appName, lang, t("common.appName", "Fasket"));
   const logoUrl = branding?.logoUrl || branding?.wordmarkUrl || appLogo;
-  const [step, setStep] = useState<"login" | "register" | "verifySignup" | "verifyPhone" | "forgot" | "resetVerify">(
+  const [step, setStep] = useState<
+    "login" | "loginOtp" | "register" | "verifySignup" | "verifyPhone" | "forgot" | "resetVerify"
+  >(
     mode === "auth" ? "login" : "register"
   );
-  const isLogin = step === "login";
   const apiErrorToast = useApiErrorToast();
 
   const [formData, setFormData] = useState<FormState>({
@@ -68,6 +75,11 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode, onContinueAsGues
   const [err, setErr] = useState<string | null>(null);
   const [pendingPhone, setPendingPhone] = useState<string>("");
   const [otpChannel, setOtpChannel] = useState<string | null>(null);
+  const [otpExpiresAt, setOtpExpiresAt] = useState<number | null>(null);
+  const [otpResendAt, setOtpResendAt] = useState<number | null>(null);
+  const [otpCountdown, setOtpCountdown] = useState(0);
+  const [otpResendCountdown, setOtpResendCountdown] = useState(0);
+  const [resetToken, setResetToken] = useState<string | null>(null);
   const fallbackBotUrl = "https://t.me/FasketSuberBot";
   const [signupSessionToken, setSignupSessionToken] = useState<string | null>(null);
   const [signupSessionId, setSignupSessionId] = useState<string | null>(null);
@@ -83,6 +95,11 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode, onContinueAsGues
     setSignupSessionId(null);
     setLinkStatus(null);
     setOtpExpiresIn(undefined);
+    setResetToken(null);
+    setOtpExpiresAt(null);
+    setOtpResendAt(null);
+    setOtpCountdown(0);
+    setOtpResendCountdown(0);
   }, [mode]);
 
   useEffect(() => {
@@ -90,6 +107,74 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode, onContinueAsGues
     setLinkStatus(null);
     void refreshLinkStatus();
   }, [signupSessionId]);
+
+  const clearOtpTimers = useCallback(() => {
+    setOtpExpiresAt(null);
+    setOtpResendAt(null);
+    setOtpCountdown(0);
+    setOtpResendCountdown(0);
+  }, []);
+
+  const startOtpTimers = useCallback((expiresInSeconds?: number, resendAfterSeconds?: number) => {
+    const now = Date.now();
+    const ttl = expiresInSeconds && expiresInSeconds > 0 ? expiresInSeconds : OTP_FALLBACK_EXPIRES_SECONDS;
+    const resendTtl =
+      resendAfterSeconds && resendAfterSeconds > 0 ? resendAfterSeconds : OTP_RESEND_COOLDOWN_SECONDS;
+    setOtpExpiresAt(now + ttl * 1000);
+    setOtpResendAt(now + resendTtl * 1000);
+  }, []);
+
+  const clearSensitiveFields = useCallback(() => {
+    clearOtpTimers();
+    setResetToken(null);
+    setPendingPhone("");
+    setOtpChannel(null);
+    setFormData((prev) => ({
+      ...prev,
+      password: "",
+      newPassword: "",
+      otp: "",
+      otpId: "",
+    }));
+  }, [clearOtpTimers]);
+
+  useEffect(() => {
+    if (!otpExpiresAt && !otpResendAt) {
+      setOtpCountdown(0);
+      setOtpResendCountdown(0);
+      return;
+    }
+    const tick = () => {
+      const now = Date.now();
+      const expires = otpExpiresAt ? Math.max(0, Math.ceil((otpExpiresAt - now) / 1000)) : 0;
+      const resend = otpResendAt ? Math.max(0, Math.ceil((otpResendAt - now) / 1000)) : 0;
+      setOtpCountdown(expires);
+      setOtpResendCountdown(resend);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [otpExpiresAt, otpResendAt]);
+
+  useEffect(() => {
+    if (!CapacitorApp?.addListener) return;
+    let listener: { remove: () => void } | undefined;
+    const sub = CapacitorApp.addListener("appStateChange", ({ isActive }) => {
+      if (!isActive) {
+        clearSensitiveFields();
+      }
+    });
+    if ("then" in sub && typeof sub.then === "function") {
+      sub.then((ls) => {
+        listener = ls;
+      });
+    } else {
+      listener = sub as unknown as { remove: () => void };
+    }
+    return () => {
+      listener?.remove?.();
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,6 +203,7 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode, onContinueAsGues
           throw new Error(t("auth.errorLogin"));
         }
         persistTokens(res.accessToken, res.refreshToken);
+        clearSensitiveFields();
         await onAuthSuccess();
       }
 
@@ -158,6 +244,7 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode, onContinueAsGues
           const sent = await requestOtp({ phone, purpose: "LOGIN" });
           setFormData((prev) => ({ ...prev, otp: "", otpId: sent?.otpId ?? (e as any)?.response?.data?.otpId ?? "" }));
           setOtpChannel(sent?.channel ?? null);
+          startOtpTimers(sent?.expiresInSeconds, sent?.resendAfterSeconds);
         } catch (sendErr: any) {
           setErr(apiErrorToast(sendErr, "auth.errorLogin"));
         }
@@ -174,6 +261,10 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode, onContinueAsGues
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleOtpChange = (value: string) => {
+    handleInputChange("otp", normalizeOtp(value));
+  };
+
   const handleModeToggle = () => {
     setIsLoading(false);
     setErr(null);
@@ -184,6 +275,9 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode, onContinueAsGues
       newPassword: "",
     }));
     setOtpChannel(null);
+    setPendingPhone("");
+    setResetToken(null);
+    clearOtpTimers();
     setSignupSessionToken(null);
     setSignupSessionId(null);
     setLinkStatus(null);
@@ -193,10 +287,42 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode, onContinueAsGues
     onToggleMode();
   };
 
+  const handleOpenLoginOtp = () => {
+    setErr(null);
+    const prepared = prepareIdentifier(formData.identifier);
+    if (prepared?.kind === "phone") {
+      setFormData((prev) => ({ ...prev, phone: prepared.value }));
+    }
+    setStep("loginOtp");
+  };
+
   const handleContinueAsGuest = () => {
     setErr(null);
     setIsLoading(false);
+    clearSensitiveFields();
     onContinueAsGuest();
+  };
+
+  const handleLoginOtpRequest = async () => {
+    const normalizedPhone = normalizeEgPhone(formData.phone);
+    if (!isValidPhoneNumber(normalizedPhone)) {
+      setErr(t("auth.phoneInvalid"));
+      return;
+    }
+    setIsLoading(true);
+    setErr(null);
+    try {
+      const sent = await requestOtp({ phone: normalizedPhone, purpose: "LOGIN" });
+      setPendingPhone(normalizedPhone);
+      setFormData((prev) => ({ ...prev, otp: "", otpId: sent?.otpId ?? "" }));
+      setOtpChannel(sent?.channel ?? null);
+      startOtpTimers(sent?.expiresInSeconds, sent?.resendAfterSeconds);
+      setStep("verifyPhone");
+    } catch (otpErr: any) {
+      setErr(apiErrorToast(otpErr, "auth.errorLogin"));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleVerifySignup = async () => {
@@ -225,18 +351,25 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode, onContinueAsGues
   };
 
   const handleVerifyPhone = async () => {
-    if (!pendingPhone || !formData.otp.trim()) {
+    const otpValue = formData.otp.trim();
+    if (!pendingPhone || otpValue.length !== OTP_LENGTH) {
       setErr(t("auth.otpRequired", "Enter the OTP sent to your phone"));
+      return;
+    }
+    if (otpExpiresAt && otpCountdown === 0) {
+      setErr(t("auth.otpExpired", "OTP expired. Please request a new code."));
       return;
     }
     setIsLoading(true);
     setErr(null);
     try {
-      const res = await verifyPhone({ phone: pendingPhone, otp: formData.otp.trim(), otpId: formData.otpId });
+      const res = await verifyPhone({ phone: pendingPhone, otp: otpValue, otpId: formData.otpId });
       if (res.accessToken && res.refreshToken) {
         persistTokens(res.accessToken, res.refreshToken);
+        clearSensitiveFields();
         await onAuthSuccess();
       } else {
+        clearSensitiveFields();
         setStep("login");
       }
     } catch (e: any) {
@@ -249,14 +382,23 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode, onContinueAsGues
   const handleForgotPassword = async () => {
     const identifier = formData.identifier.trim();
     if (!identifier) {
-      setErr(t("auth.identifierRequired"));
+      setErr(t("auth.phoneRequired", "Phone number is required."));
+      return;
+    }
+    const prepared = prepareIdentifier(identifier);
+    if (!prepared || prepared.kind !== "phone" || !isValidPhoneNumber(prepared.value)) {
+      setErr(t("auth.phoneInvalid"));
       return;
     }
     setIsLoading(true);
     setErr(null);
     try {
-      const { otpId } = await passwordResetRequest(identifier);
+      const { otpId, expiresInSeconds, resendAfterSeconds } = await passwordResetRequest(prepared.value);
+      setPendingPhone(prepared.value);
+      setResetToken(null);
       setFormData((prev) => ({ ...prev, otpId, otp: "", newPassword: "" }));
+      setOtpChannel("whatsapp");
+      startOtpTimers(expiresInSeconds, resendAfterSeconds);
       setStep("resetVerify");
     } catch (e: any) {
       setErr(apiErrorToast(e, "auth.errorForgot"));
@@ -265,17 +407,45 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode, onContinueAsGues
     }
   };
 
-  const handleResetPassword = async () => {
-    if (!formData.otpId || !formData.otp.trim() || !formData.newPassword.trim()) {
-      setErr(t("auth.resetRequired", "Provide OTP and new password"));
+  const handleConfirmResetOtp = async () => {
+    const otpValue = formData.otp.trim();
+    if (!pendingPhone || !formData.otpId || otpValue.length !== OTP_LENGTH) {
+      setErr(t("auth.otpRequired", "Enter the OTP sent to your phone"));
+      return;
+    }
+    if (otpExpiresAt && otpCountdown === 0) {
+      setErr(t("auth.otpExpired", "OTP expired. Please request a new code."));
       return;
     }
     setIsLoading(true);
     setErr(null);
     try {
-      await passwordResetConfirm({ otpId: formData.otpId, otp: formData.otp.trim(), newPassword: formData.newPassword.trim() });
+      const res = await passwordResetConfirmOtp({ phone: pendingPhone, otpId: formData.otpId, otp: otpValue });
+      if (!res.resetToken) {
+        throw new Error(t("auth.errorReset", "Failed to reset password"));
+      }
+      setResetToken(res.resetToken);
+      setFormData((prev) => ({ ...prev, otp: "" }));
+    } catch (e: any) {
+      setErr(apiErrorToast(e, "auth.errorReset"));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetToken || !formData.newPassword.trim()) {
+      setErr(t("auth.resetRequired", "Provide a new password"));
+      return;
+    }
+    setIsLoading(true);
+    setErr(null);
+    try {
+      await passwordResetFinalize({ resetToken, newPassword: formData.newPassword.trim() });
       setStep("login");
       setErr(null);
+      setResetToken(null);
+      clearOtpTimers();
       setFormData((prev) => ({ ...prev, password: "", otp: "", otpId: "", newPassword: "" }));
     } catch (e: any) {
       setErr(apiErrorToast(e, "auth.errorReset"));
@@ -425,7 +595,49 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode, onContinueAsGues
               <button type="button" onClick={() => setStep("forgot")}>{t("auth.forgot", "Forgot password?")}</button>
               <button type="button" onClick={handleModeToggle}>{t("auth.signUp")}</button>
             </div>
+            <div className="text-center text-sm mt-2">
+              <button type="button" onClick={handleOpenLoginOtp} className="text-primary">
+                {t("auth.signInWhatsapp", "Sign in with WhatsApp code")}
+              </button>
+            </div>
           </form>
+        )}
+
+        {step === "loginOtp" && (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              {t("auth.whatsappLoginHint", "Enter your phone number and we'll send a WhatsApp code.")}
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="loginOtpPhone">{t("auth.phone")}</Label>
+              <Input
+                id="loginOtpPhone"
+                type="tel"
+                inputMode="tel"
+                placeholder="+20 100 123 4567"
+                value={formData.phone}
+                onChange={(e) => handleInputChange("phone", e.target.value)}
+                className="h-12 rounded-xl"
+              />
+              <p className="text-xs text-gray-500">
+                {t("auth.otpWhatsappHint", "You will receive a WhatsApp message with your 6-digit code.")}
+              </p>
+            </div>
+            {err && <div className="text-sm text-red-600 bg-red-50 rounded-lg p-3">{err}</div>}
+            <Button onClick={handleLoginOtpRequest} disabled={isLoading} className="w-full h-12 rounded-xl">
+              {isLoading ? t("common.loading") : t("auth.sendOtpWhatsapp", "Send WhatsApp code")}
+            </Button>
+            <button
+              type="button"
+              onClick={() => {
+                clearSensitiveFields();
+                setStep("login");
+              }}
+              className="text-sm text-primary"
+            >
+              {t("auth.back", "Back")}
+            </button>
+          </div>
         )}
 
         {step === "register" && (
@@ -571,39 +783,34 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode, onContinueAsGues
         {step === "verifyPhone" && (
           <div className="space-y-4">
             <p className="text-sm text-gray-600">{t("auth.verifyPhoneLogin", "Verify your phone to continue")}</p>
-            {otpChannel && (
-              <p className="text-xs text-gray-500">
-                {otpChannel === "telegram"
-                  ? t("auth.otpTelegramHint", "We sent the code on Telegram. Open the bot to view it.")
-                  : t("auth.otpSmsHint", "We sent the code via SMS/WhatsApp.")}
-              </p>
-            )}
-            <p className="text-xs text-gray-500 leading-relaxed">
-              <button
-                type="button"
-                onClick={openTelegramBotWithToken}
-                className="text-primary underline"
-              >
-                {t(
-                  "auth.telegramLinkHint",
-                  "افتح رابط تيليجرام واضغط Start في البوت (FasketSuberBot) ثم اطلب الكود."
-                )}
-              </button>
+            <p className="text-xs text-gray-500">
+              {t("auth.otpWhatsappHint", "You will receive a WhatsApp message with your 6-digit code.")}
             </p>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full h-11 rounded-xl"
-              onClick={openTelegramBotWithToken}
-            >
-              {t("auth.telegramOpenBot", "افتح رابط تيليجرام")}
-            </Button>
+            {(otpCountdown > 0 || otpResendCountdown > 0) && (
+              <div className="flex items-center justify-between rounded-lg border bg-gray-50 px-3 py-2 text-xs text-gray-600">
+                <span>
+                  {t("auth.otpExpiresInTimer", {
+                    defaultValue: "Code expires in {{time}}",
+                    time: formatCountdown(otpCountdown),
+                  })}
+                </span>
+                <span>
+                  {otpResendCountdown > 0
+                    ? t("auth.resendIn", { defaultValue: "Resend in {{time}}", time: formatCountdown(otpResendCountdown) })
+                    : t("auth.resendReady", "Resend ready")}
+                </span>
+              </div>
+            )}
             <Input
               type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              pattern="\\d{6}"
+              maxLength={OTP_LENGTH}
               placeholder={t("auth.otpPlaceholder", "Enter OTP")}
               value={formData.otp}
-              onChange={(e) => handleInputChange("otp", e.target.value)}
-              className="h-12 rounded-xl"
+              onChange={(e) => handleOtpChange(e.target.value)}
+              className="h-12 rounded-xl text-lg tracking-[0.3em] text-center"
             />
             {err && <div className="text-sm text-red-600 bg-red-50 rounded-lg p-3">{err}</div>}
             <div className="flex gap-2">
@@ -612,7 +819,7 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode, onContinueAsGues
               </Button>
               <Button
                 variant="outline"
-                disabled={isLoading}
+                disabled={isLoading || otpResendCountdown > 0}
                 onClick={async () => {
                   if (!pendingPhone) return;
                   try {
@@ -620,6 +827,7 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode, onContinueAsGues
                     const sent = await requestOtp({ phone: pendingPhone, purpose: "LOGIN" });
                     setFormData((prev) => ({ ...prev, otpId: sent?.otpId ?? prev.otpId }));
                     setOtpChannel(sent?.channel ?? otpChannel);
+                    startOtpTimers(sent?.expiresInSeconds, sent?.resendAfterSeconds);
                   } catch (resendErr: any) {
                     setErr(apiErrorToast(resendErr, "auth.errorLogin"));
                   } finally {
@@ -631,7 +839,14 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode, onContinueAsGues
                 {t("auth.resend", "Resend")}
               </Button>
             </div>
-            <button type="button" onClick={() => setStep("login")} className="text-sm text-primary">
+            <button
+              type="button"
+              onClick={() => {
+                clearSensitiveFields();
+                setStep("login");
+              }}
+              className="text-sm text-primary"
+            >
               {t("auth.back", "Back")}
             </button>
           </div>
@@ -639,19 +854,30 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode, onContinueAsGues
 
         {step === "forgot" && (
           <div className="space-y-4">
-            <Label>{t("auth.identifierLabel")}</Label>
+            <Label>{t("auth.phone")}</Label>
             <Input
-              type="text"
-              placeholder={t("auth.identifierPlaceholder")}
+              type="tel"
+              inputMode="tel"
+              placeholder="+20 100 123 4567"
               value={formData.identifier}
               onChange={(e) => handleInputChange("identifier", e.target.value)}
               className="h-12 rounded-xl"
             />
+            <p className="text-xs text-gray-500">
+              {t("auth.resetWhatsappHint", "We will send a WhatsApp code to verify your number.")}
+            </p>
             {err && <div className="text-sm text-red-600 bg-red-50 rounded-lg p-3">{err}</div>}
             <Button onClick={handleForgotPassword} disabled={isLoading} className="w-full h-12 rounded-xl">
               {isLoading ? t("common.loading") : t("auth.send_reset", "Send reset code")}
             </Button>
-            <button type="button" onClick={() => setStep("login")} className="text-sm text-primary">
+            <button
+              type="button"
+              onClick={() => {
+                clearSensitiveFields();
+                setStep("login");
+              }}
+              className="text-sm text-primary"
+            >
               {t("auth.back", "Back")}
             </button>
           </div>
@@ -659,25 +885,91 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode, onContinueAsGues
 
         {step === "resetVerify" && (
           <div className="space-y-4">
-            <Input
-              type="text"
-              placeholder={t("auth.otpPlaceholder", "Enter OTP")}
-              value={formData.otp}
-              onChange={(e) => handleInputChange("otp", e.target.value)}
-              className="h-12 rounded-xl"
-            />
-            <Input
-              type={showPassword ? "text" : "password"}
-              placeholder={t("auth.newPassword", "New password")}
-              value={formData.newPassword}
-              onChange={(e) => handleInputChange("newPassword", e.target.value)}
-              className="h-12 rounded-xl"
-            />
-            {err && <div className="text-sm text-red-600 bg-red-50 rounded-lg p-3">{err}</div>}
-            <Button onClick={handleResetPassword} disabled={isLoading} className="w-full h-12 rounded-xl">
-              {isLoading ? t("common.loading") : t("auth.resetPassword", "Reset password")}
-            </Button>
-            <button type="button" onClick={() => setStep("login")} className="text-sm text-primary">
+            {!resetToken ? (
+              <>
+                <p className="text-sm text-gray-600">
+                  {t("auth.resetVerifyHint", "Enter the 6-digit code sent on WhatsApp.")}
+                </p>
+                {(otpCountdown > 0 || otpResendCountdown > 0) && (
+                  <div className="flex items-center justify-between rounded-lg border bg-gray-50 px-3 py-2 text-xs text-gray-600">
+                    <span>
+                      {t("auth.otpExpiresInTimer", {
+                        defaultValue: "Code expires in {{time}}",
+                        time: formatCountdown(otpCountdown),
+                      })}
+                    </span>
+                    <span>
+                      {otpResendCountdown > 0
+                        ? t("auth.resendIn", { defaultValue: "Resend in {{time}}", time: formatCountdown(otpResendCountdown) })
+                        : t("auth.resendReady", "Resend ready")}
+                    </span>
+                  </div>
+                )}
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  pattern="\\d{6}"
+                  maxLength={OTP_LENGTH}
+                  placeholder={t("auth.otpPlaceholder", "Enter OTP")}
+                  value={formData.otp}
+                  onChange={(e) => handleOtpChange(e.target.value)}
+                  className="h-12 rounded-xl text-lg tracking-[0.3em] text-center"
+                />
+                {err && <div className="text-sm text-red-600 bg-red-50 rounded-lg p-3">{err}</div>}
+                <div className="flex gap-2">
+                  <Button onClick={handleConfirmResetOtp} disabled={isLoading} className="flex-1 h-12 rounded-xl">
+                    {isLoading ? t("common.loading") : t("auth.verify", "Verify")}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    disabled={isLoading || otpResendCountdown > 0}
+                    onClick={async () => {
+                      if (!pendingPhone) return;
+                      try {
+                        setIsLoading(true);
+                        const sent = await passwordResetRequest(pendingPhone);
+                        setFormData((prev) => ({ ...prev, otpId: sent?.otpId ?? prev.otpId, otp: "" }));
+                        setOtpChannel("whatsapp");
+                        startOtpTimers(sent?.expiresInSeconds, sent?.resendAfterSeconds);
+                      } catch (resendErr: any) {
+                        setErr(apiErrorToast(resendErr, "auth.errorReset"));
+                      } finally {
+                        setIsLoading(false);
+                      }
+                    }}
+                    className="h-12 rounded-xl"
+                  >
+                    {t("auth.resend", "Resend")}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-gray-600">
+                  {t("auth.resetVerified", "Code verified. Set your new password.")}
+                </p>
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  placeholder={t("auth.newPassword", "New password")}
+                  value={formData.newPassword}
+                  onChange={(e) => handleInputChange("newPassword", e.target.value)}
+                  className="h-12 rounded-xl"
+                />
+                {err && <div className="text-sm text-red-600 bg-red-50 rounded-lg p-3">{err}</div>}
+                <Button onClick={handleResetPassword} disabled={isLoading} className="w-full h-12 rounded-xl">
+                  {isLoading ? t("common.loading") : t("auth.resetPassword", "Reset password")}
+                </Button>
+              </>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                clearSensitiveFields();
+                setStep("login");
+              }}
+              className="text-sm text-primary"
+            >
               {t("auth.back", "Back")}
             </button>
           </div>
@@ -685,6 +977,18 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode, onContinueAsGues
       </div>
     </div>
   );
+}
+
+function normalizeOtp(value: string): string {
+  if (!value) return "";
+  return value.replace(/\D/g, "").slice(0, OTP_LENGTH);
+}
+
+function formatCountdown(totalSeconds: number): string {
+  const safe = Math.max(0, totalSeconds || 0);
+  const minutes = Math.floor(safe / 60);
+  const seconds = safe % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
 function normalizeEgPhone(input: string): string {

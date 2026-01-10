@@ -24,7 +24,13 @@ export type AuthResponse = {
 };
 
 export type SignupStartResponse = { otpId: string; expiresInSeconds?: number; phone?: string };
-export type OtpRequestResponse = { otpId: string; expiresInSeconds?: number; channel?: string; requestId?: string };
+export type OtpRequestResponse = {
+  otpId: string;
+  expiresInSeconds?: number;
+  channel?: string;
+  requestId?: string;
+  resendAfterSeconds?: number;
+};
 export type SignupSessionStartResponse = {
   signupSessionToken: string;
   signupSessionId: string;
@@ -212,27 +218,47 @@ export async function resendPhoneVerification(phone: string): Promise<OtpRequest
 export async function verifyPhone(payload: { phone: string; otpId?: string; otp: string }) {
   const normalized = payload.phone.trim();
   const { data } = await api.post(
-    "/auth/verify-otp",
+    "/auth/otp/verify",
     { phone: normalized, otpId: payload.otpId, otp: payload.otp, purpose: "LOGIN" },
     { skipAuth: true }
   );
   return normalizeAuthResponse(data);
 }
 
-export async function passwordResetRequest(identifier: string) {
-  const normalized = identifier.trim();
-  if (!normalized) throw new Error("identifier is required");
-  const { data } = await api.post("/auth/password-reset/request", { identifier: normalized }, { skipAuth: true });
-  return { otpId: (data as any)?.otpId ?? (data as any)?.otp_id ?? "" };
+export async function passwordResetRequest(phone: string) {
+  const normalized = phone.trim();
+  if (!normalized) throw new Error("phone is required");
+  const { data } = await api.post("/auth/password/forgot", { phone: normalized }, { skipAuth: true });
+  const payload = (data as any)?.data ?? data;
+  return {
+    otpId: (payload as any)?.otpId ?? (payload as any)?.otp_id ?? "",
+    expiresInSeconds: (payload as any)?.expiresInSeconds ?? (payload as any)?.expires_in_seconds,
+    resendAfterSeconds: (payload as any)?.resendAfterSeconds ?? (payload as any)?.resend_after_seconds,
+  };
 }
 
-export async function passwordResetConfirm(body: { otpId: string; otp: string; newPassword: string }) {
+export async function passwordResetConfirmOtp(body: { phone: string; otpId?: string; otp: string }) {
+  const normalized = body.phone.trim();
+  if (!normalized) throw new Error("phone is required");
   const { data } = await api.post(
-    "/auth/password-reset/confirm",
-    { otpId: body.otpId, otp: body.otp, newPassword: body.newPassword },
+    "/auth/password/confirm-otp",
+    { phone: normalized, otpId: body.otpId, otp: body.otp },
     { skipAuth: true }
   );
-  return normalizeAuthResponse(data);
+  const payload = (data as any)?.data ?? data;
+  return {
+    resetToken: (payload as any)?.resetToken ?? (payload as any)?.reset_token ?? "",
+    expiresInSeconds: (payload as any)?.expiresInSeconds ?? (payload as any)?.expires_in_seconds,
+  };
+}
+
+export async function passwordResetFinalize(body: { resetToken: string; newPassword: string }) {
+  const { data } = await api.post(
+    "/auth/password/reset",
+    { resetToken: body.resetToken, newPassword: body.newPassword },
+    { skipAuth: true }
+  );
+  return data?.data ?? data;
 }
 
 export async function authRefresh(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
@@ -296,14 +322,16 @@ export async function requestOtp(body: { phone: string; purpose?: "LOGIN" | "PAS
   const normalized = body.phone.trim();
   if (!normalized) throw new Error("phone is required");
   const { data } = await api.post(
-    "/auth/request-otp",
+    "/auth/otp/request",
     { phone: normalized, purpose: body.purpose ?? "LOGIN" },
     { skipAuth: true }
   );
+  const payload = (data as any)?.data ?? data;
   return {
-    otpId: (data as any)?.otpId ?? "",
-    expiresInSeconds: (data as any)?.expiresInSeconds,
-    channel: (data as any)?.channel,
-    requestId: (data as any)?.requestId,
+    otpId: (payload as any)?.otpId ?? "",
+    expiresInSeconds: (payload as any)?.expiresInSeconds,
+    channel: (payload as any)?.channel,
+    requestId: (payload as any)?.requestId,
+    resendAfterSeconds: (payload as any)?.resendAfterSeconds,
   } as OtpRequestResponse;
 }

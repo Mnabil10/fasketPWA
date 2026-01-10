@@ -3,6 +3,16 @@ import { useTranslation } from "react-i18next";
 import { Button } from "../../ui/button";
 import { ArrowLeft, Clock, Truck, CheckCircle2, XCircle, AlertTriangle, MapPin, CreditCard, MessageCircle, Star } from "lucide-react";
 import { Badge } from "../../ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../../ui/alert-dialog";
 import { Separator } from "../../ui/separator";
 import { Textarea } from "../../ui/textarea";
 import dayjs from "dayjs";
@@ -10,12 +20,23 @@ import { AppState, type UpdateAppState } from "../CustomerApp";
 import { fmtEGP, fromCents } from "../../lib/money";
 import { MobileNav } from "../MobileNav";
 import { NetworkBanner, RetryBlock, SkeletonList, EmptyState } from "../components";
-import { useOrderDetail, useNetworkStatus, useOrderTimeline, useOrderDriverLocation, useOrderReview, useSaveReview, useApiErrorToast } from "../hooks";
+import {
+  useApiErrorToast,
+  useCancelOrderGroup,
+  useNetworkStatus,
+  useOrderDetail,
+  useOrderDriverLocation,
+  useOrderGroupDetail,
+  useOrderReview,
+  useOrderTimeline,
+  useSaveReview,
+} from "../hooks";
 import { goToOrders } from "../navigation/navigation";
 import { mapApiErrorToMessage } from "../../utils/mapApiErrorToMessage";
 import { openMapLocation, openWhatsapp } from "../../lib/fasketLinks";
-import type { OrderDetail, OrderGroupSummary } from "../../types/api";
+import type { OrderDetail, OrderGroupDetail, OrderGroupSummary } from "../../types/api";
 import { useToast } from "../providers/ToastProvider";
+import { useNotificationPreferences } from "../stores/notificationPreferences";
 
 interface OrderDetailScreenProps {
   appState: AppState;
@@ -30,6 +51,7 @@ const STATUS_VARIANTS: Record<
   CONFIRMED: { icon: CheckCircle2, variant: "default" },
   PREPARING: { icon: Clock, variant: "default" },
   OUT_FOR_DELIVERY: { icon: Truck, variant: "default" },
+  DELIVERY_FAILED: { icon: AlertTriangle, variant: "destructive" },
   DELIVERED: { icon: CheckCircle2, variant: "default" },
   CANCELED: { icon: XCircle, variant: "destructive" },
   FAILED: { icon: AlertTriangle, variant: "destructive" },
@@ -43,11 +65,15 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
   const { t } = useTranslation();
   const { isOffline } = useNetworkStatus();
   const { showToast } = useToast();
+  const whatsappOrderUpdatesEnabled = useNotificationPreferences((state) => state.preferences.whatsappOrderUpdates ?? true);
   const apiErrorToast = useApiErrorToast("reviews.error");
+  const cancelGroup = useCancelOrderGroup();
+  const [cancelDialogOpen, setCancelDialogOpen] = React.useState(false);
   const selectedOrder = appState.selectedOrder;
   const isGroupSummary = (value: any): value is OrderGroupSummary =>
-    Boolean(value && typeof value === "object" && Array.isArray(value.orders) && value.orderGroupId);
+    Boolean(value && typeof value === "object" && "orderGroupId" in value);
   const isGroup = isGroupSummary(selectedOrder);
+  const groupId = isGroup ? (selectedOrder as OrderGroupSummary).orderGroupId : null;
   const fallbackId = isGroup
     ? null
     : appState.selectedOrderId ||
@@ -60,10 +86,18 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
     initialData: !isGroup ? (selectedOrder as any) : undefined,
     enabled: !isGroup && Boolean(fallbackId),
   });
-  const order = isGroup ? (selectedOrder as OrderGroupSummary) : orderQuery.data ?? null;
-  const orderDetail = !isGroup && order ? (order as OrderDetail) : null;
-  const groupOrder = isGroup && order ? (order as OrderGroupSummary) : null;
-  const loadErrorMessage = mapApiErrorToMessage(orderQuery.error, "orderDetail.messages.notFound");
+  const groupQuery = useOrderGroupDetail(groupId, {
+    initialData: isGroup ? (selectedOrder as any) : undefined,
+    enabled: isGroup && Boolean(groupId),
+  });
+  const orderDetail = !isGroup ? (orderQuery.data ?? null) : null;
+  const groupOrder = isGroup ? ((groupQuery.data ?? selectedOrder) as OrderGroupDetail | null) : null;
+  const order = isGroup ? groupOrder : orderDetail;
+  const activeQuery = isGroup ? groupQuery : orderQuery;
+  const loadErrorMessage = mapApiErrorToMessage(
+    isGroup ? groupQuery.error : orderQuery.error,
+    "orderDetail.messages.notFound"
+  );
   const distancePricingEnabled = appState.settings?.delivery?.distancePricingEnabled ?? true;
 
   const statusKey = order?.status?.toUpperCase?.() || "PENDING";
@@ -108,18 +142,21 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
 
   const timeline = React.useMemo(() => {
     if (!order || isGroup) return [];
-    const steps = [
-      { key: "PENDING", label: t("orders.status.pending", "Pending") },
-      { key: "CONFIRMED", label: t("orders.status.confirmed", "Confirmed") },
-      { key: "PREPARING", label: t("orders.status.preparing", "Preparing") },
-      { key: "OUT_FOR_DELIVERY", label: t("orders.status.out_for_delivery", "Out for delivery") },
-      { key: "DELIVERED", label: t("orders.status.delivered", "Delivered") },
-    ];
     const history = (timelineQuery.data ?? []).map((entry) => ({
       status: (entry.to || "").toUpperCase(),
       at: entry.createdAt || orderDetail?.createdAt,
       note: entry.note ?? null,
     }));
+    const hasFailed =
+      history.some((entry) => entry.status === "DELIVERY_FAILED") || statusKey === "DELIVERY_FAILED";
+    const steps = [
+      { key: "PENDING", label: t("orders.status.pending", "Pending") },
+      { key: "CONFIRMED", label: t("orders.status.confirmed", "Confirmed") },
+      { key: "PREPARING", label: t("orders.status.preparing", "Preparing") },
+      { key: "OUT_FOR_DELIVERY", label: t("orders.status.out_for_delivery", "Out for delivery") },
+      ...(hasFailed ? [{ key: "DELIVERY_FAILED", label: t("orders.status.delivery_failed", "Delivery failed") }] : []),
+      { key: "DELIVERED", label: t("orders.status.delivered", "Delivered") },
+    ];
     const hasCancel =
       history.some((entry) => entry.status === "CANCELED") || statusKey === "CANCELED";
     const mergedSteps = hasCancel
@@ -156,11 +193,25 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
         .filter(Boolean)
         .join(", ")
     : t("orderDetail.addressMissing", "No address provided");
+  const groupSubOrders = groupOrder?.providerOrders ?? groupOrder?.orders ?? [];
+  const cancelableStatuses = new Set(["PENDING", "CONFIRMED"]);
+  const cancelableProviders = groupSubOrders.filter((sub) =>
+    cancelableStatuses.has((sub.status || "").toUpperCase())
+  );
+  const blockedProviders = groupSubOrders.filter(
+    (sub) => !cancelableStatuses.has((sub.status || "").toUpperCase())
+  );
   const helpId = isGroup && groupOrder ? groupOrder.orderGroupId : fallbackId || "";
+  const headerId = isGroup && groupOrder ? groupOrder.orderGroupId : fallbackId || "";
   const helpMessage = t("orderDetail.helpMessage", {
     id: helpId,
     defaultValue: `Hi, I need help with my Fasket order${helpId ? " #" + helpId : ""}.`,
   });
+  const failedProvider = groupSubOrders.find(
+    (sub) => (sub.status || "").toUpperCase() === "DELIVERY_FAILED"
+  );
+  const failureReason = isGroup ? failedProvider?.deliveryFailedReason : orderDetail?.deliveryFailedReason;
+  const failureNote = isGroup ? failedProvider?.deliveryFailedNote : orderDetail?.deliveryFailedNote;
 
   const goBack = () => {
     goToOrders(updateAppState);
@@ -174,6 +225,12 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
     if (key === "approved") return t("reviews.statusApproved", "Approved");
     if (key === "rejected") return t("reviews.statusRejected", "Rejected");
     return t("reviews.statusPending", "Pending");
+  };
+
+  const failureReasonLabel = (value?: string | null) => {
+    if (!value) return t("orders.failureReasonUnknown", "Unknown");
+    const key = value.toUpperCase();
+    return t(`orders.failureReasons.${key}`, value);
   };
 
   const handleSubmitReview = async () => {
@@ -197,6 +254,30 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
     }
   };
 
+  const handleCancelGroup = async () => {
+    if (!groupId) return;
+    try {
+      const result = await cancelGroup.mutateAsync(groupId);
+      setCancelDialogOpen(false);
+      if (groupQuery?.refetch) {
+        groupQuery.refetch();
+      }
+      const cancelledCount = result.cancelledProviders?.length ?? 0;
+      const blockedCount = result.blockedProviders?.length ?? 0;
+      const message =
+        blockedCount > 0
+          ? t("orders.cancelPartialSuccess", {
+              cancelled: cancelledCount,
+              blocked: blockedCount,
+              defaultValue: `Canceled ${cancelledCount} providers, ${blockedCount} locked.`,
+            })
+          : t("orders.cancelSuccess", "Order canceled");
+      showToast({ type: "success", message });
+    } catch (error) {
+      apiErrorToast(error, "orders.cancelError");
+    }
+  };
+
   return (
     <div className="page-shell">
       <NetworkBanner />
@@ -209,18 +290,18 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
             <h1 className="font-poppins text-xl text-gray-900" style={{ fontWeight: 600 }}>
               {t("orderDetail.title")}
             </h1>
-            {fallbackId && <p className="text-xs text-gray-500">#{fallbackId}</p>}
+            {headerId && <p className="text-xs text-gray-500">#{headerId}</p>}
           </div>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 pb-24 space-y-4">
-        {orderQuery.isLoading && <SkeletonList />}
-        {orderQuery.isError && (
-          <RetryBlock message={loadErrorMessage} onRetry={() => orderQuery.refetch()} />
+        {activeQuery.isLoading && <SkeletonList />}
+        {activeQuery.isError && (
+          <RetryBlock message={loadErrorMessage} onRetry={() => activeQuery.refetch()} />
         )}
 
-        {!orderQuery.isLoading && !orderQuery.isError && !order && (
+        {!activeQuery.isLoading && !activeQuery.isError && !order && (
           <EmptyState
             title={t("orderDetail.messages.notFound")}
             subtitle={t("orderDetail.messages.missing")}
@@ -248,6 +329,20 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
                 {t("orderDetail.createdAt", {
                   date: dayjs(order.createdAt).format(t("orders.dateFormat", "DD MMM YYYY - HH:mm")),
                 })}
+              </div>
+              <div className="flex items-center gap-2 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+                <MessageCircle className="w-4 h-4 text-emerald-600" />
+                <span>
+                  {whatsappOrderUpdatesEnabled
+                    ? t(
+                        "orderDetail.whatsappUpdatesHint",
+                        "Order updates are sent via WhatsApp. Check WhatsApp for updates."
+                      )
+                    : t(
+                        "orderDetail.whatsappUpdatesOffHint",
+                        "WhatsApp updates are off. Enable them in Settings."
+                      )}
+                </span>
               </div>
               <Separator />
               {!isGroup && (
@@ -304,35 +399,117 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
               )}
             </section>
 
+            {statusKey === "DELIVERY_FAILED" && (
+              <section className="section-card space-y-2 border border-red-100 bg-red-50">
+                <div className="flex items-start gap-2 text-sm">
+                  <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-red-700">
+                      {t("orders.deliveryFailedTitle", "Delivery failed")}
+                    </p>
+                    <p className="text-xs text-red-600">
+                      {t("orders.deliveryFailedReason", {
+                        reason: failureReasonLabel(failureReason),
+                        defaultValue: `Reason: ${failureReasonLabel(failureReason)}`,
+                      })}
+                    </p>
+                    {failureNote && <p className="text-xs text-red-600 mt-1">{failureNote}</p>}
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => openWhatsapp(helpMessage)}
+                  disabled={isOffline}
+                >
+                  {t("orders.contactSupport", "Contact support")}
+                </Button>
+              </section>
+            )}
+
             {isGroup ? (
-              <section className="section-card space-y-2">
-                <h2 className="font-medium text-gray-900">
-                  {t("orderDetail.groupOrders", "Orders in this group")}
-                </h2>
+              <section className="section-card space-y-3">
+                <div className="flex items-center justify-between">
+                  <h2 className="font-medium text-gray-900">
+                    {t("orderDetail.groupProviders", {
+                      count: groupSubOrders.length,
+                      defaultValue: `This order contains ${groupSubOrders.length} providers`,
+                    })}
+                  </h2>
+                </div>
                 <div className="space-y-3">
-                  {(groupOrder?.orders ?? []).map((item) => (
-                    <button
-                      key={item.id}
-                      onClick={() =>
-                        updateAppState({
-                          selectedOrderId: item.id,
-                          selectedOrder: null,
-                          currentScreen: "order-detail",
-                        })
-                      }
-                      className="w-full text-left inline-card flex items-center justify-between text-sm"
-                    >
-                      <div>
-                        <p className="font-medium text-gray-900">#{item.code ?? item.id}</p>
-                        <p className="text-xs text-gray-500">
-                          {t(`orders.status.${item.status.toLowerCase()}`)}
-                        </p>
+                  {groupSubOrders.map((sub) => {
+                    const subStatusKey = (sub.status || "").toUpperCase() || "PENDING";
+                    const subStatusMeta = STATUS_VARIANTS[subStatusKey] || {
+                      icon: Clock,
+                      variant: "outline",
+                    };
+                    const SubIcon = subStatusMeta.icon;
+                    return (
+                      <div key={sub.id} className="rounded-xl border border-gray-200 p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-gray-900">
+                              {sub.providerName || t("orders.providerFallback", "Provider")}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {t(`orders.status.${subStatusKey.toLowerCase()}`)}
+                            </p>
+                          </div>
+                          <Badge variant={subStatusMeta.variant} className="flex items-center gap-1">
+                            <SubIcon className="w-3 h-3" />
+                            <span className="text-xs">{t(`orders.status.${subStatusKey.toLowerCase()}`)}</span>
+                          </Badge>
+                        </div>
+                        {subStatusKey === "DELIVERY_FAILED" && (
+                          <p className="text-xs text-red-600">
+                            {t("orders.deliveryFailedReason", {
+                              reason: failureReasonLabel(sub.deliveryFailedReason),
+                              defaultValue: `Reason: ${failureReasonLabel(sub.deliveryFailedReason)}`,
+                            })}
+                          </p>
+                        )}
+                        {(sub.items ?? []).length > 0 && (
+                          <div className="space-y-2 text-sm">
+                            {(sub.items ?? []).map((item) => (
+                              <div key={item.id} className="flex items-center justify-between">
+                                <div className="flex-1 pr-3">
+                                  <p className="font-medium text-gray-900 line-clamp-2">
+                                    {item.productNameSnapshot}
+                                  </p>
+                                  <p className="text-gray-500">
+                                    {t("orderDetail.quantity", { count: item.qty })}
+                                  </p>
+                                </div>
+                                <div className="font-semibold text-gray-900 price-text">
+                                  {fmtEGP(fromCents(item.priceSnapshotCents) * item.qty)}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+                          <div className="flex justify-between">
+                            <span>{t("checkout.summary.subtotal")}</span>
+                            <span>{fmtEGP(fromCents(sub.subtotalCents || 0))}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>{t("checkout.summary.serviceFee", "Service fee")}</span>
+                            <span>{fmtEGP(fromCents(sub.serviceFeeCents || 0))}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>{t("checkout.summary.delivery")}</span>
+                            <span>{fmtEGP(fromCents(sub.shippingFeeCents || 0))}</span>
+                          </div>
+                          <div className="flex justify-between font-semibold text-gray-900">
+                            <span>{t("checkout.summary.total")}</span>
+                            <span>{fmtEGP(fromCents(sub.totalCents || 0))}</span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="font-semibold text-gray-900 price-text">
-                        {fmtEGP(fromCents(item.totalCents))}
-                      </div>
-                    </button>
-                  ))}
+                    );
+                  })}
                 </div>
               </section>
             ) : (
@@ -404,6 +581,45 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
                 </div>
               </div>
             </section>
+
+            {isGroup && (
+              <section className="section-card space-y-3">
+                <h2 className="font-medium text-gray-900">{t("orders.manageGroup", "Manage order")}</h2>
+                {cancelableProviders.length > 0 ? (
+                  <>
+                    <p className="text-sm text-gray-600">
+                      {blockedProviders.length > 0
+                        ? t("orders.cancelPartialHint", "You can only cancel some providers in this order.")
+                        : t("orders.cancelHint", "You can cancel this order before preparation starts.")}
+                    </p>
+                    <Button
+                      variant="destructive"
+                      className="w-full"
+                      onClick={() => setCancelDialogOpen(true)}
+                      disabled={cancelGroup.isPending || isOffline}
+                    >
+                      {cancelGroup.isPending
+                        ? t("orders.canceling", "Canceling...")
+                        : t("orders.cancel", "Cancel")}
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-gray-600">
+                      {t("orders.cancelLocked", "Cancellation is locked after preparation starts.")}
+                    </p>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => openWhatsapp(helpMessage)}
+                      disabled={isOffline}
+                    >
+                      {t("orders.contactSupport", "Contact support")}
+                    </Button>
+                  </>
+                )}
+              </section>
+            )}
 
             {showTrackingCard && (
               <section className="section-card space-y-3">
@@ -525,6 +741,32 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
                 {t("orderDetail.helpButton", "Contact via WhatsApp")}
               </Button>
             </section>
+
+            {isGroup && (
+              <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>{t("orders.cancelConfirmTitle", "Cancel order")}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {blockedProviders.length > 0
+                        ? t(
+                            "orders.cancelPartialWarning",
+                            "Some providers already started preparing. We will cancel only eligible providers."
+                          )
+                        : t("orders.cancelConfirm", "Are you sure you want to cancel this order?")}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{t("common.cancel", "Cancel")}</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleCancelGroup} disabled={cancelGroup.isPending}>
+                      {cancelGroup.isPending
+                        ? t("orders.canceling", "Canceling...")
+                        : t("orders.cancel", "Cancel")}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
           </>
         )}
       </div>

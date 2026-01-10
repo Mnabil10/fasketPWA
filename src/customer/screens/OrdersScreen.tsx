@@ -7,10 +7,11 @@ import { AppState, type UpdateAppState } from "../CustomerApp";
 import { Badge } from "../../ui/badge";
 import dayjs from "dayjs";
 import { NetworkBanner, RetryBlock, SkeletonList, EmptyState } from "../components";
-import { useOrders, useNetworkStatus, useApiErrorToast } from "../hooks";
+import { useOrderGroups, useNetworkStatus, useApiErrorToast } from "../hooks";
 import { goToHome } from "../navigation/navigation";
 import { fmtEGP, fromCents } from "../../lib/money";
 import { mapApiErrorToMessage } from "../../utils/mapApiErrorToMessage";
+import type { OrderGroupSummary } from "../../types/api";
 
 interface OrdersScreenProps {
   appState: AppState;
@@ -25,6 +26,7 @@ const STATUS_ICONS: Record<
   CONFIRMED: { icon: CheckCircle2, variant: "default" },
   PREPARING: { icon: Clock, variant: "default" },
   OUT_FOR_DELIVERY: { icon: Truck, variant: "default" },
+  DELIVERY_FAILED: { icon: AlertTriangle, variant: "destructive" },
   DELIVERED: { icon: CheckCircle2, variant: "default" },
   CANCELED: { icon: XCircle, variant: "destructive" },
   FAILED: { icon: AlertTriangle, variant: "destructive" },
@@ -48,11 +50,11 @@ function StatusPill({ statusKey, label }: { statusKey: string; label: string }) 
 export function OrdersScreen({ appState, updateAppState }: OrdersScreenProps) {
   const { t } = useTranslation();
   const { isOffline } = useNetworkStatus();
-  const ordersQuery = useOrders();
+  const ordersQuery = useOrderGroups();
   const apiErrorToast = useApiErrorToast("orders.error");
   const rawItems = ordersQuery.data;
   const hasInvalidShape = !ordersQuery.isLoading && !ordersQuery.isError && rawItems !== undefined && !Array.isArray(rawItems);
-  const items = useMemo(() => (Array.isArray(rawItems) ? rawItems : []), [rawItems]);
+  const items = useMemo(() => (Array.isArray(rawItems) ? (rawItems as OrderGroupSummary[]) : []), [rawItems]);
   const ordersErrorMessage = mapApiErrorToMessage(ordersQuery.error, "orders.error");
 
   const titleHint = useMemo(() => {
@@ -62,9 +64,11 @@ export function OrdersScreen({ appState, updateAppState }: OrdersScreenProps) {
   }, [ordersQuery.isLoading, items.length, t]);
 
   const openDetail = (orderId: string) => {
+    const selected = items.find((o) => o.orderGroupId === orderId) || null;
     updateAppState({
       selectedOrderId: orderId,
-      selectedOrderSummary: items.find((o) => o.id === orderId) || null,
+      selectedOrderSummary: null,
+      selectedOrder: selected,
       currentScreen: "order-detail",
     });
   };
@@ -127,19 +131,36 @@ export function OrdersScreen({ appState, updateAppState }: OrdersScreenProps) {
           !ordersQuery.isError &&
           items.map((o) => {
             const statusKey = o.status?.toUpperCase?.() || "PENDING";
+            const providerStatuses =
+              o.providers && o.providers.length
+                ? o.providers.map((p) => p.status)
+                : (o.orders ?? []).map((order) => order.status);
+            const statusCounts = providerStatuses.reduce<Record<string, number>>((acc, status) => {
+              const key = (status || "").toUpperCase();
+              acc[key] = (acc[key] || 0) + 1;
+              return acc;
+            }, {});
+            const statusSummary = Object.entries(statusCounts)
+              .map(([key, count]) => `${t(`orders.status.${key.toLowerCase()}`)} x${count}`)
+              .join(" | ");
+            const providersCount = (o.providers?.length ?? o.orders?.length ?? 0);
             return (
               <button
-                key={o.id}
-                onClick={() => openDetail(o.id)}
+                key={o.orderGroupId}
+                onClick={() => openDetail(o.orderGroupId)}
                 disabled={isOffline}
                 className="w-full text-left section-card hover:-translate-y-0.5 transition disabled:opacity-70"
               >
                 <div className="flex justify-between items-center">
-                  <div className="font-medium text-gray-900">#{o.id}</div>
+                  <div className="font-medium text-gray-900">#{o.orderGroupId}</div>
                   <StatusPill statusKey={statusKey} label={t(`orders.status.${statusKey.toLowerCase()}`)} />
                 </div>
                 <div className="mt-2 text-sm text-gray-600">
                   {dayjs(o.createdAt).format(t("orders.dateFormat", "DD MMM YYYY - HH:mm"))}
+                </div>
+                <div className="mt-2 text-xs text-gray-500">
+                  {t("orders.providersCount", { count: providersCount, defaultValue: `${providersCount} providers` })}
+                  {statusSummary ? ` | ${statusSummary}` : ""}
                 </div>
                 <div className="mt-2 font-poppins text-primary price-text" style={{ fontWeight: 600 }}>
                   {fmtEGP(fromCents(o.totalCents))}

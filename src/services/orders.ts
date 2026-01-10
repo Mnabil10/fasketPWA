@@ -4,6 +4,10 @@ import type { ApiCart } from "./cart";
 import type {
   DriverLocation,
   OrderDetail,
+  OrderGroupCancelResult,
+  OrderGroupDetail,
+  OrderGroupItem,
+  OrderGroupProviderSummary,
   OrderGroupSummary,
   OrderReceipt,
   OrderSummary,
@@ -32,7 +36,15 @@ function mapOrderStatus(status: string | undefined | null) {
   const key = status.toString().toUpperCase();
   if (ORDER_STATUS_MAP[key]) return ORDER_STATUS_MAP[key];
   if (key === "CANCELED" || key === "CANCELLED") return "CANCELED";
-  if (key === "PENDING" || key === "CONFIRMED" || key === "PREPARING" || key === "OUT_FOR_DELIVERY" || key === "DELIVERED" || key === "FAILED") {
+  if (key === "FAILED") return "DELIVERY_FAILED";
+  if (
+    key === "PENDING" ||
+    key === "CONFIRMED" ||
+    key === "PREPARING" ||
+    key === "OUT_FOR_DELIVERY" ||
+    key === "DELIVERY_FAILED" ||
+    key === "DELIVERED"
+  ) {
     return key;
   }
   return "PENDING";
@@ -129,7 +141,52 @@ function normalizeOrderDetail(payload: any): OrderDetail {
     deliveryEtaMinutes,
     deliveryEstimateMinutes: node.deliveryEstimateMinutes ?? deliveryEtaMinutes,
     estimatedDeliveryTime,
+    deliveryFailedAt: node.deliveryFailedAt ?? null,
+    deliveryFailedReason: node.deliveryFailedReason ?? null,
+    deliveryFailedNote: node.deliveryFailedNote ?? null,
   } as OrderDetail;
+}
+
+function normalizeOrderGroupItem(record: any, fallbackCreatedAt?: string): OrderGroupItem {
+  const items = Array.isArray(record?.items)
+    ? record.items.map((item: any) => ({
+        id: item.id ?? item.productId,
+        productId: item.productId,
+        productNameSnapshot: item.productNameSnapshot ?? item.productName,
+        priceSnapshotCents: item.priceSnapshotCents ?? item.unitPriceCents ?? 0,
+        qty: item.qty ?? item.quantity ?? 0,
+      }))
+    : undefined;
+  return {
+    id: record.id ?? record.orderId,
+    code: record.code ?? record.id ?? record.orderId ?? null,
+    status: mapOrderStatus(record.status),
+    subtotalCents: record.subtotalCents ?? 0,
+    shippingFeeCents: record.shippingFeeCents ?? 0,
+    serviceFeeCents: record.serviceFeeCents ?? 0,
+    discountCents: record.discountCents ?? 0,
+    totalCents: record.totalCents ?? 0,
+    providerId: record.providerId ?? null,
+    branchId: record.branchId ?? null,
+    providerName: record.providerName ?? record.provider?.name ?? null,
+    providerNameAr: record.providerNameAr ?? record.provider?.nameAr ?? null,
+    deliveryFailedAt: record.deliveryFailedAt ?? null,
+    deliveryFailedReason: record.deliveryFailedReason ?? null,
+    deliveryFailedNote: record.deliveryFailedNote ?? null,
+    createdAt: record.createdAt ?? fallbackCreatedAt ?? new Date().toISOString(),
+    items,
+  };
+}
+
+function normalizeGroupProviders(records: any[] | undefined): OrderGroupProviderSummary[] | undefined {
+  if (!Array.isArray(records)) return undefined;
+  return records.map((provider) => ({
+    orderId: provider.orderId ?? provider.id,
+    providerId: provider.providerId ?? null,
+    providerName: provider.providerName ?? provider.name ?? null,
+    providerNameAr: provider.providerNameAr ?? provider.nameAr ?? null,
+    status: mapOrderStatus(provider.status),
+  }));
 }
 
 function normalizeOrderGroupSummary(payload: any): OrderGroupSummary | null {
@@ -141,23 +198,15 @@ function normalizeOrderGroupSummary(payload: any): OrderGroupSummary | null {
         : payload;
 
   if (!node || typeof node !== "object") return null;
-  if (!node.orderGroupId && !Array.isArray(node.orders)) return null;
+  if (!node.orderGroupId && !node.id && !Array.isArray(node.orders)) return null;
 
-  const orders = Array.isArray(node.orders)
-    ? node.orders.map((order: any) => ({
-        id: order.id,
-        code: order.code ?? order.id ?? null,
-        status: mapOrderStatus(order.status),
-        subtotalCents: order.subtotalCents ?? 0,
-        shippingFeeCents: order.shippingFeeCents ?? 0,
-        serviceFeeCents: order.serviceFeeCents ?? 0,
-        discountCents: order.discountCents ?? 0,
-        totalCents: order.totalCents ?? 0,
-        providerId: order.providerId ?? null,
-        branchId: order.branchId ?? null,
-        createdAt: order.createdAt ?? node.createdAt,
-      }))
-    : [];
+  const rawOrders = Array.isArray(node.orders)
+    ? node.orders
+    : Array.isArray(node.providerOrders)
+      ? node.providerOrders
+      : [];
+  const orders = rawOrders.map((order: any) => normalizeOrderGroupItem(order, node.createdAt));
+  const providers = normalizeGroupProviders(node.providers);
 
   return {
     orderGroupId: node.orderGroupId ?? node.id,
@@ -170,8 +219,72 @@ function normalizeOrderGroupSummary(payload: any): OrderGroupSummary | null {
     totalCents: node.totalCents ?? 0,
     createdAt: node.createdAt ?? new Date().toISOString(),
     orders,
+    providers,
     skippedBranchIds: node.skippedBranchIds ?? undefined,
   } as OrderGroupSummary;
+}
+
+function normalizeOrderGroupDetail(payload: any): OrderGroupDetail {
+  const node =
+    payload?.orderGroup && typeof payload.orderGroup === "object"
+      ? payload.orderGroup
+      : payload?.data && typeof payload.data === "object"
+        ? payload.data
+        : payload;
+  const summary = normalizeOrderGroupSummary(payload);
+  if (!summary || !node) {
+    throw new Error("Order group not found");
+  }
+  const rawOrders = Array.isArray(node.providerOrders)
+    ? node.providerOrders
+    : Array.isArray(node.orders)
+      ? node.orders
+      : summary.orders;
+  const providerOrders = rawOrders.map((order: any) => normalizeOrderGroupItem(order, summary.createdAt));
+  return {
+    orderGroupId: summary.orderGroupId,
+    code: summary.code,
+    status: summary.status,
+    subtotalCents: summary.subtotalCents,
+    shippingFeeCents: summary.shippingFeeCents,
+    serviceFeeCents: summary.serviceFeeCents,
+    discountCents: summary.discountCents,
+    totalCents: summary.totalCents,
+    createdAt: summary.createdAt,
+    address: node.address ?? null,
+    providerOrders,
+    orders: providerOrders,
+  } as OrderGroupDetail;
+}
+
+function normalizeOrderGroupCancel(payload: any): OrderGroupCancelResult {
+  const node = payload?.data ?? payload ?? {};
+  return {
+    orderGroupId: node.orderGroupId ?? node.id,
+    cancelledProviders: Array.isArray(node.cancelledProviders)
+      ? node.cancelledProviders.map((item: any) => ({
+          orderId: item.orderId ?? item.id,
+          providerId: item.providerId ?? null,
+          providerName: item.providerName ?? null,
+        }))
+      : [],
+    blockedProviders: Array.isArray(node.blockedProviders)
+      ? node.blockedProviders.map((item: any) => ({
+          orderId: item.orderId ?? item.id,
+          providerId: item.providerId ?? null,
+          providerName: item.providerName ?? null,
+          status: mapOrderStatus(item.status),
+        }))
+      : [],
+    totals: {
+      subtotalCents: node.totals?.subtotalCents ?? 0,
+      shippingFeeCents: node.totals?.shippingFeeCents ?? 0,
+      serviceFeeCents: node.totals?.serviceFeeCents ?? 0,
+      discountCents: node.totals?.discountCents ?? 0,
+      totalCents: node.totals?.totalCents ?? 0,
+    },
+    status: mapOrderStatus(node.status),
+  } as OrderGroupCancelResult;
 }
 
 function normalizeOrderDetailOrGroup(payload: any): OrderDetail | OrderGroupSummary {
@@ -260,6 +373,7 @@ function normalizeOrderReceipt(payload: any): OrderReceipt {
 export type PlaceOrderBody = {
   addressId: string;
   paymentMethod: "COD" | "CARD";
+  deliveryTermsAccepted: boolean;
   note?: string;
   couponCode?: string;
   loyaltyPointsToRedeem?: number;
@@ -316,6 +430,7 @@ export type GuestOrderQuote = {
 export type PlaceGuestOrderBody = GuestOrderQuoteRequest & {
   name: string;
   phone: string;
+  deliveryTermsAccepted: boolean;
   note?: string;
   paymentMethod?: "COD" | "CARD";
   idempotencyKey?: string;
@@ -332,10 +447,32 @@ export async function listMyOrders(params?: { page?: number; pageSize?: number; 
   return normalizeOrders(data?.data ?? data);
 }
 
+/** GET /me/order-groups */
+export async function listMyOrderGroups(): Promise<OrderGroupSummary[]> {
+  const { data } = await api.get("/me/order-groups");
+  const payload = data?.data ?? data;
+  const list = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.items)
+      ? payload.items
+      : Array.isArray(payload?.orderGroups)
+        ? payload.orderGroups
+        : [];
+  return list
+    .map((item: unknown) => normalizeOrderGroupSummary(item))
+    .filter((item: OrderGroupSummary | null): item is OrderGroupSummary => Boolean(item));
+}
+
 /** GET /orders/:id */
 export async function getOrderById(id: string): Promise<OrderDetail> {
   const { data } = await api.get(`/orders/${id}`);
   return normalizeOrderDetail(data?.data ?? data);
+}
+
+/** GET /me/order-groups/:id */
+export async function getOrderGroupById(id: string): Promise<OrderGroupDetail> {
+  const { data } = await api.get(`/me/order-groups/${id}`);
+  return normalizeOrderGroupDetail(data?.data ?? data);
 }
 
 /** POST /orders */
@@ -360,6 +497,12 @@ export async function getOrderReceipt(id: string): Promise<OrderReceipt> {
 export async function cancelOrder(id: string): Promise<OrderDetail> {
   const { data } = await api.post(`/orders/${id}/cancel`);
   return normalizeOrderDetail(data?.data ?? data);
+}
+
+/** POST /me/order-groups/:id/cancel */
+export async function cancelOrderGroup(id: string): Promise<OrderGroupCancelResult> {
+  const { data } = await api.post(`/me/order-groups/${id}/cancel`);
+  return normalizeOrderGroupCancel(data?.data ?? data);
 }
 
 export async function reorderOrder(id: string): Promise<ApiCart> {

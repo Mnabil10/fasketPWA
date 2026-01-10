@@ -22,6 +22,9 @@ const ERROR_CODE_MAP: Record<string, string> = {
   DELIVERY_ZONE_NOT_FOUND: "errors.addressInvalidZone",
   CART_EMPTY: "errors.cartEmpty",
   CART_PRODUCT_UNAVAILABLE: "errors.cartProductUnavailable",
+  CART_PRODUCT_OUT_OF_STOCK: "errors.cartProductOutOfStock",
+  CART_PROVIDER_UNAVAILABLE: "errors.cartProviderUnavailable",
+  DELIVERY_TERMS_NOT_ACCEPTED: "errors.deliveryTermsNotAccepted",
   CHECKOUT_ADDRESS_REQUIRED: "errors.checkoutAddressRequired",
   COUPON_INVALID: "errors.couponInvalid",
   COUPON_EXPIRED: "errors.couponExpired",
@@ -29,8 +32,16 @@ const ERROR_CODE_MAP: Record<string, string> = {
   LOYALTY_DISABLED: "errors.loyaltyDisabled",
   LOYALTY_NOT_ENOUGH_POINTS: "errors.loyaltyNotEnoughPoints",
   LOYALTY_RULE_VIOLATION: "errors.loyaltyRuleViolation",
+  OTP_RATE_LIMIT: "errors.otpRateLimit",
+  OTP_DAILY_LIMIT: "errors.otpDailyLimit",
+  OTP_IP_LIMIT: "errors.otpIpLimit",
+  OTP_INVALID: "errors.otpInvalid",
+  OTP_EXPIRED: "errors.otpExpired",
+  OTP_TOO_MANY_ATTEMPTS: "errors.otpTooManyAttempts",
+  OTP_LOCKED: "errors.otpLocked",
   ORDER_NOT_FOUND: "errors.orderNotFound",
   ORDER_ALREADY_COMPLETED: "errors.orderInvalidState",
+  ORDER_CANCEL_NOT_ALLOWED: "errors.orderCancelNotAllowed",
   ORDER_UNAUTHORIZED: "errors.orderInvalidState",
   ORDER_INVALID_STATUS_TRANSITION: "errors.orderInvalidState",
   ORDER_INVALID_STATE: "errors.orderInvalidState",
@@ -43,7 +54,7 @@ const ERROR_CODE_MAP: Record<string, string> = {
 
 const NETWORK_ERROR_CODES = new Set(["ERR_NETWORK"]);
 const DEFAULT_FALLBACK = "common.errorGeneric";
-const SAFE_MESSAGE_PATTERN = /^[\w\s.,'\"!?-]{1,180}$/i;
+const SAFE_MESSAGE_PATTERN = /^[\w\s.,'"!?-]{1,180}$/i;
 
 type Translator = TFunction<"translation">;
 

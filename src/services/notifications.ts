@@ -13,10 +13,32 @@ export type RegisterDevicePayload = {
 
 export async function saveNotificationPreferences(preferences: NotificationPreferences) {
   try {
-    await api.post("/notifications/preferences", preferences);
+    await api.patch("/user/notification-preferences", preferences);
   } catch (error) {
     // Preferences syncing is optional; swallow errors to avoid blocking UI.
     console.warn("[notifications] Failed to sync preferences", error);
+  }
+}
+
+export async function fetchNotificationPreferences(): Promise<NotificationPreferences | null> {
+  try {
+    const { data } = await api.get("/user/notification-preferences");
+    return (data?.data ?? data) as NotificationPreferences;
+  } catch (error) {
+    console.warn("[notifications] Failed to load preferences", error);
+    return null;
+  }
+}
+
+export async function patchNotificationPreferences(
+  preferences: Partial<NotificationPreferences>
+): Promise<NotificationPreferences | null> {
+  try {
+    const { data } = await api.patch("/user/notification-preferences", preferences);
+    return (data?.data ?? data) as NotificationPreferences;
+  } catch (error) {
+    console.warn("[notifications] Failed to update preferences", error);
+    return null;
   }
 }
 

@@ -390,6 +390,7 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
       const res = await placeGuestOrder({
         name,
         phone,
+        deliveryTermsAccepted,
         note: note ? note : undefined,
         idempotencyKey,
         items: guestItems,
@@ -478,6 +479,7 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
       const res = await placeOrder({
         addressId: selectedAddressId,
         paymentMethod: "COD",
+        deliveryTermsAccepted,
         note: note ? note : undefined,
         couponCode: appliedCoupon || undefined,
         loyaltyPointsToRedeem: loyaltyEnabled && loyaltyToRedeem > 0 ? loyaltyToRedeem : undefined,

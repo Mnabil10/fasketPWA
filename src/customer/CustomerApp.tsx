@@ -142,6 +142,7 @@ export function CustomerApp() {
   const { t } = useTranslation();
   const { showToast } = useToast();
   const notificationPrefs = useNotificationPreferences((state) => state.preferences);
+  const hydrateNotificationPreferences = useNotificationPreferences((state) => state.hydratePreferences);
   const [appState, setAppState] = useState<AppState>(initialState);
   const prevUserId = useRef<string | null>(null);
   const analyticsFlushRef = useRef<string | null>(null);
@@ -510,6 +511,11 @@ export function CustomerApp() {
       applyMobileAppTheme(appState.settings.mobileApp);
     }
   }, [appState.settings?.mobileApp]);
+
+  useEffect(() => {
+    if (!appState.user?.id) return;
+    void hydrateNotificationPreferences();
+  }, [appState.user?.id, hydrateNotificationPreferences]);
 
   useEffect(() => {
     if (!appState.user?.id) return;

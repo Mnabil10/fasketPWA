@@ -6,6 +6,7 @@ export type NotificationPreferences = {
   orderUpdates: boolean;
   loyalty: boolean;
   marketing: boolean;
+  whatsappOrderUpdates?: boolean;
 };
 
 export type NotificationItem = {
@@ -322,7 +323,27 @@ export type OrderGroupItem = {
   serviceFeeCents?: number;
   providerId?: string | null;
   branchId?: string | null;
+  providerName?: string | null;
+  providerNameAr?: string | null;
+  deliveryFailedAt?: string | null;
+  deliveryFailedReason?: string | null;
+  deliveryFailedNote?: string | null;
   createdAt: string;
+  items?: Array<{
+    id: string;
+    productId: string;
+    productNameSnapshot: string;
+    priceSnapshotCents: number;
+    qty: number;
+  }>;
+};
+
+export type OrderGroupProviderSummary = {
+  orderId: string;
+  providerId?: string | null;
+  providerName?: string | null;
+  providerNameAr?: string | null;
+  status: string;
 };
 
 export type OrderGroupSummary = {
@@ -336,7 +357,37 @@ export type OrderGroupSummary = {
   serviceFeeCents?: number;
   createdAt: string;
   orders: OrderGroupItem[];
+  providers?: OrderGroupProviderSummary[];
   skippedBranchIds?: string[];
+};
+
+export type OrderGroupDetail = {
+  orderGroupId: string;
+  code?: string | null;
+  status: string;
+  subtotalCents: number;
+  shippingFeeCents: number;
+  discountCents: number;
+  totalCents: number;
+  serviceFeeCents?: number;
+  createdAt: string;
+  address?: OrderDetail["address"] | null;
+  providerOrders: OrderGroupItem[];
+  orders?: OrderGroupItem[];
+};
+
+export type OrderGroupCancelResult = {
+  orderGroupId: string;
+  cancelledProviders: Array<{ orderId: string; providerId?: string | null; providerName?: string | null }>;
+  blockedProviders: Array<{ orderId: string; providerId?: string | null; providerName?: string | null; status: string }>;
+  totals: {
+    subtotalCents: number;
+    shippingFeeCents: number;
+    serviceFeeCents: number;
+    discountCents: number;
+    totalCents: number;
+  };
+  status: string;
 };
 
 export type OrderTimelineEntry = {
@@ -403,6 +454,9 @@ export type OrderDetail = {
   deliveryZoneName?: string | null;
   deliveryEtaMinutes?: number | null;
   estimatedDeliveryTime?: string | null;
+  deliveryFailedAt?: string | null;
+  deliveryFailedReason?: string | null;
+  deliveryFailedNote?: string | null;
   address: {
     id: string;
     label: string;

@@ -147,6 +147,18 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
       subtitle: t("profile.settings.orderUpdatesHint"),
     },
     {
+      key: "whatsapp-order-updates",
+      icon: MessageCircle,
+      label: t("profile.settings.whatsappOrderUpdates", "WhatsApp order updates"),
+      toggle: true,
+      value: notificationPreferences.whatsappOrderUpdates ?? true,
+      onChange: (checked) => updatePreference("whatsappOrderUpdates", checked),
+      subtitle: t(
+        "profile.settings.whatsappOrderUpdatesHint",
+        "Get order status updates on WhatsApp."
+      ),
+    },
+    {
       key: "loyalty-updates",
       icon: Gift,
       label: t("profile.settings.loyaltyUpdates"),

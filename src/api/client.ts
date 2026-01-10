@@ -53,6 +53,9 @@ function isAuthPath(url?: string) {
     url.startsWith("/auth/logout") ||
     url.startsWith("/auth/forgot-password") ||
     url.startsWith("/auth/reset-password") ||
+    url.startsWith("/auth/password/forgot") ||
+    url.startsWith("/auth/password/confirm-otp") ||
+    url.startsWith("/auth/password/reset") ||
     url.startsWith("/auth/otp") ||
     url.startsWith("auth/login") ||
     url.startsWith("auth/register") ||
@@ -60,6 +63,9 @@ function isAuthPath(url?: string) {
     url.startsWith("auth/logout") ||
     url.startsWith("auth/forgot-password") ||
     url.startsWith("auth/reset-password") ||
+    url.startsWith("auth/password/forgot") ||
+    url.startsWith("auth/password/confirm-otp") ||
+    url.startsWith("auth/password/reset") ||
     url.startsWith("auth/otp")
   );
 }

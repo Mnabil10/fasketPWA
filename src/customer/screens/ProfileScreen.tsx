@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { MobileNav } from "../MobileNav";
 import { AppState, type UpdateAppState } from "../CustomerApp";
-import { clearSessionTokens } from "../../store/session";
+import { clearSessionTokens, getSessionTokens } from "../../store/session";
 import { supportedLanguages } from "../../i18n";
 import { fmtEGP, fromCents } from "../../lib/money";
 import { useToast } from "../providers/ToastProvider";
@@ -40,6 +40,10 @@ import { openExternalUrl, openWhatsapp, buildSupportMailto } from "../../lib/fas
 import { useShareFasket } from "../hooks/useShareFasket";
 import { getTelegramLinkToken } from "../../services/telegram";
 import { resolveSupportConfig } from "../utils/mobileAppConfig";
+import { logout as logoutApi } from "../../services/auth";
+import { useQueryClient } from "@tanstack/react-query";
+import { useLocalCartStore } from "../stores/localCart";
+import { normalizeEgyptPhone, sanitizeEgyptPhoneInput, isValidEgyptPhone } from "../../utils/phone";
 
 interface ProfileScreenProps {
   appState: AppState;
@@ -51,10 +55,13 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
   const { showToast } = useToast();
   const { isOffline } = useNetworkStatus();
   const apiErrorToast = useApiErrorToast();
+  const queryClient = useQueryClient();
+  const clearLocalCart = useLocalCartStore((state) => state.clear);
   const profileQuery = useProfile({ enabled: Boolean(appState.user) });
   const profile = profileQuery.profile || appState.user;
   const notificationPreferences = useNotificationPreferences((state) => state.preferences);
   const updatePreference = useNotificationPreferences((state) => state.updatePreference);
+  const resetPreferences = useNotificationPreferences((state) => state.resetPreferences);
   const [name, setName] = useState(profile?.name || "");
   const [email, setEmail] = useState(profile?.email || "");
   const [phone, setPhone] = useState(profile?.phone || "");
@@ -111,6 +118,12 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
       badge: profile?.ordersCount
         ? { label: String(profile.ordersCount), variant: "secondary" as const }
         : null,
+    },
+    {
+      icon: CreditCard,
+      label: t("profile.menu.payments", "Payment Methods"),
+      action: () => updateAppState({ currentScreen: "payment-methods" }),
+      badge: null,
     },
   ];
 
@@ -269,7 +282,11 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
   const validateProfile = () => {
     const next: Record<string, string> = {};
     if (!name.trim()) next.name = t("profile.validation.name");
-    if (!phone.trim()) next.phone = t("profile.validation.phone");
+    if (!phone.trim()) {
+      next.phone = t("profile.validation.phone");
+    } else if (!isValidEgyptPhone(phone)) {
+      next.phone = t("profile.validation.phoneInvalid", "Enter a valid phone number.");
+    }
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -277,7 +294,12 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
   const handleSaveProfile = async () => {
     if (!validateProfile()) return;
     try {
-      const updated = await profileQuery.updateProfile({ name, email, phone });
+      const normalizedPhone = normalizeEgyptPhone(phone);
+      if (!normalizedPhone) {
+        setErrors((prev) => ({ ...prev, phone: t("profile.validation.phoneInvalid", "Enter a valid phone number.") }));
+        return;
+      }
+      const updated = await profileQuery.updateProfile({ name, email, phone: normalizedPhone });
       updateAppState({ user: updated });
       showToast({ type: "success", message: t("profile.saved") });
     } catch (error: any) {
@@ -304,20 +326,32 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
     }
   };
 
-  const handleLogout = () => {
-    clearSessionTokens("logout");
-    updateAppState({
-      user: null,
-      cart: [],
-      selectedOrderId: null,
-      selectedOrderSummary: null,
-      selectedOrder: null,
-      lastOrder: null,
-      lastOrderId: null,
-      guestSession: null,
-      guestTracking: null,
-      currentScreen: "auth",
-    });
+  const handleLogout = async () => {
+    try {
+      const { refreshToken } = getSessionTokens();
+      if (refreshToken) {
+        await logoutApi({ refreshToken });
+      }
+    } catch {
+      // ignore logout failures
+    } finally {
+      await clearSessionTokens("logout");
+      resetPreferences();
+      clearLocalCart();
+      queryClient.clear();
+      updateAppState({
+        user: null,
+        cart: [],
+        selectedOrderId: null,
+        selectedOrderSummary: null,
+        selectedOrder: null,
+        lastOrder: null,
+        lastOrderId: null,
+        guestSession: null,
+        guestTracking: null,
+        currentScreen: "auth",
+      });
+    }
   };
 
   return (
@@ -400,7 +434,7 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
             </div>
             <div>
               <Label>{t("auth.phone")}</Label>
-              <Input value={phone} onChange={(e) => setPhone(e.target.value)} disabled={isOffline} />
+              <Input value={phone} onChange={(e) => setPhone(sanitizeEgyptPhoneInput(e.target.value))} disabled={isOffline} />
               {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}
             </div>
           </div>

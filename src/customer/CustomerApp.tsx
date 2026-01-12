@@ -14,6 +14,7 @@ import { OrdersScreen } from "./screens/OrdersScreen";
 import { OrderDetailScreen } from "./screens/OrderDetailScreen";
 import { ProfileScreen } from "./screens/ProfileScreen";
 import { AddressesScreen } from "./screens/AddressesScreen";
+import { PaymentMethodsScreen } from "./screens/PaymentMethodsScreen";
 import { LoyaltyHistoryScreen } from "./screens/LoyaltyHistoryScreen";
 import { AboutFasketScreen } from "./screens/AboutFasketScreen";
 import type {
@@ -62,10 +63,18 @@ export type Screen =
   | "help"
   | "profile"
   | "addresses"
+  | "payment-methods"
   | "loyalty-history"
   | "about";
 
-const authRequiredScreens = new Set<Screen>(["orders", "order-detail", "profile", "addresses", "loyalty-history"]);
+const authRequiredScreens = new Set<Screen>([
+  "orders",
+  "order-detail",
+  "profile",
+  "addresses",
+  "payment-methods",
+  "loyalty-history",
+]);
 
 export interface AppState {
   bootstrapping: boolean;
@@ -674,6 +683,8 @@ export function CustomerApp() {
         return <ProfileScreen appState={appState} updateAppState={updateAppState} />;
       case "addresses":
         return <AddressesScreen appState={appState} updateAppState={updateAppState} />;
+      case "payment-methods":
+        return <PaymentMethodsScreen appState={appState} updateAppState={updateAppState} />;
       case "loyalty-history":
         return <LoyaltyHistoryScreen appState={appState} updateAppState={updateAppState} />;
       case "about":

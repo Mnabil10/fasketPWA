@@ -24,6 +24,7 @@ import {
 import { persistSessionTokens } from "../../store/session";
 import { openExternalUrl } from "../../lib/fasketLinks";
 import { App as CapacitorApp } from "@capacitor/app";
+import { isPhoneLike, isValidEgyptPhone, normalizeEgyptPhone, sanitizeEgyptPhoneInput } from "../../utils/phone";
 
 interface AuthScreenProps {
   mode: "auth" | "register";
@@ -192,7 +193,7 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode, onContinueAsGues
         if (!prepared) {
           throw new Error(t("auth.identifierRequired"));
         }
-        if (prepared.kind === "phone" && !isValidPhoneNumber(prepared.value)) {
+        if (prepared.kind === "phone" && !isValidEgyptPhone(prepared.value)) {
           throw new Error(t("auth.phoneInvalid"));
         }
         const res = await authLogin({
@@ -214,8 +215,8 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode, onContinueAsGues
         }
         const name = formData.name?.trim();
         if (!name) throw new Error(t("auth.nameRequired"));
-        const normalizedPhone = normalizeEgPhone(formData.phone);
-        if (!isValidPhoneNumber(normalizedPhone)) {
+        const normalizedPhone = normalizeEgyptPhone(formData.phone);
+        if (!normalizedPhone || !isValidEgyptPhone(normalizedPhone)) {
           throw new Error(t("auth.phoneInvalid"));
         }
         const start = await authSignupStartSession({
@@ -258,7 +259,11 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode, onContinueAsGues
   };
 
   const handleInputChange = (field: keyof FormState, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    const nextValue =
+      field === "phone" || (field === "identifier" && isPhoneLike(value))
+        ? sanitizeEgyptPhoneInput(value)
+        : value;
+    setFormData((prev) => ({ ...prev, [field]: nextValue }));
   };
 
   const handleOtpChange = (value: string) => {
@@ -304,8 +309,8 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode, onContinueAsGues
   };
 
   const handleLoginOtpRequest = async () => {
-    const normalizedPhone = normalizeEgPhone(formData.phone);
-    if (!isValidPhoneNumber(normalizedPhone)) {
+    const normalizedPhone = normalizeEgyptPhone(formData.phone);
+    if (!normalizedPhone || !isValidEgyptPhone(normalizedPhone)) {
       setErr(t("auth.phoneInvalid"));
       return;
     }
@@ -386,7 +391,7 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode, onContinueAsGues
       return;
     }
     const prepared = prepareIdentifier(identifier);
-    if (!prepared || prepared.kind !== "phone" || !isValidPhoneNumber(prepared.value)) {
+    if (!prepared || prepared.kind !== "phone" || !isValidEgyptPhone(prepared.value)) {
       setErr(t("auth.phoneInvalid"));
       return;
     }
@@ -991,43 +996,12 @@ function formatCountdown(totalSeconds: number): string {
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
-function normalizeEgPhone(input: string): string {
-  if (!input) return "";
-  const trimmed = input.trim();
-  const digitsOnly = trimmed.replace(/\D/g, "");
-  if (!digitsOnly) return "";
-  if (digitsOnly.startsWith("20")) {
-    return `+${digitsOnly}`;
-  }
-  if (digitsOnly.startsWith("0")) {
-    const rest = digitsOnly.slice(1);
-    return rest ? `+20${rest}` : "+20";
-  }
-  if (digitsOnly.startsWith("1") && digitsOnly.length >= 9) {
-    return `+20${digitsOnly}`;
-  }
-  if (trimmed.startsWith("+")) {
-    return `+${digitsOnly}`;
-  }
-  return `+${digitsOnly}`;
-}
-
-function isPhoneLike(value: string) {
-  if (!value) return false;
-  if (value.includes("@")) return false;
-  return /^[\d\s()+-]+$/.test(value);
-}
-
-function isValidPhoneNumber(value: string | undefined) {
-  if (!value) return false;
-  return /^\+[1-9]\d{7,14}$/.test(value);
-}
-
 function prepareIdentifier(value: string): { value: string; kind: "phone" | "email" } | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
   if (isPhoneLike(trimmed)) {
-    const normalizedPhone = normalizeEgPhone(trimmed);
+    const normalizedPhone = normalizeEgyptPhone(trimmed);
+    if (!normalizedPhone) return null;
     return { value: normalizedPhone, kind: "phone" };
   }
   return { value: trimmed.toLowerCase(), kind: "email" };

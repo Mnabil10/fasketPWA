@@ -138,6 +138,28 @@ export type AppSettings = {
     codEnabled?: boolean;
     cardEnabled?: boolean;
     provider?: string | null;
+    cashOnDelivery?: {
+      enabled?: boolean;
+      maxAmount?: number | null;
+    };
+    creditCards?: {
+      enabled?: boolean;
+      acceptedCards?: string[];
+    };
+    digitalWallets?: {
+      paypal?: { enabled?: boolean; merchantId?: string | null };
+      applePay?: { enabled?: boolean; merchantId?: string | null };
+      googlePay?: { enabled?: boolean; merchantId?: string | null };
+      vodafoneCash?: { enabled?: boolean; merchantId?: string | null };
+      orangeMoney?: { enabled?: boolean; merchantId?: string | null };
+      etisalatCash?: { enabled?: boolean; merchantId?: string | null };
+    };
+    stripe?: {
+      enabled?: boolean;
+      publicKey?: string | null;
+      secretKey?: string | null;
+      webhookSecret?: string | null;
+    };
   } | null;
   banners?: Array<{ imageUrl: string; action?: string | null }>;
   mobileApp?: MobileAppConfig | null;
@@ -416,6 +438,24 @@ export type OrderSummary = {
   createdAt: string;
   driver?: DeliveryDriver | null;
 };
+
+export type WalletProvider = "VODAFONE_CASH" | "ORANGE_MONEY" | "ETISALAT_CASH";
+export type PaymentMethodType = "COD" | "CARD" | "WALLET";
+
+export type SavedPaymentMethod = {
+  id: string;
+  type: PaymentMethodType;
+  provider?: string | null;
+  last4?: string | null;
+  brand?: string | null;
+  expMonth?: number | null;
+  expYear?: number | null;
+  walletProvider?: WalletProvider | null;
+  walletPhone?: string | null;
+  isDefault?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+};
 export type OrderDetail = {
   id: string;
   code?: string | null;
@@ -435,7 +475,9 @@ export type OrderDetail = {
   guestLng?: number | null;
   status: string;
   statusHistory?: Array<{ id?: string; from?: string | null; to: string; note?: string | null; createdAt: string }> | null;
-  paymentMethod: "COD" | "CARD";
+  paymentMethod: PaymentMethodType;
+  paymentMethodId?: string | null;
+  walletProvider?: WalletProvider | null;
   subtotalCents: number;
   shippingFeeCents: number;
   serviceFeeCents?: number;

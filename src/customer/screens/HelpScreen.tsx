@@ -1,18 +1,19 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { MobileNav } from "../MobileNav";
 import { AppState, type UpdateAppState } from "../CustomerApp";
 import { useNetworkStatus } from "../hooks";
-import { trackGuestOrders } from "../../services/orders";
+import { requestGuestTrackingOtp, trackGuestOrders, verifyGuestTrackingOtp } from "../../services/orders";
 import { getDeliveryZones } from "../../services/settings";
 import { listProducts } from "../../services/catalog";
-import { NetworkBanner, SkeletonList, EmptyState } from "../components";
+import { NetworkBanner, SkeletonList, EmptyState, OrderProgress } from "../components";
 import { openWhatsapp } from "../../lib/fasketLinks";
 import { fmtEGP, fromCents } from "../../lib/money";
 import type { OrderGroupSummary } from "../../types/api";
 import { resolveSupportConfig } from "../utils/mobileAppConfig";
+import { isValidEgyptPhone, normalizeEgyptPhone, sanitizeEgyptPhoneInput } from "../../utils/phone";
 
 export function HelpScreen({ appState, updateAppState }: { appState: AppState; updateAppState: UpdateAppState }) {
   const { t, i18n } = useTranslation();
@@ -23,6 +24,11 @@ export function HelpScreen({ appState, updateAppState }: { appState: AppState; u
   const [guestCode, setGuestCode] = useState(appState.guestTracking?.code ?? "");
   const [guestResult, setGuestResult] = useState<OrderGroupSummary | null>(null);
   const [guestError, setGuestError] = useState<string | null>(null);
+  const [guestNotice, setGuestNotice] = useState<string | null>(null);
+  const [otpId, setOtpId] = useState<string | null>(null);
+  const [otpValue, setOtpValue] = useState("");
+  const [otpSending, setOtpSending] = useState(false);
+  const [otpVerifying, setOtpVerifying] = useState(false);
   const [zones, setZones] = useState<any[]>([]);
   const [zonesLoaded, setZonesLoaded] = useState(false);
   const [zoneError, setZoneError] = useState<string | null>(null);
@@ -31,19 +37,79 @@ export function HelpScreen({ appState, updateAppState }: { appState: AppState; u
   const [productsLoading, setProductsLoading] = useState(false);
   const [productsError, setProductsError] = useState<string | null>(null);
 
+  const normalizedGuestPhone = useMemo(() => normalizeEgyptPhone(guestPhone), [guestPhone]);
+  const isGuestPhoneValid = useMemo(() => isValidEgyptPhone(guestPhone), [guestPhone]);
+
   const fetchGuestOrder = async () => {
     setGuestError(null);
+    setGuestNotice(null);
     setGuestResult(null);
-    const phone = guestPhone.trim();
+    const phone = normalizedGuestPhone;
     if (!phone) {
       setGuestError(t("help.phoneRequired", "Phone number is required."));
       return;
     }
+    if (!isGuestPhoneValid) {
+      setGuestError(t("validation.phone", "Enter a valid phone number."));
+      return;
+    }
     try {
       const result = await trackGuestOrders({ phone, code: guestCode.trim() || undefined });
+      updateAppState({ guestTracking: { phone, code: guestCode.trim() || undefined } });
       setGuestResult(result);
     } catch (error) {
       setGuestError(t("help.order_not_found", "Order not found. Try WhatsApp support."));
+    }
+  };
+
+  const requestOtp = async () => {
+    setGuestError(null);
+    setGuestNotice(null);
+    setGuestResult(null);
+    if (!normalizedGuestPhone || !isGuestPhoneValid) {
+      setGuestError(t("validation.phone", "Enter a valid phone number."));
+      return;
+    }
+    try {
+      setOtpSending(true);
+      const response = await requestGuestTrackingOtp(normalizedGuestPhone);
+      setOtpId(response.otpId ?? null);
+      setGuestNotice(t("help.otp_sent", "OTP sent. Check your phone."));
+      setOtpValue("");
+    } catch (error) {
+      setGuestError(t("help.otp_failed", "Unable to send OTP right now."));
+    } finally {
+      setOtpSending(false);
+    }
+  };
+
+  const verifyOtp = async () => {
+    setGuestError(null);
+    setGuestNotice(null);
+    setGuestResult(null);
+    if (!normalizedGuestPhone || !isGuestPhoneValid) {
+      setGuestError(t("validation.phone", "Enter a valid phone number."));
+      return;
+    }
+    if (!otpValue.trim() || otpValue.trim().length < 4) {
+      setGuestError(t("help.otp_required", "Enter the OTP code."));
+      return;
+    }
+    try {
+      setOtpVerifying(true);
+      const result = await verifyGuestTrackingOtp({
+        phone: normalizedGuestPhone,
+        otp: otpValue.trim(),
+        otpId: otpId || undefined,
+        code: guestCode.trim() || undefined,
+      });
+      updateAppState({ guestTracking: { phone: normalizedGuestPhone, code: guestCode.trim() || undefined } });
+      setGuestResult(result);
+      setGuestNotice(t("help.otp_verified", "OTP verified."));
+    } catch (error) {
+      setGuestError(t("help.otp_invalid", "Invalid or expired OTP."));
+    } finally {
+      setOtpVerifying(false);
     }
   };
 
@@ -90,17 +156,40 @@ export function HelpScreen({ appState, updateAppState }: { appState: AppState; u
           <Input
             placeholder={t("help.phone_placeholder", "Enter phone number")}
             value={guestPhone}
-            onChange={(e) => setGuestPhone(e.target.value)}
+            onChange={(e) => setGuestPhone(sanitizeEgyptPhoneInput(e.target.value))}
+            inputMode="tel"
           />
           <Input
             placeholder={t("help.order_placeholder", "Order code (optional)")}
             value={guestCode}
             onChange={(e) => setGuestCode(e.target.value)}
           />
-          <Button onClick={fetchGuestOrder} disabled={isOffline}>{t("help.track", "Track")}</Button>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button onClick={fetchGuestOrder} disabled={isOffline}>
+              {t("help.track", "Track")}
+            </Button>
+            <Button variant="outline" onClick={requestOtp} disabled={isOffline || otpSending}>
+              {otpSending ? t("help.otp_sending", "Sending...") : t("help.otp_send", "Send OTP")}
+            </Button>
+          </div>
+          {otpId && (
+            <div className="space-y-2">
+              <Input
+                placeholder={t("help.otp_placeholder", "Enter OTP code")}
+                value={otpValue}
+                onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, ""))}
+                inputMode="numeric"
+              />
+              <Button onClick={verifyOtp} disabled={isOffline || otpVerifying}>
+                {otpVerifying ? t("help.otp_verifying", "Verifying...") : t("help.otp_verify", "Verify OTP")}
+              </Button>
+            </div>
+          )}
+          {guestNotice && <div className="text-sm text-emerald-700 bg-emerald-50 rounded-lg p-3">{guestNotice}</div>}
           {guestError && <div className="text-sm text-red-600 bg-red-50 rounded-lg p-3">{guestError}</div>}
           {guestResult && (
             <div className="text-sm space-y-2">
+              <OrderProgress status={guestResult.status} />
               <div>
                 <p className="font-medium">#{guestResult.code || guestResult.orderGroupId}</p>
                 <p>{t("orders.status", "Status")}: {guestResult.status}</p>

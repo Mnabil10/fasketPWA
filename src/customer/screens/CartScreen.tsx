@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "../../ui/button";
 import { Separator } from "../../ui/separator";
 import { Skeleton } from "../../ui/skeleton";
-import { AlertTriangle, ArrowLeft, Minus, Plus, ShoppingCart, Trash2, WifiOff, Clock } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Minus, Plus, ShoppingCart, Trash2, WifiOff, Clock, Truck } from "lucide-react";
 import { MobileNav } from "../MobileNav";
 import { AppState, type UpdateAppState } from "../CustomerApp";
 import { SmartImage } from "../../components/SmartImage";
@@ -123,6 +123,13 @@ export function CartScreen({ appState, updateAppState }: CartScreenProps) {
         value: `${cart.deliveryEstimateMinutes} ${t("checkout.summary.minutes", "min")}`,
       })
     : t("cart.summaryEtaFallback");
+  const deliveryFeeEstimate = isAuthenticated
+    ? primaryAddress
+      ? shippingDisplay
+      : t("cart.deliveryEstimateMissing", "Add an address to see delivery fees.")
+    : guestCheckoutEnabled
+      ? t("cart.deliveryEstimateGuest", "Set your address at checkout to see delivery fees.")
+      : t("cart.deliveryEstimateLogin", "Sign in to see delivery fees.");
   const addressWarningText = deliveryRequiresLocation
     ? t("cart.locationRequired", "Add a delivery location to calculate delivery fees.")
     : t("cart.addressWarning");
@@ -386,6 +393,15 @@ export function CartScreen({ appState, updateAppState }: CartScreenProps) {
         )}
         <div className="bg-gray-50 rounded-xl p-3 flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-inner">
+            <Truck className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <p className="text-xs text-gray-500">{t("cart.deliveryEstimateLabel", "Estimated delivery fee")}</p>
+            <p className="text-sm font-semibold text-gray-900">{deliveryFeeEstimate}</p>
+          </div>
+        </div>
+        <div className="bg-gray-50 rounded-xl p-3 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-inner">
             <Clock className="w-5 h-5 text-primary" />
           </div>
           <div>
@@ -452,9 +468,9 @@ export function CartScreen({ appState, updateAppState }: CartScreenProps) {
         {loyaltyLimitText && <p className="text-xs text-gray-500">{loyaltyLimitText}</p>}
         <p className="text-xs text-gray-500">
           {isAuthenticated
-            ? t("cart.summaryNote", "Delivery fees and discounts are calculated at checkout.")
+            ? t("cart.summaryNote", "Estimated delivery fee updates when you change your address.")
             : guestCheckoutEnabled
-              ? t("cart.guestSummaryNote", "Delivery fees are calculated at checkout.")
+              ? t("cart.guestSummaryNote", "Enter your address at checkout to see delivery fees.")
               : t("cart.localSummaryNote", "Login to see delivery fees and synced totals.")}
         </p>
         <Button

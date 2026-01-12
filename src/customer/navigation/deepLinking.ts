@@ -66,6 +66,7 @@ export function parseHash(hash?: string): DeepLinkTarget {
     "order-detail",
     "profile",
     "addresses",
+    "payment-methods",
     "loyalty-history",
     "about",
   ];

@@ -372,7 +372,8 @@ function normalizeOrderReceipt(payload: any): OrderReceipt {
 
 export type PlaceOrderBody = {
   addressId: string;
-  paymentMethod: "COD" | "CARD";
+  paymentMethod: "COD" | "CARD" | "WALLET";
+  paymentMethodId?: string;
   deliveryTermsAccepted: boolean;
   note?: string;
   couponCode?: string;
@@ -432,7 +433,7 @@ export type PlaceGuestOrderBody = GuestOrderQuoteRequest & {
   phone: string;
   deliveryTermsAccepted: boolean;
   note?: string;
-  paymentMethod?: "COD" | "CARD";
+  paymentMethod?: "COD";
   idempotencyKey?: string;
 };
 
@@ -581,6 +582,37 @@ export async function trackGuestOrders(params: { phone: string; code?: string })
     search.set("code", params.code);
   }
   const { data } = await api.get(`/orders/guest/track?${search.toString()}`, { skipAuth: true });
+  const summary = normalizeOrderGroupSummary(data?.data ?? data);
+  if (!summary) {
+    throw new Error("Order not found");
+  }
+  return summary;
+}
+
+export type GuestTrackingOtpResponse = {
+  otpId?: string;
+  expiresInSeconds?: number;
+  resendAfterSeconds?: number;
+  channel?: string;
+  requestId?: string;
+};
+
+export async function requestGuestTrackingOtp(phone: string): Promise<GuestTrackingOtpResponse> {
+  const { data } = await api.post("/orders/guest/track/request-otp", { phone }, { skipAuth: true });
+  return (data?.data ?? data) as GuestTrackingOtpResponse;
+}
+
+export async function verifyGuestTrackingOtp(params: {
+  phone: string;
+  otp: string;
+  otpId?: string;
+  code?: string;
+}): Promise<OrderGroupSummary> {
+  const { data } = await api.post(
+    "/orders/guest/track/verify-otp",
+    { phone: params.phone, otp: params.otp, otpId: params.otpId, code: params.code },
+    { skipAuth: true }
+  );
   const summary = normalizeOrderGroupSummary(data?.data ?? data);
   if (!summary) {
     throw new Error("Order not found");

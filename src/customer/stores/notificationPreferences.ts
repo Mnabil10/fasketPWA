@@ -14,6 +14,7 @@ type NotificationPrefState = {
   preferences: NotificationPreferences;
   updatePreference: (key: keyof NotificationPreferences, value: boolean) => void;
   hydratePreferences: () => Promise<void>;
+  resetPreferences: () => void;
 };
 
 export const useNotificationPreferencesStore = create<NotificationPrefState>()(
@@ -34,6 +35,9 @@ export const useNotificationPreferencesStore = create<NotificationPrefState>()(
         if (remote) {
           set({ preferences: { ...DEFAULT_NOTIFICATION_PREFERENCES, ...remote } });
         }
+      },
+      resetPreferences: () => {
+        set({ preferences: DEFAULT_NOTIFICATION_PREFERENCES });
       },
     }),
     { name: "fasket-notification-prefs-v1", version: 1 }

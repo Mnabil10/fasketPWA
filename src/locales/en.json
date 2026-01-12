@@ -273,11 +273,15 @@
   "cart": {
     "title": "Shopping Cart",
     "emptyTitle": "Your cart is empty",
-      "emptySubtitle": "Add some items to continue shopping.",
-      "startShopping": "Start Shopping",
-      "summaryNote": "Delivery fee & discounts are applied at checkout.",
-      "guestSummaryNote": "Delivery fees are calculated at checkout.",
-      "checkout": "Proceed to Checkout",
+        "emptySubtitle": "Add some items to continue shopping.",
+        "startShopping": "Start Shopping",
+        "summaryNote": "Delivery fee & discounts are applied at checkout.",
+        "guestSummaryNote": "Delivery fees are calculated at checkout.",
+        "deliveryEstimateLabel": "Estimated delivery fee",
+        "deliveryEstimateMissing": "Add an address to see delivery fees.",
+        "deliveryEstimateGuest": "Set your address at checkout to see delivery fees.",
+        "deliveryEstimateLogin": "Sign in to see delivery fees.",
+        "checkout": "Proceed to Checkout",
       "checkoutGuest": "Checkout as guest",
     "loading": "Loading your cart...",
     "clear": "Clear cart",
@@ -335,6 +339,13 @@
       "discount": "Discount",
       "etaUnknown": "Estimated time is not available.",
       "freeDelivery": "Free delivery"
+    },
+    "deliveryEstimate": {
+      "label": "Estimated delivery fee",
+      "calculating": "Calculating delivery fee...",
+      "pendingGuest": "Enter address to see delivery fee",
+      "pending": "Select an address to see delivery fee",
+      "change": "Change address"
     },
     "trust": {
       "title": "We deliver anywhere inside Badr City",
@@ -412,10 +423,27 @@
       },
       "payment": {
         "cod": "Cash on delivery",
+        "codDesc": "Pay the courier on arrival.",
         "card": "Card",
-      "codOnly": "Cash on delivery only",
-      "codOnlyDesc": "Currently we only support cash on delivery."
-    },
+        "cardDesc": "Visa / Mastercard",
+        "wallet": "Wallet",
+        "walletDesc": "Vodafone Cash and more",
+        "walletProviders": {
+          "vodafone": "Vodafone Cash",
+          "orange": "Orange Money",
+          "etisalat": "Etisalat Cash"
+        },
+        "codOnly": "Cash on delivery only",
+        "codOnlyDesc": "Currently we only support cash on delivery.",
+        "disabled": "No payment methods are enabled right now.",
+        "loading": "Loading payment methods...",
+        "noCards": "No saved cards yet. Add a card to continue.",
+        "noWallets": "No saved wallets yet. Add one to continue.",
+        "addCard": "Add card",
+        "addWallet": "Add wallet",
+        "default": "Default",
+        "methodRequired": "Select a saved payment method."
+      },
       "coupon": {
         "applied": "Coupon applied successfully.",
         "appliedLabel": "Discount coupon applied.",
@@ -673,7 +701,9 @@
       "apartment": "Apartment",
       "lat": "Latitude",
       "lng": "Longitude",
-      "labelPlaceholder": "Home / Work / Other"
+      "labelPlaceholder": "Home / Work / Other",
+      "defaultLabel": "Set as default",
+      "defaultHint": "Used automatically for checkout"
     },
     "buttons": {
       "add": "Add Address",
@@ -682,6 +712,8 @@
       "delete": "Delete",
       "cancel": "Cancel",
       "save": "Save",
+      "setDefault": "Set default",
+      "settingDefault": "Setting...",
       "deleting": "Deleting...",
       "saving": "Saving...",
       "create": "Create Address"
@@ -705,7 +737,8 @@
     },
     "success": {
       "saved": "Address saved",
-      "deleted": "Address deleted"
+      "deleted": "Address deleted",
+      "defaultSet": "Default address updated"
     },
     "badges": {
       "default": "Default"
@@ -713,6 +746,7 @@
     "error": {
       "save": "Could not save the address",
       "delete": "Could not delete the address",
+      "default": "Unable to update default address",
       "load": "Failed to load addresses",
       "zones": "Failed to load delivery zones."
     },
@@ -721,6 +755,63 @@
     "zoneSelected": "{{zone}} - {{fee}} - {{eta}}",
     "confirmDeleteTitle": "Delete address'",
     "confirmDeleteSubtitle": "This action cannot be undone."
+  },
+  "payments": {
+    "title": "Payment methods",
+    "subtitle": "Securely save cards and wallets.",
+    "cards": "Cards",
+    "wallets": "Wallets",
+    "card": "Card",
+    "wallet": "Wallet",
+    "walletProviders": {
+      "vodafone": "Vodafone Cash",
+      "orange": "Orange Money",
+      "etisalat": "Etisalat Cash"
+    },
+    "addCard": "Add card",
+    "addWallet": "Add wallet",
+    "empty": "No payment methods saved yet",
+    "emptySubtitle": "Add a card or wallet to speed up checkout.",
+    "dialogs": {
+      "addCard": "Add card",
+      "addWallet": "Add wallet"
+    },
+    "cardBrand": "Card brand",
+    "other": "Other",
+    "last4": "Last 4 digits",
+    "expMonth": "Exp. month",
+    "expYear": "Exp. year",
+    "expiry": "Expires {{month}}/{{year}}",
+    "walletProvider": "Wallet provider",
+    "walletPhone": "Wallet phone",
+    "walletPhonePlaceholder": "01XXXXXXXXX",
+    "setDefault": "Set default",
+    "settingDefault": "Setting...",
+    "default": "Default",
+    "defaultHint": "Use this at checkout",
+    "save": "Save",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "delete": "Remove",
+    "confirmDeleteTitle": "Remove payment method",
+    "confirmDeleteSubtitle": "This payment method will be removed.",
+    "success": {
+      "saved": "Payment method saved.",
+      "deleted": "Payment method removed.",
+      "default": "Default payment updated."
+    },
+    "error": {
+      "load": "Unable to load payment methods.",
+      "save": "Unable to save payment method.",
+      "delete": "Unable to remove payment method.",
+      "default": "Unable to update default payment method."
+    },
+    "validation": {
+      "last4": "Enter the last 4 digits.",
+      "expMonth": "Enter a valid month.",
+      "expYear": "Enter a valid year.",
+      "walletPhone": "Enter a valid wallet phone."
+    }
   },
   "settings": {
     "language": "Language"
@@ -747,6 +838,15 @@
     "phone_placeholder": "Enter phone number",
     "phoneRequired": "Phone number is required.",
     "track": "Track",
+    "otp_send": "Send OTP",
+    "otp_sending": "Sending...",
+    "otp_verify": "Verify OTP",
+    "otp_verifying": "Verifying...",
+    "otp_placeholder": "Enter OTP code",
+    "otp_sent": "OTP sent. Check your phone.",
+    "otp_failed": "Unable to send OTP right now.",
+    "otp_required": "Enter the OTP code.",
+    "otp_invalid": "Invalid or expired OTP.",
     "order_not_found": "Order not found. Try WhatsApp support.",
     "whatsapp": "Contact WhatsApp",
     "delivery_areas": "Delivery areas",

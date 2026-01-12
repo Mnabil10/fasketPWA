@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createAddress, deleteAddress, listAddresses, updateAddress, type AddressInput } from "../../services/addresses";
+import { createAddress, deleteAddress, listAddresses, updateAddress, setDefaultAddress, type AddressInput } from "../../services/addresses";
 import type { Address } from "../../types/api";
 import { useNetworkStatus } from "./useNetworkStatus";
 import { getSessionTokens } from "../../store/session";
@@ -46,15 +46,25 @@ export function useAddresses(options?: UseAddressesOptions) {
     },
   });
 
+  const setDefaultMutation = useMutation({
+    mutationFn: (id: string) => setDefaultAddress(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["addresses"] });
+    },
+  });
+
   return {
     ...listQuery,
     addresses,
     createAddress: createMutation.mutateAsync,
     updateAddress: updateMutation.mutateAsync,
     deleteAddress: deleteMutation.mutateAsync,
+    setDefaultAddress: setDefaultMutation.mutateAsync,
     creating: createMutation.isPending,
     updating: updateMutation.isPending,
     deleting: deleteMutation.isPending,
+    settingDefault: setDefaultMutation.isPending,
     deletingId: (deleteMutation.variables as string | undefined) ?? null,
+    settingDefaultId: (setDefaultMutation.variables as string | undefined) ?? null,
   };
 }

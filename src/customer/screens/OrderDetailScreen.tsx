@@ -19,7 +19,7 @@ import dayjs from "dayjs";
 import { AppState, type UpdateAppState } from "../CustomerApp";
 import { fmtEGP, fromCents } from "../../lib/money";
 import { MobileNav } from "../MobileNav";
-import { NetworkBanner, RetryBlock, SkeletonList, EmptyState } from "../components";
+import { NetworkBanner, RetryBlock, SkeletonList, EmptyState, OrderProgress } from "../components";
 import {
   useApiErrorToast,
   useCancelOrderGroup,
@@ -330,6 +330,7 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
                   date: dayjs(order.createdAt).format(t("orders.dateFormat", "DD MMM YYYY - HH:mm")),
                 })}
               </div>
+              <OrderProgress status={statusKey} className="mt-3" />
               <div className="flex items-center gap-2 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
                 <MessageCircle className="w-4 h-4 text-emerald-600" />
                 <span>
@@ -350,9 +351,11 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
                   <div className="flex items-center gap-2">
                     <CreditCard className="w-4 h-4 text-gray-500" />
                     <span>
-                      {t("orderDetail.paymentMethod")} :{" "}
-                      {orderDetail?.paymentMethod === "COD"
-                        ? t("checkout.payment.cod")
+                    {t("orderDetail.paymentMethod")} :{" "}
+                    {orderDetail?.paymentMethod === "COD"
+                      ? t("checkout.payment.cod")
+                      : orderDetail?.paymentMethod === "WALLET"
+                        ? t("checkout.payment.wallet", "Wallet")
                         : t("checkout.payment.card")}
                     </span>
                   </div>

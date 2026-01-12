@@ -6,14 +6,14 @@ import { Textarea } from "../../ui/textarea";
 import { Badge } from "../../ui/badge";
 import { Skeleton } from "../../ui/skeleton";
 import { Label } from "../../ui/label";
-import { AlertTriangle, ArrowLeft, MapPin, Plus, Clock, Truck, DollarSign } from "lucide-react";
+import { AlertTriangle, ArrowLeft, MapPin, Plus, Clock, Truck, DollarSign, CreditCard, Wallet } from "lucide-react";
 import { AppState, type UpdateAppState } from "../CustomerApp";
 import { ImageWithFallback } from "../../figma/ImageWithFallback";
 import { useToast } from "../providers/ToastProvider";
-import { useAddresses, useCart, useNetworkStatus, useApiErrorToast } from "../hooks";
+import { useAddresses, useCart, useNetworkStatus, useApiErrorToast, usePaymentMethods } from "../hooks";
 import { placeGuestOrder, placeOrder, quoteGuestOrder, type GuestOrderQuote } from "../../services/orders";
 import { fmtEGP, fromCents } from "../../lib/money";
-import type { Address, OrderDetail, OrderGroupSummary } from "../../types/api";
+import type { Address, OrderDetail, OrderGroupSummary, SavedPaymentMethod } from "../../types/api";
 import { NetworkBanner, EmptyState, RetryBlock, LocationPicker } from "../components";
 import { trackCheckoutStarted, trackOrderFailed, trackOrderPlaced } from "../../lib/analytics";
 import { goToCart } from "../navigation/navigation";
@@ -21,6 +21,7 @@ import { mapApiErrorToMessage } from "../../utils/mapApiErrorToMessage";
 import { extractNoticeMessage } from "../../utils/extractNoticeMessage";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { isFeatureEnabled } from "../utils/mobileAppConfig";
+import { isValidEgyptPhone, normalizeEgyptPhone, sanitizeEgyptPhoneInput } from "../../utils/phone";
 
 interface CheckoutScreenProps {
   appState: AppState;
@@ -44,6 +45,8 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
     error: addressesErrorObj,
     refetch: refetchAddresses,
   } = useAddresses({ enabled: !isGuest });
+  const paymentMethodsQuery = usePaymentMethods({ enabled: !isGuest });
+  const paymentMethods = paymentMethodsQuery.methods ?? [];
 
   const guestSession = appState.guestSession;
   const [guestName, setGuestName] = useState(guestSession?.name ?? "");
@@ -68,6 +71,8 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
   const idempotencyKeyRef = useRef<string | null>(null);
   const savingRef = useRef(false);
   const [deliveryTermsAccepted, setDeliveryTermsAccepted] = useState(false);
+  const [selectedPaymentType, setSelectedPaymentType] = useState<"COD" | "CARD" | "WALLET">("COD");
+  const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string | null>(null);
 
   const parseCoordinate = (value: string) => {
     const trimmed = value.trim();
@@ -88,6 +93,8 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
   const guestLng = parseCoordinate(guestLngInput);
   const guestLocationValid = !distancePricingEnabled || (guestLat != null && guestLng != null);
   const guestAddressValid = guestAddress.trim().length > 0;
+  const normalizedGuestPhone = normalizeEgyptPhone(guestPhone);
+  const guestPhoneValid = Boolean(normalizedGuestPhone);
   const guestLocationValue = useMemo(
     () => (guestLat != null && guestLng != null ? { lat: guestLat, lng: guestLng } : null),
     [guestLat, guestLng]
@@ -135,14 +142,52 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
   const couponsEnabled = isFeatureEnabled(appState.settings?.mobileApp, "coupons", true);
   const loyaltyFeatureEnabled = isFeatureEnabled(appState.settings?.mobileApp, "loyalty", true);
   const loyaltyEnabled = !isGuest && Boolean(loyaltySettings?.enabled && loyaltyFeatureEnabled && maxRedeemablePoints > 0);
+  const paymentSettings = appState.settings?.payment ?? null;
+  const legacyCodEnabled = paymentSettings && "codEnabled" in paymentSettings ? (paymentSettings as any).codEnabled : undefined;
+  const legacyCardEnabled = paymentSettings && "cardEnabled" in paymentSettings ? (paymentSettings as any).cardEnabled : undefined;
+  const codEnabled = legacyCodEnabled ?? paymentSettings?.cashOnDelivery?.enabled !== false;
+  const cardEnabled = legacyCardEnabled ?? paymentSettings?.creditCards?.enabled === true;
+  const walletConfigs = paymentSettings?.digitalWallets ?? {};
+  const walletProviderOptions: Array<{ key: "VODAFONE_CASH" | "ORANGE_MONEY" | "ETISALAT_CASH"; label: string }> = [
+    { key: "VODAFONE_CASH", label: t("checkout.payment.walletProviders.vodafone", "Vodafone Cash") },
+    { key: "ORANGE_MONEY", label: t("checkout.payment.walletProviders.orange", "Orange Money") },
+    { key: "ETISALAT_CASH", label: t("checkout.payment.walletProviders.etisalat", "Etisalat Cash") },
+  ];
+  const enabledWalletProviders = walletProviderOptions.filter((provider) => {
+    if (provider.key === "VODAFONE_CASH") return walletConfigs.vodafoneCash?.enabled === true;
+    if (provider.key === "ORANGE_MONEY") return walletConfigs.orangeMoney?.enabled === true;
+    if (provider.key === "ETISALAT_CASH") return walletConfigs.etisalatCash?.enabled === true;
+    return false;
+  });
+  const walletEnabled = enabledWalletProviders.length > 0;
   const deliveryRequiresLocation = distancePricingEnabled
     ? isGuest
       ? true
       : Boolean(serverCart?.delivery?.requiresLocation || cartGroups.some((group) => group.deliveryRequiresLocation))
     : false;
+  const cardMethods = useMemo(
+    () => paymentMethods.filter((method) => method.type === "CARD"),
+    [paymentMethods]
+  );
+  const walletMethods = useMemo(
+    () => paymentMethods.filter((method) => method.type === "WALLET"),
+    [paymentMethods]
+  );
   const etaLabel = estimatedDeliveryMinutes
     ? t("checkout.summary.etaValue", { value: `${estimatedDeliveryMinutes} ${t("checkout.summary.minutes", "min")}` })
     : t("checkout.summary.etaValue", { value: "30-45 min" });
+  const deliveryFeeLabel =
+    shippingFeeCents > 0 ? fmtEGP(shippingFee) : t("checkout.summary.freeDelivery", "Free");
+  const deliveryFeeEstimate =
+    isGuest
+      ? guestQuoteLoading
+        ? t("checkout.deliveryEstimate.calculating", "Calculating delivery fee...")
+        : guestQuote
+          ? deliveryFeeLabel
+          : t("checkout.deliveryEstimate.pendingGuest", "Enter address to see delivery fee")
+      : selectedAddressId
+        ? deliveryFeeLabel
+        : t("checkout.deliveryEstimate.pending", "Select an address to see delivery fee");
   const couponNotice = !isGuest ? serverCart?.couponNotice : null;
   const couponNoticeText = extractNoticeMessage(couponNotice);
   const loyaltyNotices = useMemo(() => {
@@ -174,6 +219,34 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
     }
     return notes;
   }, [loyaltyEnabled, maxRedeemablePoints, loyaltySettings, t]);
+
+  useEffect(() => {
+    if (isGuest) {
+      setSelectedPaymentType("COD");
+      return;
+    }
+    const available: Array<"COD" | "CARD" | "WALLET"> = [];
+    if (codEnabled) available.push("COD");
+    if (cardEnabled) available.push("CARD");
+    if (walletEnabled) available.push("WALLET");
+    if (available.length && !available.includes(selectedPaymentType)) {
+      setSelectedPaymentType(available[0]);
+    }
+  }, [isGuest, codEnabled, cardEnabled, walletEnabled, selectedPaymentType]);
+
+  useEffect(() => {
+    if (selectedPaymentType === "CARD") {
+      const preferred = cardMethods.find((method) => method.isDefault) ?? cardMethods[0] ?? null;
+      setSelectedPaymentMethodId(preferred?.id ?? null);
+      return;
+    }
+    if (selectedPaymentType === "WALLET") {
+      const preferred = walletMethods.find((method) => method.isDefault) ?? walletMethods[0] ?? null;
+      setSelectedPaymentMethodId(preferred?.id ?? null);
+      return;
+    }
+    setSelectedPaymentMethodId(null);
+  }, [selectedPaymentType, cardMethods, walletMethods]);
 
   const debouncedGuestAddress = useDebouncedValue(guestAddress, 350);
   const debouncedGuestLat = useDebouncedValue(guestLatInput, 350);
@@ -317,14 +390,16 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
   const guestReady =
     guestCheckoutEnabled &&
     Boolean(guestName.trim()) &&
-    Boolean(guestPhone.trim()) &&
+    guestPhoneValid &&
     guestAddressValid &&
     guestLocationValid;
+  const paymentReady =
+    isGuest || selectedPaymentType === "COD" || Boolean(selectedPaymentMethodId);
   const canPlaceOrder =
     previewItems.length > 0 &&
     !isOffline &&
     deliveryTermsAccepted &&
-    (isGuest ? guestReady : Boolean(selectedAddressId && cartId));
+    (isGuest ? guestReady : Boolean(selectedAddressId && cartId && paymentReady));
 
   const isOrderGroupSummary = (value: any): value is OrderGroupSummary =>
     Boolean(value && typeof value === "object" && Array.isArray(value.orders) && value.orderGroupId);
@@ -353,14 +428,14 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
       return;
     }
     const name = guestName.trim();
-    const phone = guestPhone.trim();
+    const phone = normalizedGuestPhone;
     const fullAddress = guestAddress.trim();
     if (!name) {
       showToast({ type: "error", message: t("checkout.guest.nameRequired", "Name is required.") });
       return;
     }
     if (!phone) {
-      showToast({ type: "error", message: t("checkout.guest.phoneRequired", "Phone is required.") });
+      showToast({ type: "error", message: t("checkout.guest.phoneInvalid", "Enter a valid phone number.") });
       return;
     }
     if (!fullAddress) {
@@ -471,6 +546,10 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
       showToast({ type: "error", message: t("checkout.messages.offline", "You are offline. Please reconnect.") });
       return;
     }
+    if (selectedPaymentType !== "COD" && !selectedPaymentMethodId) {
+      showToast({ type: "error", message: t("checkout.payment.methodRequired", "Select a saved payment method.") });
+      return;
+    }
     const idempotencyKey = ensureIdempotencyKey();
     savingRef.current = true;
     setSaving(true);
@@ -478,7 +557,8 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
       const note = deliveryNotes.trim();
       const res = await placeOrder({
         addressId: selectedAddressId,
-        paymentMethod: "COD",
+        paymentMethod: selectedPaymentType,
+        paymentMethodId: selectedPaymentMethodId || undefined,
         deliveryTermsAccepted,
         note: note ? note : undefined,
         couponCode: appliedCoupon || undefined,
@@ -642,6 +722,26 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
     );
   };
 
+  const walletLabel = (provider?: string | null) => {
+    if (!provider) return t("checkout.payment.wallet", "Wallet");
+    const key = String(provider).toUpperCase();
+    if (key === "VODAFONE_CASH") return t("checkout.payment.walletProviders.vodafone", "Vodafone Cash");
+    if (key === "ORANGE_MONEY") return t("checkout.payment.walletProviders.orange", "Orange Money");
+    if (key === "ETISALAT_CASH") return t("checkout.payment.walletProviders.etisalat", "Etisalat Cash");
+    return provider;
+  };
+
+  const formatPaymentMethod = (method: SavedPaymentMethod) => {
+    if (method.type === "WALLET") {
+      return `${walletLabel(method.walletProvider)} • ${method.walletPhone ?? ""}`.trim();
+    }
+    const brand = method.brand ? method.brand : t("checkout.payment.card", "Card");
+    const last4 = method.last4 ? `•••• ${method.last4}` : "";
+    const expiry =
+      method.expMonth && method.expYear ? `• ${String(method.expMonth).padStart(2, "0")}/${method.expYear}` : "";
+    return [brand, last4, expiry].filter(Boolean).join(" ");
+  };
+
   const renderItems = () => {
     if (loading) {
       return (
@@ -751,6 +851,28 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
         </div>
       </div>
 
+      <div className="section-card flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+            <Truck className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <p className="text-xs text-gray-500">{t("checkout.deliveryEstimate.label", "Estimated delivery fee")}</p>
+            <p className="text-sm font-semibold text-gray-900">{deliveryFeeEstimate}</p>
+          </div>
+        </div>
+        {!isGuest && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-xl"
+            onClick={() => updateAppState({ currentScreen: "addresses" })}
+          >
+            {t("checkout.deliveryEstimate.change", "Change address")}
+          </Button>
+        )}
+      </div>
+
       <div className="flex-1 overflow-y-auto space-y-4 pb-24 w-full">
         <section className="section-card space-y-3">
           <h2 className="font-semibold text-gray-900 mb-3">{t("checkout.sections.items")}</h2>
@@ -798,7 +920,7 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
                   <Label>{t("checkout.guest.phoneLabel", "Phone number")}</Label>
                   <Input
                     value={guestPhone}
-                    onChange={(e) => setGuestPhone(e.target.value)}
+                    onChange={(e) => setGuestPhone(sanitizeEgyptPhoneInput(e.target.value))}
                     placeholder={t("checkout.guest.phonePlaceholder", "Enter your phone")}
                     className="mt-1"
                   />
@@ -806,6 +928,9 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
                 <p className="text-xs text-gray-500">
                   {t("checkout.guest.phoneHint", "We will use your phone to send order updates and tracking.")}
                 </p>
+                {guestPhone && !guestPhoneValid && (
+                  <p className="text-xs text-red-600">{t("checkout.guest.phoneInvalid", "Enter a valid phone number.")}</p>
+                )}
               </div>
             </section>
             <section className="section-card space-y-3">
@@ -890,15 +1015,161 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
 
         <section className="section-card space-y-3">
           <h2 className="font-semibold text-gray-900 mb-3">{t("checkout.sections.payment")}</h2>
-          <div className="inline-card flex items-center gap-3">
-            <DollarSign className="w-5 h-5 text-primary" />
-            <div>
-              <p className="font-semibold text-gray-900">{t("checkout.payment.codOnly", "Cash on delivery")}</p>
-              <p className="text-sm text-gray-600">
-                {t("checkout.payment.codOnlyDesc", "Only cash payments are supported at the moment.")}
-              </p>
+          {isGuest ? (
+            <div className="inline-card flex items-center gap-3">
+              <DollarSign className="w-5 h-5 text-primary" />
+              <div>
+                <p className="font-semibold text-gray-900">{t("checkout.payment.codOnly", "Cash on delivery")}</p>
+                <p className="text-sm text-gray-600">
+                  {t("checkout.payment.codOnlyDesc", "Only cash payments are supported at the moment.")}
+                </p>
+              </div>
             </div>
-          </div>
+          ) : (
+            <>
+              <div className="space-y-2">
+                {codEnabled && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPaymentType("COD")}
+                    className={`w-full text-left rounded-xl border p-3 transition ${
+                      selectedPaymentType === "COD" ? "border-primary bg-primary/5" : "border-gray-200 bg-white"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <DollarSign className="w-5 h-5 text-primary" />
+                      <div>
+                        <p className="font-semibold text-gray-900">{t("checkout.payment.cod", "Cash on delivery")}</p>
+                        <p className="text-xs text-gray-500">{t("checkout.payment.codDesc", "Pay the courier on arrival.")}</p>
+                      </div>
+                    </div>
+                  </button>
+                )}
+                {cardEnabled && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPaymentType("CARD")}
+                    className={`w-full text-left rounded-xl border p-3 transition ${
+                      selectedPaymentType === "CARD" ? "border-primary bg-primary/5" : "border-gray-200 bg-white"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <CreditCard className="w-5 h-5 text-primary" />
+                      <div>
+                        <p className="font-semibold text-gray-900">{t("checkout.payment.card", "Card")}</p>
+                        <p className="text-xs text-gray-500">{t("checkout.payment.cardDesc", "Visa / Mastercard")}</p>
+                      </div>
+                    </div>
+                  </button>
+                )}
+                {walletEnabled && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPaymentType("WALLET")}
+                    className={`w-full text-left rounded-xl border p-3 transition ${
+                      selectedPaymentType === "WALLET" ? "border-primary bg-primary/5" : "border-gray-200 bg-white"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Wallet className="w-5 h-5 text-primary" />
+                      <div>
+                        <p className="font-semibold text-gray-900">{t("checkout.payment.wallet", "Wallet")}</p>
+                        <p className="text-xs text-gray-500">{t("checkout.payment.walletDesc", "Vodafone Cash and more")}</p>
+                      </div>
+                    </div>
+                  </button>
+                )}
+                {!codEnabled && !cardEnabled && !walletEnabled && (
+                  <div className="bg-amber-50 text-amber-900 text-sm rounded-xl p-3">
+                    {t("checkout.payment.disabled", "No payment methods are enabled right now.")}
+                  </div>
+                )}
+              </div>
+
+              {selectedPaymentType === "CARD" && cardEnabled && (
+                <div className="space-y-2">
+                  {paymentMethodsQuery.isLoading && (
+                    <p className="text-xs text-gray-500">{t("checkout.payment.loading", "Loading payment methods...")}</p>
+                  )}
+                  {!paymentMethodsQuery.isLoading && cardMethods.length === 0 && (
+                    <div className="bg-amber-50 text-amber-900 text-sm rounded-xl p-3">
+                      {t("checkout.payment.noCards", "No saved cards yet. Add a card to continue.")}
+                    </div>
+                  )}
+                  {cardMethods.map((method) => (
+                    <button
+                      key={method.id}
+                      type="button"
+                      onClick={() => setSelectedPaymentMethodId(method.id)}
+                      className={`w-full text-left rounded-xl border p-3 transition ${
+                        selectedPaymentMethodId === method.id ? "border-primary bg-primary/5" : "border-gray-200 bg-white"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-900">{formatPaymentMethod(method)}</span>
+                        {method.isDefault && (
+                          <Badge variant="secondary" className="text-xs">
+                            {t("checkout.payment.default", "Default")}
+                          </Badge>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-xl"
+                    onClick={() => updateAppState({ currentScreen: "payment-methods" })}
+                  >
+                    {t("checkout.payment.addCard", "Add card")}
+                  </Button>
+                </div>
+              )}
+
+              {selectedPaymentType === "WALLET" && walletEnabled && (
+                <div className="space-y-2">
+                  {paymentMethodsQuery.isLoading && (
+                    <p className="text-xs text-gray-500">{t("checkout.payment.loading", "Loading payment methods...")}</p>
+                  )}
+                  {!paymentMethodsQuery.isLoading && walletMethods.length === 0 && (
+                    <div className="bg-amber-50 text-amber-900 text-sm rounded-xl p-3">
+                      {t("checkout.payment.noWallets", "No saved wallets yet. Add one to continue.")}
+                    </div>
+                  )}
+                  {walletMethods.map((method) => (
+                    <button
+                      key={method.id}
+                      type="button"
+                      onClick={() => setSelectedPaymentMethodId(method.id)}
+                      className={`w-full text-left rounded-xl border p-3 transition ${
+                        selectedPaymentMethodId === method.id ? "border-primary bg-primary/5" : "border-gray-200 bg-white"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-900">{formatPaymentMethod(method)}</span>
+                        {method.isDefault && (
+                          <Badge variant="secondary" className="text-xs">
+                            {t("checkout.payment.default", "Default")}
+                          </Badge>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                  <div className="text-xs text-gray-500">
+                    {enabledWalletProviders.map((provider) => provider.label).join(" • ")}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-xl"
+                    onClick={() => updateAppState({ currentScreen: "payment-methods" })}
+                  >
+                    {t("checkout.payment.addWallet", "Add wallet")}
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
         </section>
 
         {loyaltyEnabled && (

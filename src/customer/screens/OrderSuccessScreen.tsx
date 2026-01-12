@@ -197,7 +197,11 @@ export function OrderSuccessScreen({ appState, updateAppState }: OrderSuccessScr
               <div className="flex items-center gap-2">
                 <CreditCard className="w-4 h-4 text-gray-500" />
                 <span className="text-sm text-gray-700">
-                  {detailOrder?.paymentMethod === "COD" ? t("checkout.payment.cod") : t("checkout.payment.card")}
+                  {detailOrder?.paymentMethod === "COD"
+                    ? t("checkout.payment.cod")
+                    : detailOrder?.paymentMethod === "WALLET"
+                      ? t("checkout.payment.wallet", "Wallet")
+                      : t("checkout.payment.card")}
                 </span>
               </div>
             </>

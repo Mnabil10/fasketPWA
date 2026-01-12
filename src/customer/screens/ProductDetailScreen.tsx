@@ -24,7 +24,7 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
   const productKey = selected?.id || selected?.slug || null;
   const hasInitial = selected?.id && selected?.name && selected?.priceCents !== undefined;
 
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { showToast } = useToast();
   const cart = useCart({ userId: appState.user?.id });
   const apiErrorToast = useApiErrorToast("cart.updateError");
@@ -91,6 +91,14 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
     if (stock < 3) return t("product.stock.low", { count: stock });
     return t("product.stock.in");
   }, [product?.stock, t]);
+
+  const description = useMemo(() => {
+    const lang = i18n.language?.startsWith("ar") ? "ar" : "en";
+    if (lang === "ar") {
+      return product?.descriptionAr || product?.description || "";
+    }
+    return product?.description || product?.descriptionAr || "";
+  }, [i18n.language, product?.description, product?.descriptionAr]);
 
   useEffect(() => {
     const maxQty = Math.max(0, product?.stock ?? 99);
@@ -323,7 +331,7 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
                 {etaLabel}
               </Badge>
             </div>
-            <p className="text-sm text-gray-600">{t("product.descriptionFallback")}</p>
+            <p className="text-sm text-gray-600">{description || t("product.descriptionFallback")}</p>
           </div>
 
           <div className="flex items-center justify-between mb-4 bg-white rounded-2xl p-4 border shadow-card">

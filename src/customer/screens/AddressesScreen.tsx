@@ -5,6 +5,7 @@ import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
 import { Textarea } from "../../ui/textarea";
 import { Separator } from "../../ui/separator";
+import { Switch } from "../../ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../../ui/dialog";
 import {
   AlertDialog,
@@ -60,9 +61,12 @@ export function AddressesScreen({ appState, updateAppState }: AddressesScreenPro
     createAddress,
     updateAddress,
     deleteAddress,
+    setDefaultAddress,
     creating,
     updating,
     deletingId,
+    settingDefault,
+    settingDefaultId,
   } = useAddresses();
   const deliveryZonesQuery = useDeliveryZones();
   const deliveryZones = deliveryZonesQuery.data?.data ?? [];
@@ -227,6 +231,15 @@ export function AddressesScreen({ appState, updateAppState }: AddressesScreenPro
     }
   };
 
+  const onSetDefault = async (id: string) => {
+    try {
+      await setDefaultAddress(id);
+      showToast({ type: "success", message: t("addresses.success.defaultSet", "Default address updated.") });
+    } catch (e: any) {
+      apiErrorToast(e, "addresses.error.default");
+    }
+  };
+
   const openCreate = () => {
     setEditingId(null);
     setForm(emptyForm);
@@ -285,6 +298,19 @@ export function AddressesScreen({ appState, updateAppState }: AddressesScreenPro
           {shippingInfo && <p className="text-xs text-gray-500 mt-1">{shippingInfo}</p>}
         </div>
         <div className="flex gap-2">
+          {!address.isDefault && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-primary"
+              disabled={settingDefault || settingDefaultId === address.id || isOffline}
+              onClick={() => onSetDefault(address.id)}
+            >
+              {settingDefaultId === address.id
+                ? t("addresses.buttons.settingDefault", "Setting...")
+                : t("addresses.buttons.setDefault", "Set default")}
+            </Button>
+          )}
           <Button variant="outline" size="sm" className="rounded-lg" onClick={() => openEdit(address)} disabled={isOffline}>
             {t("addresses.buttons.edit")}
           </Button>
@@ -492,6 +518,16 @@ export function AddressesScreen({ appState, updateAppState }: AddressesScreenPro
                   onChange={(e) => setForm((f) => ({ ...f, apartment: e.target.value }))}
                 />
               </div>
+            </div>
+            <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3">
+              <div>
+                <p className="text-sm font-medium text-gray-900">{t("addresses.form.defaultLabel", "Set as default")}</p>
+                <p className="text-xs text-gray-500">{t("addresses.form.defaultHint", "Used automatically for checkout")}</p>
+              </div>
+              <Switch
+                checked={form.isDefault ?? false}
+                onCheckedChange={(checked) => setForm((prev) => ({ ...prev, isDefault: checked }))}
+              />
             </div>
           </div>
 

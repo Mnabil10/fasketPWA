@@ -326,6 +326,7 @@ function normalizeOrderReceipt(payload: any): OrderReceipt {
         return {
           productId: item.productId,
           productName: item.productName,
+          productNameAr: item.productNameAr ?? null,
           quantity,
           unitPriceCents,
           lineTotalCents: item.lineTotalCents ?? item.totalPriceCents ?? unitPriceCents * quantity,

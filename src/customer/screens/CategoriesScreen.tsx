@@ -9,7 +9,7 @@ import { AppState, type UpdateAppState } from "../CustomerApp";
 import { useToast } from "../providers/ToastProvider";
 import { ImageWithFallback } from "../../figma/ImageWithFallback";
 import { NetworkBanner, ProductCard, ProductCardSkeleton, EmptyState, RetryBlock } from "../components";
-import { useCategories, useProducts, useSearchHistory, useCart, useApiErrorToast } from "../hooks";
+import { useCategories, useProducts, useSearchHistory, useCart, useCartGuard, useApiErrorToast } from "../hooks";
 import type { Category, Product } from "../../types/api";
 import { goToCategory, goToHome, goToProduct } from "../navigation/navigation";
 import { trackAddToCart } from "../../lib/analytics";
@@ -29,6 +29,7 @@ export function CategoriesScreen({ appState, updateAppState }: CategoriesScreenP
   const [selectedFilter, setSelectedFilter] = useState<"all" | "popular" | "trending">("all");
   const { history, addQuery, clearHistory } = useSearchHistory("categories");
   const cart = useCart({ userId: appState.user?.id });
+  const cartGuard = useCartGuard(cart);
   const selectedProvider = appState.selectedProvider ?? null;
   const providerId = selectedProvider?.id ?? null;
 
@@ -57,9 +58,11 @@ export function CategoriesScreen({ appState, updateAppState }: CategoriesScreenP
 
   const handleAddProduct = async (product: Product) => {
     try {
-      await cart.addProduct(product);
-      trackAddToCart(product.id, 1);
-      showToast({ type: "success", message: t("products.buttons.added") });
+      const added = await cartGuard.requestAdd(product, 1, undefined, () => {
+        trackAddToCart(product.id, 1);
+        showToast({ type: "success", message: t("products.buttons.added") });
+      });
+      if (!added) return;
     } catch (error: any) {
       apiErrorToast(error, "products.error");
     }
@@ -93,6 +96,7 @@ export function CategoriesScreen({ appState, updateAppState }: CategoriesScreenP
           />
         </div>
         <MobileNav appState={appState} updateAppState={updateAppState} />
+        {cartGuard.dialog}
       </div>
     );
   }
@@ -291,6 +295,7 @@ export function CategoriesScreen({ appState, updateAppState }: CategoriesScreenP
       </div>
 
       <MobileNav appState={appState} updateAppState={updateAppState} />
+      {cartGuard.dialog}
     </div>
   );
 }

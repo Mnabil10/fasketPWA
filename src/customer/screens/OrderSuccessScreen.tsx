@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
+import dayjs from "dayjs";
 import { useTranslation } from "react-i18next";
 import { Button } from "../../ui/button";
 import { Badge } from "../../ui/badge";
 import { CheckCircle, Clock, MapPin, Phone, Star, CreditCard, MessageCircle } from "lucide-react";
 import { AppState, type UpdateAppState } from "../CustomerApp";
-import { useProducts, useCart, useApiErrorToast } from "../hooks";
+import { useProducts, useCart, useCartGuard, useApiErrorToast } from "../hooks";
 import type { OrderDetail, OrderGroupSummary, Product } from "../../types/api";
 import { fmtEGP, fromCents } from "../../lib/money";
 import { NetworkBanner, ProductCard, ProductCardSkeleton } from "../components";
@@ -39,6 +40,7 @@ export function OrderSuccessScreen({ appState, updateAppState }: OrderSuccessScr
   );
   const [showConfetti, setShowConfetti] = useState(true);
   const cart = useCart({ userId: appState.user?.id });
+  const cartGuard = useCartGuard(cart);
   const apiErrorToast = useApiErrorToast("cart.updateError");
 
   useEffect(() => {
@@ -82,6 +84,32 @@ export function OrderSuccessScreen({ appState, updateAppState }: OrderSuccessScr
     }
     return t("orderSuccess.etaFallback");
   }, [order, detailOrder?.deliveryEstimateMinutes, t]);
+
+  const scheduledLabel = useMemo(() => {
+    if (!detailOrder) return null;
+    if (!detailOrder.scheduledAt && !detailOrder.deliveryWindowId && !detailOrder.deliveryWindow) return null;
+    const window = detailOrder.deliveryWindow ?? null;
+    const windowName = window
+      ? lang === "ar"
+        ? window.nameAr || window.name
+        : window.name || window.nameAr
+      : null;
+    const startLabel =
+      window && typeof window.startMinutes === "number"
+        ? dayjs().startOf("day").add(window.startMinutes, "minute").format("HH:mm")
+        : null;
+    const endLabel =
+      window && typeof window.endMinutes === "number"
+        ? dayjs().startOf("day").add(window.endMinutes, "minute").format("HH:mm")
+        : null;
+    const range = startLabel && endLabel ? `${startLabel} - ${endLabel}` : null;
+    const windowLabel = windowName && range ? `${windowName} ${range}` : windowName || range;
+    const scheduledAtLabel = detailOrder.scheduledAt
+      ? dayjs(detailOrder.scheduledAt).format(t("orders.dateFormat", "DD MMM YYYY - HH:mm"))
+      : null;
+    if (scheduledAtLabel && windowLabel) return `${scheduledAtLabel} (${windowLabel})`;
+    return scheduledAtLabel || windowLabel;
+  }, [detailOrder, lang, t]);
 
   const addressLine = useMemo(() => {
     if (detailOrder?.address) {
@@ -142,9 +170,11 @@ export function OrderSuccessScreen({ appState, updateAppState }: OrderSuccessScr
 
   const handleAddRecommendation = async (product: Product) => {
     try {
-      await cart.addProduct(product);
-      trackAddToCart(product.id, 1);
-      showToast({ type: "success", message: t("products.buttons.added") });
+      const added = await cartGuard.requestAdd(product, 1, undefined, () => {
+        trackAddToCart(product.id, 1);
+        showToast({ type: "success", message: t("products.buttons.added") });
+      });
+      if (!added) return;
     } catch (error: any) {
       apiErrorToast(error, "cart.updateError");
     }
@@ -185,6 +215,14 @@ export function OrderSuccessScreen({ appState, updateAppState }: OrderSuccessScr
             <Clock className="w-4 h-4 text-gray-500" />
             <span className="text-sm text-gray-700">{t("orderSuccess.estimated")} {etaText}</span>
           </div>
+          {!isGroup && scheduledLabel && (
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-gray-500" />
+              <span className="text-sm text-gray-700">
+                {t("orderSuccess.scheduledLabel", "Scheduled delivery")}: {scheduledLabel}
+              </span>
+            </div>
+          )}
           {!isGroup && (
             <>
               <div className="flex items-start gap-2">
@@ -310,6 +348,7 @@ export function OrderSuccessScreen({ appState, updateAppState }: OrderSuccessScr
           ) : null}
         </div>
       </div>
+      {cartGuard.dialog}
     </div>
   );
 }

@@ -27,6 +27,9 @@
     "cartProductUnavailable": "عنصر واحد أو أكثر غير متوفر.",
     "cartProductOutOfStock": "هذا المنتج غير متوفر حالياً.",
     "cartProviderUnavailable": "هذا المزوّد غير متاح حالياً.",
+    "cartProviderMismatch": "سلتك تحتوي على عناصر من مزود آخر.",
+    "cartBranchMismatch": "سلتك تحتوي على عناصر من فرع آخر.",
+    "cartOptionsInvalid": "الخيارات المحددة غير متاحة.",
     "loyaltyNotEnoughPoints": "ليس لديك ما يكفي من النقاط لاسترداد هذا المبلغ.",
     "loyaltyDisabled": "نقاط الولاء غير متوفرة حاليًا.",
     "orderNotFound": "لم نتمكن من العثور على هذا الطلب.",
@@ -37,6 +40,8 @@
     "addressZoneInactive": "منطقة التوصيل هذه غير متاحة حاليًا.",
     "addressZoneRequired": "يرجى اختيار منطقة توصيل.",
     "checkoutAddressRequired": "اختر عنوانًا لحساب رسوم الشحن.",
+    "deliveryWindowRequired": "يرجى اختيار موعد للتوصيل.",
+    "deliveryWindowInvalid": "موعد التوصيل المحدد غير متاح.",
     "deliveryTermsNotAccepted": "يرجى الموافقة على شروط التوصيل للمتابعة.",
     "loyaltyRuleViolation": "لا يمكن استخدام هذه النقاط على هذا الطلب.",
     "otpRateLimit": "يرجى الانتظار قبل طلب رمز جديد.",
@@ -47,9 +52,9 @@
     "otpTooManyAttempts": "عدد محاولات كبير. حاول مرة أخرى لاحقًا.",
     "otpLocked": "عدد محاولات كبير. حاول مرة أخرى لاحقًا.",
     "paymentMethodDisabled": "طريقة الدفع هذه غير متاحة حالياً.",
-    "driverInactive": "?????? ??? ???? ??????.",
-    "driverNotFound": "?????? ??? ?????.",
-    "validationFailed": "???? ?????? ?? ????????? ????????? ??? ????."
+    "driverInactive": "السائق غير متاح حالياً.",
+    "driverNotFound": "لم يتم العثور على السائق.",
+    "validationFailed": "يرجى مراجعة البيانات والمحاولة مرة أخرى."
   },
   "nav": {
     "home": "الرئيسية",
@@ -127,7 +132,8 @@
     "errorLogin": "تعذّر تسجيل الدخول. تأكّد من البيانات وحاول مرة أخرى.",
     "errorRegister": "تعذّر إنشاء الحساب. يرجى المحاولة لاحقًا.",
     "passwordMinLength": "يجب أن تكون كلمة المرور 8 أحرف على الأقل وتحتوي على حروف وأرقام.",
-    "sessionExpired": "انتهت الجلسة، يرجى تسجيل الدخول مرة أخرى."
+    "sessionExpired": "انتهت الجلسة، يرجى تسجيل الدخول مرة أخرى.",
+    "sessionMissing": "جلسة التسجيل غير متاحة. يرجى البدء من جديد."
   },
   "home": {
     "greeting": "مرحبًا {{name}}!",
@@ -270,6 +276,20 @@
       "out": "غير متوفر"
     }
   },
+  "productOptions": {
+    "title": "الخيارات",
+    "optional": "اختياري",
+    "chooseExactly": "اختر {{count}}",
+    "chooseBetween": "اختر بين {{min}} و{{max}}",
+    "chooseAtLeast": "اختر على الأقل {{min}}",
+    "chooseUpTo": "اختر حتى {{max}}",
+    "required": "مطلوب",
+    "add": "إضافة",
+    "addonsTotal": "الإضافات {{value}}",
+    "maxSelectedLimit": "يمكنك اختيار حتى {{max}} خيار.",
+    "requiredGroup": "اختر الخيارات المطلوبة لـ {{group}}.",
+    "tooManyGroup": "تم اختيار عدد خيارات زائد لـ {{group}}."
+  },
   "cart": {
     "title": "سلة التسوق",
     "emptyTitle": "سلتك فارغة",
@@ -279,6 +299,12 @@
     "checkout": "متابعة الدفع",
     "loading": "جارٍ تحميل سلتك...",
     "clear": "مسح السلة",
+    "conflict": {
+      "title": "استبدال السلة؟",
+      "message": "سلتك تحتوي بالفعل على عناصر من مزود آخر. قم بتفريغها لإضافة هذا العنصر.",
+      "clearAction": "تفريغ السلة",
+      "clearFailed": "تعذر تفريغ السلة. يرجى المحاولة مرة أخرى."
+    },
     "loadError": "تعذّر تحميل محتويات السلة. حاول مرة أخرى.",
     "imageUnavailable": "الصورة غير متاحة",
     "localSummaryNote": "هذه العناصر محفوظة على هذا الجهاز فقط. سجّل الدخول لمزامنة سلتك.",
@@ -434,6 +460,18 @@
       "guest": "البيانات",
       "location": "الموقع"
     },
+    "deliveryWindow": {
+      "title": "وقت التوصيل",
+      "asap": "في أسرع وقت",
+      "asapDesc": "توصيل في أسرع وقت ممكن.",
+      "schedule": "جدولة",
+      "scheduleDesc": "اختر موعداً للتوصيل.",
+      "select": "اختر موعداً للتوصيل",
+      "loading": "جاري تحميل المواعيد...",
+      "noSlots": "لا توجد مواعيد توصيل متاحة حالياً.",
+      "required": "يرجى اختيار موعد للتوصيل.",
+      "selectedLabel": "مجدول"
+    },
     "trust": {
       "title": "خدمة موثوقة يديرها فريق فاسكت",
       "support": "فريق الدعم متاح لمساعدتك في أي وقت."
@@ -535,6 +573,7 @@
     "paymentMethod": "طريقة الدفع",
     "quantity": "الكمية: {{count}}",
     "deliveryZone": "منطقة التسليم",
+    "scheduledLabel": "موعد توصيل مجدول",
     "driver": "سائق",
     "loyaltyDiscount": "خصم الولاء",
     "pointsEarned": "النقاط المكتسبة",
@@ -551,6 +590,7 @@
     "title": "تم إرسال طلبك بنجاح!",
     "subtitle": "شكرًا لاختيارك فاسكت.",
     "estimated": "الوقت المتوقع للتسليم",
+    "scheduledLabel": "موعد توصيل مجدول",
     "address": "عنوان التوصيل",
     "total": "الإجمالي",
     "buttons": {

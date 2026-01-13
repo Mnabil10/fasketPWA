@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Textarea } from "../../ui/textarea";
@@ -12,6 +13,7 @@ import { ImageWithFallback } from "../../figma/ImageWithFallback";
 import { useToast } from "../providers/ToastProvider";
 import { useAddresses, useCart, useNetworkStatus, useApiErrorToast, usePaymentMethods } from "../hooks";
 import { placeGuestOrder, placeOrder, quoteGuestOrder, type GuestOrderQuote } from "../../services/orders";
+import { getDeliveryWindows } from "../../services/settings";
 import { fmtEGP, fromCents } from "../../lib/money";
 import type { Address, OrderDetail, OrderGroupSummary, SavedPaymentMethod } from "../../types/api";
 import { NetworkBanner, EmptyState, RetryBlock, LocationPicker } from "../components";
@@ -28,9 +30,19 @@ interface CheckoutScreenProps {
   updateAppState: UpdateAppState;
 }
 
+type DeliverySlot = {
+  id: string;
+  dateKey: string;
+  dateLabel: string;
+  timeLabel: string;
+  windowId: string;
+  scheduledAt: string;
+};
+
 export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps) {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
+  const lang = i18n.language?.startsWith("ar") ? "ar" : "en";
   const isGuest = !appState.user;
   const guestCheckoutEnabled = isFeatureEnabled(appState.settings?.mobileApp, "guestCheckout", true);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
@@ -73,6 +85,8 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
   const [deliveryTermsAccepted, setDeliveryTermsAccepted] = useState(false);
   const [selectedPaymentType, setSelectedPaymentType] = useState<"COD" | "CARD" | "WALLET">("COD");
   const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string | null>(null);
+  const [deliveryMode, setDeliveryMode] = useState<"ASAP" | "SCHEDULED">("ASAP");
+  const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
 
   const parseCoordinate = (value: string) => {
     const trimmed = value.trim();
@@ -110,6 +124,7 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
         productId: item.productId,
         qty: item.quantity,
         branchId: item.branchId ?? item.product?.branchId ?? null,
+        options: item.options?.map((opt) => ({ optionId: opt.optionId, qty: opt.qty })) ?? undefined,
       })),
     [previewItems]
   );
@@ -165,6 +180,100 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
       ? true
       : Boolean(serverCart?.delivery?.requiresLocation || cartGroups.some((group) => group.deliveryRequiresLocation))
     : false;
+  const scheduleProviderId = cart.cartProviderId ?? null;
+  const scheduleBranchId = cart.cartBranchId ?? null;
+  const canSchedule = !cart.cartScopeMixed && Boolean(scheduleProviderId || scheduleBranchId);
+  const deliveryWindowsQuery = useQuery({
+    queryKey: ["delivery-windows", scheduleProviderId ?? "none", scheduleBranchId ?? "none"],
+    queryFn: () =>
+      getDeliveryWindows({
+        providerId: scheduleProviderId ?? undefined,
+        branchId: scheduleBranchId ?? undefined,
+      }),
+    enabled: canSchedule && !isOffline,
+    staleTime: 2 * 60 * 1000,
+  });
+  const deliveryWindows = deliveryWindowsQuery.data?.data ?? [];
+  const scheduleLoading = deliveryWindowsQuery.isLoading || deliveryWindowsQuery.isFetching;
+  const showScheduleSection = canSchedule && (scheduleLoading || deliveryWindows.length > 0);
+  const availableSlots = useMemo<DeliverySlot[]>(() => {
+    if (!canSchedule || !deliveryWindows.length) return [];
+    const locale = i18n.language?.startsWith("ar") ? "ar-EG" : "en-US";
+    const formatTime = (date: Date) =>
+      date.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
+    const formatDate = (date: Date) =>
+      date.toLocaleDateString(locale, { weekday: "short", month: "short", day: "numeric" });
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const slots: DeliverySlot[] = [];
+    for (let offset = 0; offset < 7; offset += 1) {
+      const date = new Date(startOfDay);
+      date.setDate(date.getDate() + offset);
+      const day = date.getDay();
+      const dateKey = date.toISOString().slice(0, 10);
+      for (const window of deliveryWindows) {
+        if (Array.isArray(window.daysOfWeek) && window.daysOfWeek.length > 0 && !window.daysOfWeek.includes(day)) {
+          continue;
+        }
+        if (window.minOrderAmountCents && subtotalCents < window.minOrderAmountCents) {
+          continue;
+        }
+        const start = new Date(date);
+        start.setHours(0, 0, 0, 0);
+        start.setMinutes(window.startMinutes);
+        const end = new Date(date);
+        end.setHours(0, 0, 0, 0);
+        end.setMinutes(window.endMinutes);
+        const leadMinutes = window.minLeadMinutes ?? 0;
+        const earliest = new Date(now.getTime() + leadMinutes * 60 * 1000);
+        if (start < earliest) continue;
+        const timeLabel = `${formatTime(start)} - ${formatTime(end)}`;
+        slots.push({
+          id: `${window.id}:${dateKey}`,
+          dateKey,
+          dateLabel: formatDate(date),
+          timeLabel,
+          windowId: window.id,
+          scheduledAt: start.toISOString(),
+        });
+      }
+    }
+    return slots.sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt));
+  }, [canSchedule, deliveryWindows, i18n.language, subtotalCents]);
+  const scheduleReady = canSchedule && !scheduleLoading;
+  const scheduleDisabled = scheduleReady && availableSlots.length === 0;
+  const selectedSlot = useMemo(
+    () => availableSlots.find((slot) => slot.id === selectedSlotId) ?? null,
+    [availableSlots, selectedSlotId]
+  );
+  const slotsByDate = useMemo(() => {
+    const grouped = new Map<string, { dateKey: string; dateLabel: string; slots: DeliverySlot[] }>();
+    availableSlots.forEach((slot) => {
+      if (!grouped.has(slot.dateKey)) {
+        grouped.set(slot.dateKey, { dateKey: slot.dateKey, dateLabel: slot.dateLabel, slots: [] });
+      }
+      grouped.get(slot.dateKey)!.slots.push(slot);
+    });
+    return Array.from(grouped.values());
+  }, [availableSlots]);
+
+  useEffect(() => {
+    if (deliveryMode === "ASAP") {
+      setSelectedSlotId(null);
+    }
+  }, [deliveryMode]);
+
+  useEffect(() => {
+    if (deliveryMode === "SCHEDULED" && scheduleDisabled) {
+      setDeliveryMode("ASAP");
+    }
+  }, [deliveryMode, scheduleDisabled]);
+
+  useEffect(() => {
+    if (selectedSlotId && !selectedSlot) {
+      setSelectedSlotId(null);
+    }
+  }, [selectedSlotId, selectedSlot]);
   const cardMethods = useMemo(
     () => paymentMethods.filter((method) => method.type === "CARD"),
     [paymentMethods]
@@ -348,6 +457,8 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
     quoteGuestOrder({
       items: guestItems,
       address: addressPayload,
+      deliveryWindowId: deliveryMode === "SCHEDULED" && selectedSlot ? selectedSlot.windowId : undefined,
+      scheduledAt: deliveryMode === "SCHEDULED" && selectedSlot ? selectedSlot.scheduledAt : undefined,
     })
       .then((quote) => {
         if (guestQuoteRef.current !== requestId) return;
@@ -372,6 +483,9 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
     debouncedGuestLng,
     distancePricingEnabled,
     isOffline,
+    deliveryMode,
+    selectedSlot?.scheduledAt,
+    selectedSlot?.windowId,
   ]);
 
   const selectedAddress = useMemo(() => {
@@ -446,6 +560,10 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
       showToast({ type: "error", message: t("checkout.messages.missingLocation", "Location is required for delivery.") });
       return;
     }
+    if (deliveryMode === "SCHEDULED" && !selectedSlot) {
+      showToast({ type: "error", message: t("checkout.deliveryWindow.required", "Select a delivery time slot.") });
+      return;
+    }
     if (isOffline) {
       showToast({ type: "error", message: t("checkout.messages.offline", "You are offline. Please reconnect.") });
       return;
@@ -470,6 +588,8 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
         idempotencyKey,
         items: guestItems,
         address: addressPayload,
+        deliveryWindowId: deliveryMode === "SCHEDULED" && selectedSlot ? selectedSlot.windowId : undefined,
+        scheduledAt: deliveryMode === "SCHEDULED" && selectedSlot ? selectedSlot.scheduledAt : undefined,
       });
       cart.clearLocal();
       const isGroup = isOrderGroupSummary(res);
@@ -542,6 +662,10 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
       showToast({ type: "error", message: t("checkout.messages.missingZone") });
       return;
     }
+    if (deliveryMode === "SCHEDULED" && !selectedSlot) {
+      showToast({ type: "error", message: t("checkout.deliveryWindow.required", "Select a delivery time slot.") });
+      return;
+    }
     if (isOffline) {
       showToast({ type: "error", message: t("checkout.messages.offline", "You are offline. Please reconnect.") });
       return;
@@ -564,6 +688,8 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
         couponCode: appliedCoupon || undefined,
         loyaltyPointsToRedeem: loyaltyEnabled && loyaltyToRedeem > 0 ? loyaltyToRedeem : undefined,
         idempotencyKey,
+        deliveryWindowId: deliveryMode === "SCHEDULED" && selectedSlot ? selectedSlot.windowId : undefined,
+        scheduledAt: deliveryMode === "SCHEDULED" && selectedSlot ? selectedSlot.scheduledAt : undefined,
       });
       await cart.refetch();
       const isGroup = isOrderGroupSummary(res);
@@ -677,7 +803,6 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
   };
 
   const renderAddress = (address: Address) => {
-    const lang = i18n.language?.startsWith("ar") ? "ar" : "en";
     const zoneName = address.deliveryZone
       ? (lang === "ar" ? address.deliveryZone.nameAr || address.deliveryZone.nameEn : address.deliveryZone.nameEn || address.deliveryZone.nameAr)
       : address.zone;
@@ -691,7 +816,7 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
             : null,
         ]
           .filter(Boolean)
-          .join(" • ")
+          .join(" - ")
       : null;
     const isSelected = selectedAddressId === address.id;
 
@@ -733,12 +858,12 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
 
   const formatPaymentMethod = (method: SavedPaymentMethod) => {
     if (method.type === "WALLET") {
-      return `${walletLabel(method.walletProvider)} • ${method.walletPhone ?? ""}`.trim();
+      return [walletLabel(method.walletProvider), method.walletPhone].filter(Boolean).join(" - ");
     }
     const brand = method.brand ? method.brand : t("checkout.payment.card", "Card");
-    const last4 = method.last4 ? `•••• ${method.last4}` : "";
+    const last4 = method.last4 ? `**** ${method.last4}` : "";
     const expiry =
-      method.expMonth && method.expYear ? `• ${String(method.expMonth).padStart(2, "0")}/${method.expYear}` : "";
+      method.expMonth && method.expYear ? `exp ${String(method.expMonth).padStart(2, "0")}/${method.expYear}` : "";
     return [brand, last4, expiry].filter(Boolean).join(" ");
   };
 
@@ -771,6 +896,16 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
       <div className="space-y-3">
         {previewItems.map((item) => {
           const price = item.price;
+          const optionLines =
+            item.options?.map((opt) => {
+              const optionName = lang === "ar" ? opt.nameAr || opt.name : opt.name || opt.nameAr;
+              const groupName = lang === "ar" ? opt.groupNameAr || opt.groupName : opt.groupName || opt.groupNameAr;
+              const safeOption = optionName || "";
+              const safeGroup = groupName || "";
+              const name = safeGroup ? `${safeGroup}: ${safeOption}` : safeOption;
+              const qtyLabel = opt.qty > 1 ? ` x${opt.qty}` : "";
+              return { id: opt.optionId, label: `${name}${qtyLabel}`.trim() };
+            }) ?? [];
           return (
             <div key={item.id} className="bg-white rounded-xl p-3 shadow-sm flex gap-3 border border-border">
               <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100">
@@ -785,6 +920,13 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
                 <p className="text-sm text-gray-500">
                   {item.quantity} x {fmtEGP(price)}
                 </p>
+                {optionLines.length > 0 && (
+                  <div className="mt-2 space-y-1 text-xs text-gray-500">
+                    {optionLines.map((line) => (
+                      <div key={line.id}>- {line.label}</div>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="font-semibold text-gray-900">{fmtEGP(price * item.quantity)}</div>
             </div>
@@ -1013,6 +1155,103 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
           </>
         )}
 
+        {showScheduleSection && (
+          <section className="section-card space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="font-semibold text-gray-900">{t("checkout.deliveryWindow.title", "Delivery time")}</h2>
+              {scheduleLoading && (
+                <span className="text-xs text-gray-500">
+                  {t("checkout.deliveryWindow.loading", "Loading slots...")}
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setDeliveryMode("ASAP")}
+                className={`w-full text-left rounded-xl border p-3 transition ${
+                  deliveryMode === "ASAP" ? "border-primary bg-primary/5" : "border-gray-200 bg-white"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Clock className="w-5 h-5 text-primary" />
+                  <div>
+                    <p className="font-semibold text-gray-900">{t("checkout.deliveryWindow.asap", "ASAP")}</p>
+                    <p className="text-xs text-gray-500">
+                      {t("checkout.deliveryWindow.asapDesc", "Deliver as soon as possible.")}
+                    </p>
+                  </div>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDeliveryMode("SCHEDULED")}
+                disabled={scheduleDisabled || scheduleLoading}
+                className={`w-full text-left rounded-xl border p-3 transition ${
+                  deliveryMode === "SCHEDULED" ? "border-primary bg-primary/5" : "border-gray-200 bg-white"
+                } ${scheduleDisabled || scheduleLoading ? "opacity-60 cursor-not-allowed" : ""}`}
+              >
+                <div className="flex items-center gap-3">
+                  <Clock className="w-5 h-5 text-primary" />
+                  <div>
+                    <p className="font-semibold text-gray-900">{t("checkout.deliveryWindow.schedule", "Schedule")}</p>
+                    <p className="text-xs text-gray-500">
+                      {t("checkout.deliveryWindow.scheduleDesc", "Pick a delivery slot.")}
+                    </p>
+                  </div>
+                </div>
+              </button>
+            </div>
+            {scheduleReady && availableSlots.length === 0 && (
+              <div className="bg-amber-50 text-amber-900 text-xs rounded-xl p-2 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4" />
+                {t("checkout.deliveryWindow.noSlots", "No delivery slots available right now.")}
+              </div>
+            )}
+            {deliveryMode === "SCHEDULED" && !scheduleDisabled && (
+              <div className="space-y-3">
+                <p className="text-xs text-gray-500">
+                  {t("checkout.deliveryWindow.select", "Select a time slot")}
+                </p>
+                {scheduleLoading && availableSlots.length === 0 ? (
+                  <div className="space-y-2">
+                    {Array.from({ length: 3 }).map((_, idx) => (
+                      <Skeleton key={idx} className="h-10 w-full skeleton-soft" />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {slotsByDate.map((group) => (
+                      <div key={group.dateKey} className="space-y-2">
+                        <p className="text-xs font-semibold text-gray-500 uppercase">{group.dateLabel}</p>
+                        <div className="flex flex-wrap gap-2">
+                          {group.slots.map((slot) => {
+                            const isSelected = selectedSlotId === slot.id;
+                            return (
+                              <button
+                                key={slot.id}
+                                type="button"
+                                onClick={() => setSelectedSlotId(slot.id)}
+                                className={`px-3 py-2 rounded-full border text-xs font-medium transition ${
+                                  isSelected
+                                    ? "border-primary bg-primary/10 text-primary"
+                                    : "border-gray-200 bg-white text-gray-700"
+                                }`}
+                              >
+                                {slot.timeLabel}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+        )}
+
         <section className="section-card space-y-3">
           <h2 className="font-semibold text-gray-900 mb-3">{t("checkout.sections.payment")}</h2>
           {isGuest ? (
@@ -1156,7 +1395,7 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
                     </button>
                   ))}
                   <div className="text-xs text-gray-500">
-                    {enabledWalletProviders.map((provider) => provider.label).join(" • ")}
+                    {enabledWalletProviders.map((provider) => provider.label).join(", ")}
                   </div>
                   <Button
                     variant="outline"
@@ -1332,6 +1571,15 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
                   : t("checkout.summary.etaUnknown")}
             </span>
           </div>
+          {deliveryMode === "SCHEDULED" && selectedSlot && (
+            <div className="flex items-center justify-between text-sm text-gray-600">
+              <span className="flex items-center gap-1">
+                <Clock className="w-4 h-4" />
+                {t("checkout.deliveryWindow.selectedLabel", "Scheduled")}
+              </span>
+              <span>{selectedSlot.dateLabel} {selectedSlot.timeLabel}</span>
+            </div>
+          )}
           {couponDiscount > 0 && (
             <div className="flex items-center justify-between text-sm text-green-600">
               <span>{t("checkout.summary.discount", "Discount")}</span>

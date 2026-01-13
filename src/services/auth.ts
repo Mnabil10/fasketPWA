@@ -31,31 +31,6 @@ export type OtpRequestResponse = {
   requestId?: string;
   resendAfterSeconds?: number;
 };
-export type SignupSessionStartResponse = {
-  signupSessionToken: string;
-  signupSessionId: string;
-  expiresInSeconds?: number;
-  next?: { requiresTelegramLink?: boolean; telegramOnly?: boolean };
-};
-export type SignupLinkTokenResponse = { linkToken: string; telegramLinkToken: string; deeplink: string; expiresInSeconds?: number };
-export type SignupLinkStatusResponse = { linked: boolean; telegramChatIdMasked?: string };
-export type SignupOtpResponse = { channel?: string; expiresInSeconds?: number; requestId?: string };
-export type SignupVerifyResponse = {
-  accessToken: string | null;
-  refreshToken: string | null;
-  expiresInSeconds?: number;
-  user?: UserProfile | null;
-};
-
-function ensureSuccess<T extends Record<string, any>>(payload: T): T {
-  if (payload && typeof payload === "object" && (payload as any).success === false) {
-    const message = (payload as any).message || (payload as any).error || "Request failed";
-    const err: any = new Error(message);
-    err.code = (payload as any).error;
-    throw err;
-  }
-  return payload;
-}
 
 export async function authLogin(body: LoginBody): Promise<AuthResponse> {
   const identifier = (body.identifier || body.phoneOrEmail || "").trim();
@@ -107,96 +82,6 @@ export async function authSignupStart(body: RegisterBody): Promise<SignupStartRe
     otpId: (data as any)?.otpId ?? (data as any)?.otp_id ?? "",
     expiresInSeconds: (data as any)?.expiresInSeconds,
     phone: body.phone,
-  };
-}
-
-export async function authSignupStartSession(body: {
-  fullName: string;
-  phone: string;
-  country: string;
-}): Promise<SignupSessionStartResponse> {
-  const { data } = await api.post(
-    "/auth/signup/start-session",
-    {
-      phone: body.phone,
-      country: body.country,
-      fullName: body.fullName,
-    },
-    { skipAuth: true }
-  );
-  ensureSuccess(data as any);
-  return {
-    signupSessionToken: (data as any)?.signupSessionToken ?? (data as any)?.signup_session_token ?? "",
-    signupSessionId:
-      (data as any)?.signupSessionId ?? (data as any)?.signup_session_id ?? (data as any)?.signupSessionID ?? "",
-    expiresInSeconds: (data as any)?.expiresInSeconds,
-    next: (data as any)?.next,
-  };
-}
-
-export async function signupTelegramLinkToken(payload: {
-  signupSessionId: string;
-  signupSessionToken?: string;
-}): Promise<SignupLinkTokenResponse> {
-  const { data } = await api.post(
-    "/auth/signup/telegram/link-token",
-    { signupSessionId: payload.signupSessionId, signupSessionToken: payload.signupSessionToken },
-    { skipAuth: true }
-  );
-  ensureSuccess(data as any);
-  return {
-    linkToken: (data as any)?.linkToken ?? (data as any)?.telegramLinkToken ?? "",
-    telegramLinkToken: (data as any)?.telegramLinkToken ?? (data as any)?.linkToken ?? "",
-    deeplink: (data as any)?.deeplink ?? "",
-    expiresInSeconds: (data as any)?.expiresInSeconds,
-  };
-}
-
-export async function signupTelegramLinkStatus(ref: {
-  signupSessionId: string;
-  signupSessionToken?: string;
-}): Promise<SignupLinkStatusResponse> {
-  const { data } = await api.get("/auth/signup/telegram/link-status", {
-    params: { signupSessionId: ref.signupSessionId, signupSessionToken: ref.signupSessionToken },
-    skipAuth: true,
-  });
-  ensureSuccess(data as any);
-  return {
-    linked: Boolean((data as any)?.linked),
-    telegramChatIdMasked: (data as any)?.telegramChatIdMasked ?? (data as any)?.telegram_chat_id_masked,
-  };
-}
-
-export async function signupRequestOtp(payload: { signupSessionId: string; signupSessionToken?: string }): Promise<SignupOtpResponse> {
-  const { data } = await api.post(
-    "/auth/signup/request-otp",
-    { signupSessionId: payload.signupSessionId, signupSessionToken: payload.signupSessionToken },
-    { skipAuth: true }
-  );
-  ensureSuccess(data as any);
-  return {
-    channel: (data as any)?.channel ?? "telegram",
-    expiresInSeconds: (data as any)?.expiresInSeconds,
-    requestId: (data as any)?.requestId,
-  };
-}
-
-export async function authSignupVerifySession(payload: {
-  signupSessionToken?: string;
-  signupSessionId: string;
-  otp: string;
-}): Promise<SignupVerifyResponse> {
-  const { data } = await api.post(
-    "/auth/signup/verify-session",
-    { signupSessionId: payload.signupSessionId, signupSessionToken: payload.signupSessionToken, otp: payload.otp },
-    { skipAuth: true }
-  );
-  ensureSuccess(data as any);
-  return {
-    accessToken: (data as any)?.accessToken ?? (data as any)?.access_token ?? null,
-    refreshToken: (data as any)?.refreshToken ?? (data as any)?.refresh_token ?? null,
-    expiresInSeconds: (data as any)?.expiresInSeconds,
-    user: (data as any)?.user ?? null,
   };
 }
 

@@ -198,6 +198,41 @@ export type ProviderSummary = {
   type?: string | null;
 };
 
+export type ProductOptionGroupType = "SINGLE" | "MULTI";
+
+export type ProductOption = {
+  id: string;
+  name: string;
+  nameAr?: string | null;
+  priceCents: number;
+  maxQtyPerOption?: number | null;
+  sortOrder?: number | null;
+  isActive?: boolean;
+};
+
+export type ProductOptionGroup = {
+  id: string;
+  name: string;
+  nameAr?: string | null;
+  type: ProductOptionGroupType;
+  minSelected?: number | null;
+  maxSelected?: number | null;
+  sortOrder?: number | null;
+  isActive?: boolean;
+  options?: ProductOption[];
+};
+
+export type ProductOptionSelection = {
+  optionId: string;
+  name: string;
+  nameAr?: string | null;
+  priceCents: number;
+  qty: number;
+  groupId?: string;
+  groupName?: string;
+  groupNameAr?: string | null;
+};
+
 export type Product = {
   id: string;
   name: string;
@@ -220,6 +255,22 @@ export type Product = {
   categoryId?: string;
   category?: { id: string; name: string; slug: string };
   rating?: number | null;
+  optionGroups?: ProductOptionGroup[];
+};
+
+export type DeliveryWindow = {
+  id: string;
+  providerId: string;
+  branchId?: string | null;
+  name: string;
+  nameAr?: string | null;
+  startMinutes: number;
+  endMinutes: number;
+  daysOfWeek?: number[];
+  minLeadMinutes?: number | null;
+  minOrderAmountCents?: number | null;
+  sortOrder?: number | null;
+  isActive?: boolean;
 };
 
 export type DeliveryZone = {
@@ -285,6 +336,7 @@ export type DeliveryDriver = {
 export type CartItem = {
   id: string; cartId: string; productId: string; branchId?: string | null; qty: number; priceCents: number;
   product: { name: string; imageUrl?: string | null; priceCents: number; salePriceCents?: number | null };
+  options?: ProductOptionSelection[];
 };
 
 export type CartGroup = {
@@ -357,6 +409,7 @@ export type OrderGroupItem = {
     productNameSnapshot: string;
     priceSnapshotCents: number;
     qty: number;
+    options?: ProductOptionSelection[];
   }>;
 };
 
@@ -496,6 +549,9 @@ export type OrderDetail = {
   deliveryZoneName?: string | null;
   deliveryEtaMinutes?: number | null;
   estimatedDeliveryTime?: string | null;
+  deliveryWindowId?: string | null;
+  scheduledAt?: string | null;
+  deliveryWindow?: DeliveryWindow | null;
   deliveryFailedAt?: string | null;
   deliveryFailedReason?: string | null;
   deliveryFailedNote?: string | null;
@@ -512,7 +568,14 @@ export type OrderDetail = {
     apartment?: string | null;
     notes?: string | null;
   };
-  items: Array<{ id: string; productId: string; productNameSnapshot: string; priceSnapshotCents: number; qty: number }>;
+  items: Array<{
+    id: string;
+    productId: string;
+    productNameSnapshot: string;
+    priceSnapshotCents: number;
+    qty: number;
+    options?: ProductOptionSelection[];
+  }>;
   recommendedProducts?: Product[];
 };
 
@@ -555,6 +618,7 @@ export type OrderReceipt = {
     quantity: number;
     unitPriceCents: number;
     lineTotalCents: number;
+    options?: ProductOptionSelection[];
   }>;
   subtotalCents: number;
   shippingFeeCents: number;

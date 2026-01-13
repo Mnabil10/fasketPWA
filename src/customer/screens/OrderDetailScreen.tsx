@@ -34,7 +34,7 @@ import {
 import { goToOrders } from "../navigation/navigation";
 import { mapApiErrorToMessage } from "../../utils/mapApiErrorToMessage";
 import { openMapLocation, openWhatsapp } from "../../lib/fasketLinks";
-import type { OrderDetail, OrderGroupDetail, OrderGroupSummary } from "../../types/api";
+import type { OrderDetail, OrderGroupDetail, OrderGroupSummary, ProductOptionSelection } from "../../types/api";
 import { useToast } from "../providers/ToastProvider";
 import { useNotificationPreferences } from "../stores/notificationPreferences";
 
@@ -62,9 +62,10 @@ const STATUS_VARIANTS: Record<
 };
 
 export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScreenProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { isOffline } = useNetworkStatus();
   const { showToast } = useToast();
+  const lang = i18n.language?.startsWith("ar") ? "ar" : "en";
   const whatsappOrderUpdatesEnabled = useNotificationPreferences((state) => state.preferences.whatsappOrderUpdates ?? true);
   const apiErrorToast = useApiErrorToast("reviews.error");
   const cancelGroup = useCancelOrderGroup();
@@ -184,6 +185,32 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
     return null;
   }, [orderDetail?.estimatedDeliveryTime, orderDetail?.deliveryEtaMinutes, t]);
 
+  const scheduledLabel = React.useMemo(() => {
+    if (!orderDetail) return null;
+    if (!orderDetail.scheduledAt && !orderDetail.deliveryWindowId && !orderDetail.deliveryWindow) return null;
+    const window = orderDetail.deliveryWindow ?? null;
+    const windowName = window
+      ? lang === "ar"
+        ? window.nameAr || window.name
+        : window.name || window.nameAr
+      : null;
+    const startLabel =
+      window && typeof window.startMinutes === "number"
+        ? dayjs().startOf("day").add(window.startMinutes, "minute").format("HH:mm")
+        : null;
+    const endLabel =
+      window && typeof window.endMinutes === "number"
+        ? dayjs().startOf("day").add(window.endMinutes, "minute").format("HH:mm")
+        : null;
+    const range = startLabel && endLabel ? `${startLabel} - ${endLabel}` : null;
+    const windowLabel = windowName && range ? `${windowName} ${range}` : windowName || range;
+    const scheduledAtLabel = orderDetail.scheduledAt
+      ? dayjs(orderDetail.scheduledAt).format(t("orders.dateFormat", "DD MMM YYYY - HH:mm"))
+      : null;
+    if (scheduledAtLabel && windowLabel) return `${scheduledAtLabel} (${windowLabel})`;
+    return scheduledAtLabel || windowLabel;
+  }, [orderDetail, lang, t]);
+
   const driverLocationTimestamp = driverLocation?.recordedAt
     ? dayjs(driverLocation.recordedAt).format(t("orders.dateFormat", "DD MMM YYYY - HH:mm"))
     : null;
@@ -231,6 +258,27 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
     if (!value) return t("orders.failureReasonUnknown", "Unknown");
     const key = value.toUpperCase();
     return t(`orders.failureReasons.${key}`, value);
+  };
+
+  const formatOptionLabel = (opt: ProductOptionSelection) => {
+    const name = lang === "ar" ? opt.nameAr || opt.name : opt.name || opt.nameAr;
+    const group = lang === "ar" ? opt.groupNameAr || opt.groupName : opt.groupName || opt.groupNameAr;
+    const safeName = name || "";
+    const safeGroup = group || "";
+    const base = safeGroup ? `${safeGroup}: ${safeName}` : safeName;
+    const qtyLabel = opt.qty > 1 ? ` x${opt.qty}` : "";
+    return `${base}${qtyLabel}`;
+  };
+
+  const renderOptions = (options?: ProductOptionSelection[]) => {
+    if (!options?.length) return null;
+    return (
+      <div className="mt-1 space-y-1 text-xs text-gray-500">
+        {options.map((opt) => (
+          <div key={`${opt.optionId}-${opt.qty}-${opt.groupId ?? "group"}`}>- {formatOptionLabel(opt)}</div>
+        ))}
+      </div>
+    );
   };
 
   const handleSubmitReview = async () => {
@@ -377,6 +425,17 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
                       </div>
                     </div>
                   )}
+                  {scheduledLabel && (
+                    <div className="flex items-start gap-2">
+                      <Clock className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm text-gray-500 mb-1">
+                          {t("orderDetail.scheduledLabel", "Scheduled delivery")}
+                        </p>
+                        <p className="font-medium text-gray-900">{scheduledLabel}</p>
+                      </div>
+                    </div>
+                  )}
                   {(orderDetail?.deliveryZone?.nameEn || orderDetail?.deliveryZoneName) && (
                     <div className="flex items-start gap-2">
                       <Truck className="w-4 h-4 text-gray-500 flex-shrink-0" />
@@ -484,6 +543,7 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
                                   <p className="text-gray-500">
                                     {t("orderDetail.quantity", { count: item.qty })}
                                   </p>
+                                  {renderOptions(item.options)}
                                 </div>
                                 <div className="font-semibold text-gray-900 price-text">
                                   {fmtEGP(fromCents(item.priceSnapshotCents) * item.qty)}
@@ -528,6 +588,7 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
                         <p className="text-gray-500">
                           {t("orderDetail.quantity", { count: item.qty })}
                         </p>
+                        {renderOptions(item.options)}
                       </div>
                       <div className="font-semibold text-gray-900 price-text">
                         {fmtEGP(fromCents(item.priceSnapshotCents) * item.qty)}

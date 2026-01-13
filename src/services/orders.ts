@@ -12,6 +12,7 @@ import type {
   OrderReceipt,
   OrderSummary,
   OrderTimelineEntry,
+  ProductOptionSelection,
 } from "../types/api";
 
 type OrdersPayload =
@@ -48,6 +49,20 @@ function mapOrderStatus(status: string | undefined | null) {
     return key;
   }
   return "PENDING";
+}
+
+function normalizeOptionSelections(options?: Array<Record<string, any>> | null): ProductOptionSelection[] | undefined {
+  if (!Array.isArray(options)) return undefined;
+  return options.map((opt) => ({
+    optionId: opt.optionId ?? opt.id ?? "",
+    name: opt.name ?? opt.optionNameSnapshot ?? "",
+    nameAr: opt.nameAr ?? opt.optionNameArSnapshot ?? null,
+    priceCents: opt.priceCents ?? opt.priceSnapshotCents ?? 0,
+    qty: opt.qty ?? 1,
+    groupId: opt.groupId ?? undefined,
+    groupName: opt.groupName ?? undefined,
+    groupNameAr: opt.groupNameAr ?? null,
+  }));
 }
 
 function normalizeOrderSummary(record: any): OrderSummary {
@@ -98,6 +113,7 @@ function normalizeOrderDetail(payload: any): OrderDetail {
         productNameSnapshot: item.productNameSnapshot ?? item.productName,
         priceSnapshotCents: item.priceSnapshotCents ?? item.unitPriceCents ?? 0,
         qty: item.qty ?? item.quantity ?? 0,
+        options: normalizeOptionSelections(item.options),
       }))
     : [];
 
@@ -144,6 +160,7 @@ function normalizeOrderDetail(payload: any): OrderDetail {
     deliveryFailedAt: node.deliveryFailedAt ?? null,
     deliveryFailedReason: node.deliveryFailedReason ?? null,
     deliveryFailedNote: node.deliveryFailedNote ?? null,
+    deliveryWindow: node.deliveryWindow ?? null,
   } as OrderDetail;
 }
 
@@ -155,6 +172,7 @@ function normalizeOrderGroupItem(record: any, fallbackCreatedAt?: string): Order
         productNameSnapshot: item.productNameSnapshot ?? item.productName,
         priceSnapshotCents: item.priceSnapshotCents ?? item.unitPriceCents ?? 0,
         qty: item.qty ?? item.quantity ?? 0,
+        options: normalizeOptionSelections(item.options),
       }))
     : undefined;
   return {
@@ -311,6 +329,7 @@ function normalizeOrderReceipt(payload: any): OrderReceipt {
           quantity,
           unitPriceCents,
           lineTotalCents: item.lineTotalCents ?? item.totalPriceCents ?? unitPriceCents * quantity,
+          options: normalizeOptionSelections(item.options),
         };
       })
     : [];
@@ -379,12 +398,15 @@ export type PlaceOrderBody = {
   couponCode?: string;
   loyaltyPointsToRedeem?: number;
   idempotencyKey?: string;
+  deliveryWindowId?: string;
+  scheduledAt?: string;
 };
 
 export type GuestOrderItem = {
   productId: string;
   qty: number;
   branchId?: string | null;
+  options?: Array<{ optionId: string; qty?: number }>;
 };
 
 export type GuestAddressInput = {
@@ -403,6 +425,8 @@ export type GuestOrderQuoteRequest = {
   items: GuestOrderItem[];
   address: GuestAddressInput;
   splitFailurePolicy?: "PARTIAL" | "CANCEL_GROUP";
+  deliveryWindowId?: string;
+  scheduledAt?: string;
 };
 
 export type GuestOrderGroup = {

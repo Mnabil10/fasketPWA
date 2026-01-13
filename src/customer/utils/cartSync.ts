@@ -3,6 +3,29 @@ import type { CartPreviewItem } from "../types";
 import { mapServerCartToUiItems } from "./cart";
 import { useLocalCartStore, getLocalCartPreview } from "../stores/localCart";
 import { getActiveLang } from "../../lib/i18nParam";
+import type { ProductOptionSelection } from "../../types/api";
+
+function buildOptionsKey(options?: Array<{ optionId?: string; id?: string; qty?: number }> | null) {
+  if (!options?.length) return "no-options";
+  return options
+    .map((opt) => ({
+      optionId: String(opt.optionId ?? opt.id ?? "").trim(),
+      qty: Math.max(1, Math.floor(opt.qty ?? 1)),
+    }))
+    .filter((opt) => opt.optionId)
+    .sort((a, b) => a.optionId.localeCompare(b.optionId))
+    .map((opt) => `${opt.optionId}:${opt.qty}`)
+    .join("|");
+}
+
+function buildItemKey(productId: string, branchId: string | null | undefined, optionsKey: string) {
+  return `${productId}:${branchId ?? "none"}:${optionsKey || "no-options"}`;
+}
+
+function mapOptionSelections(options?: ProductOptionSelection[]) {
+  if (!options?.length) return undefined;
+  return options.map((opt) => ({ optionId: opt.optionId, qty: opt.qty }));
+}
 
 export async function fetchServerCartPreview(
   lang?: "ar" | "en"
@@ -21,13 +44,24 @@ export async function mergeLocalCartIntoServer(lang?: "ar" | "en") {
     return preview;
   }
   const existing = await getCart({ lang: finalLang }).catch(() => null);
-  const serverByProduct = new Map(existing?.items?.map((item) => [item.productId, item]));
+  const serverByKey = new Map(
+    existing?.items?.map((item) => {
+      const key = buildItemKey(item.productId, item.branchId ?? null, buildOptionsKey((item as any).options));
+      return [key, item];
+    })
+  );
   for (const item of items) {
-    const serverItem = serverByProduct.get(item.productId);
+    const key = buildItemKey(item.productId, item.branchId ?? null, item.optionsKey || "no-options");
+    const serverItem = serverByKey.get(key);
     if (serverItem) {
       await updateItemQty(serverItem.id, serverItem.qty + item.quantity);
     } else {
-      await addItem({ productId: item.productId, qty: item.quantity, branchId: item.branchId ?? null });
+      await addItem({
+        productId: item.productId,
+        qty: item.quantity,
+        branchId: item.branchId ?? null,
+        options: mapOptionSelections(item.options),
+      });
     }
   }
   store.clear();

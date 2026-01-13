@@ -29,8 +29,8 @@ type DisplayCartItem = {
   name: string;
   image?: string;
   qty: number;
-  priceCents: number;
-  salePriceCents?: number | null;
+  unitPriceCents: number;
+  options?: CartPreviewItem["options"];
 };
 
 function computeDisplayItems(
@@ -45,8 +45,8 @@ function computeDisplayItems(
       name: item.product?.name ?? "",
       image: item.product?.imageUrl ?? undefined,
       qty: item.qty,
-      priceCents: item.priceCents,
-      salePriceCents: item.product?.salePriceCents ?? null,
+      unitPriceCents: item.priceCents,
+      options: item.options,
     }));
   }
 
@@ -56,8 +56,8 @@ function computeDisplayItems(
     name: item.name,
     image: item.image,
     qty: item.quantity,
-    priceCents: Math.round(item.price * 100),
-    salePriceCents: item.product?.salePriceCents ?? null,
+    unitPriceCents: Math.round(item.price * 100),
+    options: item.options,
   }));
 }
 
@@ -65,6 +65,7 @@ export function CartScreen({ appState, updateAppState }: CartScreenProps) {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
   const { isOffline } = useNetworkStatus();
+  const lang = i18n.language?.startsWith("ar") ? "ar" : "en";
   const addressesQuery = useAddresses({ enabled: Boolean(appState.user?.id) });
   const primaryAddress = useMemo(() => {
     const list = addressesQuery.addresses ?? [];
@@ -159,7 +160,7 @@ export function CartScreen({ appState, updateAppState }: CartScreenProps) {
   const onInc = (item: DisplayCartItem) =>
     withFeedback(item.id, "inc", () =>
       cart.updateQuantity({
-        itemId: cart.source === "server" ? item.id : undefined,
+        itemId: item.id,
         productId: item.productId,
         qty: item.qty + 1,
       })
@@ -169,7 +170,7 @@ export function CartScreen({ appState, updateAppState }: CartScreenProps) {
     if (item.qty <= 1) return;
     return withFeedback(item.id, "dec", () =>
       cart.updateQuantity({
-        itemId: cart.source === "server" ? item.id : undefined,
+        itemId: item.id,
         productId: item.productId,
         qty: item.qty - 1,
       })
@@ -179,7 +180,7 @@ export function CartScreen({ appState, updateAppState }: CartScreenProps) {
   const onRemove = (item: DisplayCartItem) =>
     withFeedback(item.id, "remove", () =>
       cart.removeItem({
-        itemId: cart.source === "server" ? item.id : undefined,
+        itemId: item.id,
         productId: item.productId,
       })
     );
@@ -219,10 +220,19 @@ export function CartScreen({ appState, updateAppState }: CartScreenProps) {
     pendingItemId === item.id || cart.updatingItemId === item.id || cart.removingItemId === item.id;
 
   const renderItem = (item: DisplayCartItem) => {
-    const effectiveCents = item.salePriceCents ?? item.priceCents;
-    const totalLabel = fmtEGP(fromCents(effectiveCents * item.qty));
-    const unitLabel = fmtEGP(fromCents(effectiveCents));
+    const totalLabel = fmtEGP(fromCents(item.unitPriceCents * item.qty));
+    const unitLabel = fmtEGP(fromCents(item.unitPriceCents));
     const disabled = disabledBecausePending(item);
+    const optionLines =
+      item.options?.map((opt) => {
+        const optionName = lang === "ar" ? opt.nameAr || opt.name : opt.name || opt.nameAr;
+        const groupName = lang === "ar" ? opt.groupNameAr || opt.groupName : opt.groupName || opt.groupNameAr;
+        const safeOption = optionName || "";
+        const safeGroup = groupName || "";
+        const name = safeGroup ? `${safeGroup}: ${safeOption}` : safeOption;
+        const qtyLabel = opt.qty > 1 ? ` x${opt.qty}` : "";
+        return { id: opt.optionId, label: `${name}${qtyLabel}`.trim() };
+      }) ?? [];
 
     return (
       <div
@@ -243,6 +253,13 @@ export function CartScreen({ appState, updateAppState }: CartScreenProps) {
             <div>
               <p className="font-medium text-gray-900">{item.name}</p>
               <p className="text-xs text-gray-500">{unitLabel}</p>
+              {optionLines.length > 0 && (
+                <div className="mt-2 space-y-1 text-xs text-gray-500">
+                  {optionLines.map((line) => (
+                    <div key={line.id}>- {line.label}</div>
+                  ))}
+                </div>
+              )}
             </div>
             <button
               aria-label={t("cart.remove", "Remove item")}

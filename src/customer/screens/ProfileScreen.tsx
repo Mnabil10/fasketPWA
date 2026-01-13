@@ -38,7 +38,6 @@ import { useNotificationPreferences } from "../stores/notificationPreferences";
 import { APP_VERSION } from "../../version";
 import { openExternalUrl, openWhatsapp, buildSupportMailto } from "../../lib/fasketLinks";
 import { useShareFasket } from "../hooks/useShareFasket";
-import { getTelegramLinkToken } from "../../services/telegram";
 import { resolveSupportConfig } from "../utils/mobileAppConfig";
 import { logout as logoutApi } from "../../services/auth";
 import { useQueryClient } from "@tanstack/react-query";
@@ -205,29 +204,6 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
       label: t("profile.support.website"),
       toggle: false,
       action: () => openExternalUrl(supportConfig.websiteUrl),
-    },
-    {
-      key: "telegram-link",
-      icon: MessageCircle,
-      label: t("profile.support.telegramLink", "ربط تيليجرام"),
-      toggle: false,
-      action: async () => {
-        try {
-          const token = await getTelegramLinkToken();
-          const deeplink = token.deeplink || "https://t.me/FasketSuberBot";
-          await openExternalUrl(deeplink);
-          showToast({
-            type: "info",
-            message: t(
-              "profile.support.telegramLinkHint",
-              'لإتمام الربط لازم تبدأ العملية من داخل تطبيق فاسكت. اضغط "Start" في بوت تيليجرام بعد الفتح.'
-            ),
-          });
-        } catch (err: any) {
-          apiErrorToast(err, "profile.support.telegramLinkError");
-        }
-      },
-      subtitle: t("profile.support.telegramLinkSubtitle", "ابدأ الربط من التطبيق لضمان الأمان."),
     },
     {
       key: "rate",

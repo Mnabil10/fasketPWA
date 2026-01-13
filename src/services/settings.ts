@@ -1,5 +1,5 @@
 import { api } from "../api/client";
-import type { AppSettings, DeliveryZone } from "../types/api";
+import type { AppSettings, DeliveryWindow, DeliveryZone } from "../types/api";
 import { withOfflineCache, type CachedResult } from "../lib/offlineCache";
 import { APP_VERSION } from "../version";
 
@@ -53,6 +53,49 @@ export async function getDeliveryZones(): Promise<CachedResult<DeliveryZone[]>> 
       return normalizeZones(payload);
     },
     { ttlMs: 10 * 60 * 1000, version: APP_VERSION }
+  );
+}
+
+type DeliveryWindowsResponse =
+  | DeliveryWindow[]
+  | {
+      data?: DeliveryWindow[] | { items?: DeliveryWindow[] | null } | null;
+      items?: DeliveryWindow[];
+      deliveryWindows?: DeliveryWindow[];
+    };
+
+function normalizeDeliveryWindows(payload: DeliveryWindowsResponse | undefined | null): DeliveryWindow[] {
+  if (!payload) return [];
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload.items)) return payload.items;
+  if (Array.isArray((payload as any).deliveryWindows)) return (payload as any).deliveryWindows;
+  if (payload.data) {
+    if (Array.isArray(payload.data)) return payload.data;
+    if (payload.data && typeof payload.data === "object" && Array.isArray((payload.data as any).items)) {
+      return (payload.data as any).items;
+    }
+  }
+  return [];
+}
+
+export async function getDeliveryWindows(params?: {
+  providerId?: string | null;
+  branchId?: string | null;
+  day?: number | null;
+}): Promise<CachedResult<DeliveryWindow[]>> {
+  const search = new URLSearchParams();
+  if (params?.providerId) search.set("providerId", params.providerId);
+  if (params?.branchId) search.set("branchId", params.branchId);
+  if (params?.day != null) search.set("day", String(params.day));
+  const qs = search.toString();
+  return withOfflineCache(
+    `delivery-windows:${params?.providerId ?? "none"}:${params?.branchId ?? "none"}:${params?.day ?? "all"}`,
+    async () => {
+      const { data } = await api.get<DeliveryWindowsResponse>(`/settings/delivery-windows${qs ? `?${qs}` : ""}`);
+      const payload = (data as any)?.data ?? data;
+      return normalizeDeliveryWindows(payload);
+    },
+    { ttlMs: 2 * 60 * 1000, version: APP_VERSION }
   );
 }
 

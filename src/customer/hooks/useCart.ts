@@ -1,8 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { addItem, applyCoupon as applyCartCoupon, getCart, removeItem, updateItemQty, type ApiCart } from "../../services/cart";
-import type { Product } from "../../types/api";
+import {
+  addItem,
+  applyCoupon as applyCartCoupon,
+  clearCart as clearServerCart,
+  getCart,
+  removeItem,
+  updateItemQty,
+  type ApiCart,
+} from "../../services/cart";
+import type { Product, ProductOptionSelection } from "../../types/api";
 import { mapServerCartToUiItems } from "../utils/cart";
 import {
   getLocalCartTotals,
@@ -14,7 +22,13 @@ import type { CartPreviewItem } from "../types";
 import { mergeLocalCartIntoServer } from "../utils/cartSync";
 import { useNetworkStatus } from "./useNetworkStatus";
 
-type AddPayload = { productId: string; qty: number; product?: Product; branchId?: string | null };
+type AddPayload = {
+  productId: string;
+  qty: number;
+  product?: Product;
+  branchId?: string | null;
+  options?: ProductOptionSelection[];
+};
 type UpdatePayload = { itemId?: string; productId: string; qty: number };
 type RemovePayload = { itemId?: string; productId: string };
 
@@ -45,10 +59,11 @@ export type UseCartResult = {
   isMerging: boolean;
   mergeError: Error | null;
   isOffline: boolean;
-  addProduct: (product: Product, qty?: number) => Promise<void>;
+  addProduct: (product: Product, qty?: number, options?: ProductOptionSelection[]) => Promise<void>;
   updateQuantity: (payload: { itemId?: string; productId: string; qty: number }) => Promise<void>;
   removeItem: (payload: { itemId?: string; productId: string }) => Promise<void>;
   clearLocal: () => void;
+  clearCart: () => Promise<void>;
   refetch: () => Promise<ApiCart | undefined>;
   updatingItemId: string | null;
   removingItemId: string | null;
@@ -58,9 +73,47 @@ export type UseCartResult = {
   applyingCoupon: boolean;
   couponError: Error | null;
   couponCode: string | null;
+  cartProviderId: string | null;
+  cartBranchId: string | null;
+  cartScopeMixed: boolean;
 };
 
 let lastMergedUserId: string | null = null;
+const NO_OPTIONS_KEY = "no-options";
+
+function normalizeOptions(options?: ProductOptionSelection[]) {
+  if (!options?.length) return [];
+  return options
+    .map((opt) => ({
+      ...opt,
+      optionId: String(opt.optionId),
+      qty: Math.max(1, Math.floor(opt.qty ?? 1)),
+    }))
+    .filter((opt) => opt.optionId);
+}
+
+function buildOptionsKey(options?: Array<{ optionId?: string; id?: string; qty?: number }> | null) {
+  if (!options?.length) return NO_OPTIONS_KEY;
+  return options
+    .map((opt) => ({
+      optionId: String(opt.optionId ?? opt.id ?? "").trim(),
+      qty: Math.max(1, Math.floor(opt.qty ?? 1)),
+    }))
+    .filter((opt) => opt.optionId)
+    .sort((a, b) => a.optionId.localeCompare(b.optionId))
+    .map((opt) => `${opt.optionId}:${opt.qty}`)
+    .join("|");
+}
+
+function mapOptionsPayload(options?: ProductOptionSelection[]) {
+  const normalized = normalizeOptions(options);
+  if (!normalized.length) return undefined;
+  return normalized.map((opt) => ({ optionId: opt.optionId, qty: opt.qty }));
+}
+
+function sumOptionsCents(options?: ProductOptionSelection[]) {
+  return normalizeOptions(options).reduce((sum, opt) => sum + (opt.priceCents ?? 0) * (opt.qty ?? 1), 0);
+}
 
 export function useCart(options?: UseCartOptions): UseCartResult {
   const userId = options?.userId ?? null;
@@ -145,6 +198,26 @@ export function useCart(options?: UseCartOptions): UseCartResult {
   const loyaltyMaxRedeemablePoints =
     isAuthenticated ? serverCart?.loyaltyMaxRedeemablePoints ?? loyaltyAvailablePoints : 0;
   const deliveryEstimateMinutes = isAuthenticated ? serverCart?.deliveryEstimateMinutes ?? null : null;
+  const cartScope = useMemo(() => {
+    const providerSet = new Set<string>();
+    const branchSet = new Set<string>();
+    if (isAuthenticated) {
+      (serverCart?.groups ?? []).forEach((group) => {
+        if (group.providerId) providerSet.add(group.providerId);
+        if (group.branchId) branchSet.add(group.branchId);
+      });
+    } else {
+      Object.values(localItems).forEach((item) => {
+        if (item.providerId) providerSet.add(item.providerId);
+        if (item.branchId) branchSet.add(item.branchId);
+      });
+    }
+    return {
+      providerId: providerSet.size === 1 ? Array.from(providerSet)[0] : null,
+      branchId: branchSet.size === 1 ? Array.from(branchSet)[0] : null,
+      isMixed: providerSet.size > 1 || branchSet.size > 1,
+    };
+  }, [isAuthenticated, serverCart?.groups, localItems]);
 
   function cloneCart(cart: ApiCart): ApiCart {
     return JSON.parse(JSON.stringify(cart)) as ApiCart;
@@ -161,26 +234,26 @@ export function useCart(options?: UseCartOptions): UseCartResult {
   }
 
   const addMutation = useMutation({
-    mutationFn: ({ productId, qty, branchId }: AddPayload) =>
-      addItem({ productId, qty, branchId }, { addressId }),
+    mutationFn: ({ productId, qty, branchId, options }: AddPayload) =>
+      addItem(
+        { productId, qty, branchId, options: mapOptionsPayload(options) },
+        { addressId }
+      ),
     onMutate: async (variables) => {
       await queryClient.cancelQueries({ queryKey: cartQueryKey });
       return optimisticUpdate((cart) => {
         if (!cart) return cart;
-        const priceCents =
-          variables.product?.salePriceCents ??
-          variables.product?.priceCents ??
-          cart.items.find(
-            (it) =>
-              it.productId === variables.productId &&
-              (it.branchId ?? null) === (variables.branchId ?? null)
-          )?.priceCents ??
-          0;
+        const optionsKey = buildOptionsKey(variables.options);
+        const optionsTotal = sumOptionsCents(variables.options);
+        const basePriceCents = variables.product?.salePriceCents ?? variables.product?.priceCents;
         const existing = cart.items.find(
           (it) =>
             it.productId === variables.productId &&
-            (it.branchId ?? null) === (variables.branchId ?? null)
+            (it.branchId ?? null) === (variables.branchId ?? null) &&
+            buildOptionsKey((it as any).options) === optionsKey
         );
+        const priceCents =
+          basePriceCents != null ? basePriceCents + optionsTotal : existing?.priceCents ?? optionsTotal;
         if (existing) {
           existing.qty += variables.qty;
         } else {
@@ -191,6 +264,7 @@ export function useCart(options?: UseCartOptions): UseCartResult {
             branchId: variables.branchId ?? null,
             qty: variables.qty,
             priceCents,
+            options: normalizeOptions(variables.options),
             product: variables.product
               ? {
                   name: variables.product.name,
@@ -284,25 +358,28 @@ export function useCart(options?: UseCartOptions): UseCartResult {
     },
   });
 
-  async function addProduct(product: Product, qty = 1) {
+  async function addProduct(product: Product, qty = 1, options?: ProductOptionSelection[]) {
     if (!product?.id) {
       throw new Error("Product must include an id");
     }
     const branchId = product.branchId ?? null;
     if (!isAuthenticated) {
-      addLocal(product, qty);
+      addLocal(product, qty, options);
       return;
     }
     if (isOffline) {
       throw new Error("You are offline. Cannot add items to the cart.");
     }
-    await addMutation.mutateAsync({ productId: product.id, qty, product, branchId });
+    await addMutation.mutateAsync({ productId: product.id, qty, product, branchId, options });
   }
 
   async function updateQuantity(payload: { itemId?: string; productId: string; qty: number }) {
     const { itemId, productId, qty } = payload;
     if (!isAuthenticated) {
-      setLocalQty(productId, qty);
+      if (!itemId) {
+        throw new Error("Missing cart item id");
+      }
+      setLocalQty(itemId, qty);
       return;
     }
     if (!itemId) {
@@ -317,7 +394,10 @@ export function useCart(options?: UseCartOptions): UseCartResult {
   async function removeItemFromCart(payload: { itemId?: string; productId: string }) {
     const { itemId, productId } = payload;
     if (!isAuthenticated) {
-      removeLocal(productId);
+      if (!itemId) {
+        throw new Error("Missing cart item id");
+      }
+      removeLocal(itemId);
       return;
     }
     if (!itemId) {
@@ -341,6 +421,18 @@ export function useCart(options?: UseCartOptions): UseCartResult {
       throw new Error("You are offline. Cannot apply a coupon.");
     }
     await couponMutation.mutateAsync({ code: trimmed });
+  }
+
+  async function clearCart() {
+    if (!isAuthenticated) {
+      clearLocal();
+      return;
+    }
+    if (isOffline) {
+      throw new Error("You are offline. Cannot clear the cart.");
+    }
+    await clearServerCart({ addressId: addressId ?? undefined });
+    queryClient.invalidateQueries({ queryKey: ["cart"] });
   }
 
   return {
@@ -369,6 +461,7 @@ export function useCart(options?: UseCartOptions): UseCartResult {
     updateQuantity,
     removeItem: removeItemFromCart,
     clearLocal,
+    clearCart,
     refetch: () => cartQuery.refetch().then((res) => res.data),
     updatingItemId: updateMutation.isPending
       ? ((updateMutation.variables as UpdatePayload | undefined)?.itemId ?? null)
@@ -385,5 +478,8 @@ export function useCart(options?: UseCartOptions): UseCartResult {
     applyingCoupon: couponMutation.isPending,
     couponError: (couponMutation.error as Error) ?? null,
     couponCode: serverCart?.couponCode ?? serverCart?.coupon?.code ?? null,
+    cartProviderId: cartScope.providerId,
+    cartBranchId: cartScope.branchId,
+    cartScopeMixed: cartScope.isMixed,
   };
 }

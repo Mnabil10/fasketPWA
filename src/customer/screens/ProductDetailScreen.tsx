@@ -8,7 +8,7 @@ import { ImageWithFallback } from "../../figma/ImageWithFallback";
 import { useToast } from "../providers/ToastProvider";
 import { fmtEGP, fromCents } from "../../lib/money";
 import { NetworkBanner, ProductCard, ProductCardSkeleton, RetryBlock } from "../components";
-import { useCart, useProductDetail, useProducts, useApiErrorToast } from "../hooks";
+import { useCart, useCartGuard, useProductDetail, useProducts, useApiErrorToast } from "../hooks";
 import type { Product } from "../../types/api";
 import { trackAddToCart, trackViewProduct } from "../../lib/analytics";
 import { goToCart, goToCategory, goToHome, goToProduct } from "../navigation/navigation";
@@ -19,6 +19,8 @@ interface ProductDetailScreenProps {
   updateAppState: UpdateAppState;
 }
 
+const MAX_OPTION_QTY = 99;
+
 export function ProductDetailScreen({ appState, updateAppState }: ProductDetailScreenProps) {
   const selected = appState.selectedProduct as Partial<Product> | undefined;
   const productKey = selected?.id || selected?.slug || null;
@@ -26,9 +28,12 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
 
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
+  const lang = i18n.language?.startsWith("ar") ? "ar" : "en";
   const cart = useCart({ userId: appState.user?.id });
+  const cartGuard = useCartGuard(cart);
   const apiErrorToast = useApiErrorToast("cart.updateError");
   const [quantity, setQuantity] = useState(1);
+  const [optionQuantities, setOptionQuantities] = useState<Record<string, number>>({});
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [addingCart, setAddingCart] = useState(false);
   const selectedProviderId = appState.selectedProvider?.id ?? appState.selectedProviderId ?? null;
@@ -41,6 +46,44 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
   const product = productResult?.data ?? null;
   const productStale = productResult?.stale ?? false;
   const resolvedProviderId = selectedProviderId ?? product?.providerId ?? null;
+  const optionGroups = useMemo(() => {
+    const groups = product?.optionGroups ?? [];
+    return groups
+      .filter((group) => group.isActive !== false)
+      .map((group) => ({
+        ...group,
+        options: (group.options ?? []).filter((option) => option.isActive !== false),
+      }))
+      .filter((group) => (group.options ?? []).length > 0)
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  }, [product?.optionGroups]);
+  const selectedOptions = useMemo(() => {
+    const selections = [];
+    for (const group of optionGroups) {
+      const groupName = group.name;
+      const groupNameAr = group.nameAr ?? null;
+      for (const opt of group.options ?? []) {
+        const qty = optionQuantities[opt.id] ?? 0;
+        if (qty > 0) {
+          selections.push({
+            optionId: opt.id,
+            name: opt.name,
+            nameAr: opt.nameAr ?? null,
+            priceCents: opt.priceCents,
+            qty,
+            groupId: group.id,
+            groupName,
+            groupNameAr,
+          });
+        }
+      }
+    }
+    return selections;
+  }, [optionGroups, optionQuantities]);
+  const optionsTotalCents = useMemo(
+    () => selectedOptions.reduce((sum, opt) => sum + opt.priceCents * opt.qty, 0),
+    [selectedOptions]
+  );
 
   const similarQuery = useProducts(
     { categoryId: product?.category?.id, providerId: resolvedProviderId, enabled: Boolean(product?.category?.id) },
@@ -77,6 +120,10 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
   const hasDiscount = product ? product.salePriceCents !== null && product.salePriceCents !== undefined : false;
   const basePrice = product ? fromCents(product.priceCents) : 0;
   const sellPrice = product ? fromCents(product.salePriceCents ?? product.priceCents) : 0;
+  const baseUnitCents = product ? product.salePriceCents ?? product.priceCents : 0;
+  const unitTotalCents = baseUnitCents + optionsTotalCents;
+  const unitTotal = fromCents(unitTotalCents);
+  const totalWithQty = fromCents(unitTotalCents * quantity);
   const discountPct =
     hasDiscount && product ? Math.max(0, Math.round((1 - (product.salePriceCents || 0) / product.priceCents) * 100)) : 0;
   const etaLabel = product?.deliveryEstimateMinutes
@@ -108,6 +155,83 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
     });
   }, [product?.stock]);
 
+  useEffect(() => {
+    setOptionQuantities({});
+  }, [product?.id]);
+
+  const updateOptionQty = (groupId: string, optionId: string, nextQty: number) => {
+    const group = optionGroups.find((entry) => entry.id === groupId);
+    if (!group) return;
+    const maxPerOption = group.options?.find((opt) => opt.id === optionId)?.maxQtyPerOption ?? MAX_OPTION_QTY;
+    const desiredQty = Math.max(0, Math.min(maxPerOption, Math.floor(nextQty)));
+    setOptionQuantities((prev) => {
+      const next = { ...prev };
+      const groupOptions = group.options ?? [];
+      const selectedCount = groupOptions.reduce((count, opt) => {
+        const qty = opt.id === optionId ? desiredQty : prev[opt.id] ?? 0;
+        return count + (qty > 0 ? 1 : 0);
+      }, 0);
+      const maxSelected = group.maxSelected ?? (group.type === "SINGLE" ? 1 : null);
+      if (group.type === "MULTI" && maxSelected != null && desiredQty > 0 && selectedCount > maxSelected) {
+        showToast({
+          type: "info",
+          message: t("productOptions.maxSelectedLimit", {
+            max: maxSelected,
+            defaultValue: `You can select up to ${maxSelected} options.`,
+          }),
+        });
+        return prev;
+      }
+      if (group.type === "SINGLE") {
+        groupOptions.forEach((opt) => {
+          if (opt.id !== optionId) {
+            delete next[opt.id];
+          }
+        });
+      }
+      if (desiredQty <= 0) {
+        delete next[optionId];
+      } else {
+        next[optionId] = desiredQty;
+      }
+      return next;
+    });
+  };
+
+  const validateOptions = () => {
+    for (const group of optionGroups) {
+      const groupLabel = lang === "ar" ? group.nameAr || group.name : group.name || group.nameAr || group.name;
+      const minSelected = group.minSelected ?? 0;
+      const maxSelected = group.maxSelected ?? (group.type === "SINGLE" ? 1 : null);
+      const selectedCount = (group.options ?? []).reduce((count, opt) => {
+        const qty = optionQuantities[opt.id] ?? 0;
+        return count + (qty > 0 ? 1 : 0);
+      }, 0);
+      if (minSelected > 0 && selectedCount < minSelected) {
+        showToast({
+          type: "error",
+          message: t("productOptions.requiredGroup", {
+            group: groupLabel,
+            defaultValue: `Select required options for ${groupLabel}.`,
+          }),
+        });
+        return false;
+      }
+      if (maxSelected != null && selectedCount > maxSelected) {
+        showToast({
+          type: "error",
+          message: t("productOptions.tooManyGroup", {
+            group: groupLabel,
+            max: maxSelected,
+            defaultValue: `Too many options selected for ${groupLabel}.`,
+          }),
+        });
+        return false;
+      }
+    }
+    return true;
+  };
+
   const addToCart = async () => {
     if (!product || addingCart) return;
     const available = Math.max(0, product?.stock ?? 0);
@@ -119,11 +243,21 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
     if (clampedQty !== quantity) {
       setQuantity(clampedQty);
     }
+    if (optionGroups.length && !validateOptions()) {
+      return;
+    }
     setAddingCart(true);
     try {
-      await cart.addProduct(product, clampedQty);
-      trackAddToCart(product.id, clampedQty);
-      showToast({ type: "success", message: t("products.buttons.added") });
+      const added = await cartGuard.requestAdd(
+        product,
+        clampedQty,
+        selectedOptions.length ? selectedOptions : undefined,
+        () => {
+          trackAddToCart(product.id, clampedQty);
+          showToast({ type: "success", message: t("products.buttons.added") });
+        }
+      );
+      if (!added) return;
     } catch (error: any) {
       apiErrorToast(error, "cart.updateError");
     } finally {
@@ -140,9 +274,11 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
       return;
     }
     try {
-      await cart.addProduct(p, 1);
-      trackAddToCart(p.id, 1);
-      showToast({ type: "success", message: t("products.buttons.added") });
+      const added = await cartGuard.requestAdd(p, 1, undefined, () => {
+        trackAddToCart(p.id, 1);
+        showToast({ type: "success", message: t("products.buttons.added") });
+      });
+      if (!added) return;
     } catch (error: any) {
       apiErrorToast(error, "cart.updateError");
     }
@@ -322,6 +458,14 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
                 <span className="text-gray-500 line-through text-lg">{fmtEGP(basePrice)}</span>
               )}
             </div>
+            {optionsTotalCents > 0 && (
+              <p className="text-xs text-gray-500">
+                {t("productOptions.addonsTotal", {
+                  value: fmtEGP(fromCents(optionsTotalCents)),
+                  defaultValue: `Add-ons ${fmtEGP(fromCents(optionsTotalCents))}`,
+                })}
+              </p>
+            )}
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant={product.stock && product.stock > 0 ? "secondary" : "destructive"} className="w-fit rounded-full">
                 {stockLabel}
@@ -333,6 +477,106 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
             </div>
             <p className="text-sm text-gray-600">{description || t("product.descriptionFallback")}</p>
           </div>
+
+          {optionGroups.length > 0 && (
+            <div className="space-y-4">
+              <h3 className="font-poppins text-lg text-gray-900" style={{ fontWeight: 600 }}>
+                {t("productOptions.title", "Options")}
+              </h3>
+              {optionGroups.map((group) => {
+                const minSelected = group.minSelected ?? 0;
+                const maxSelected = group.maxSelected ?? (group.type === "SINGLE" ? 1 : null);
+                const groupLabel = lang === "ar" ? group.nameAr || group.name : group.name || group.nameAr || group.name;
+                let hint = t("productOptions.optional", "Optional");
+                if (minSelected > 0 && maxSelected != null && minSelected === maxSelected) {
+                  hint = t("productOptions.chooseExactly", {
+                    count: minSelected,
+                    defaultValue: `Choose ${minSelected}`,
+                  });
+                } else if (minSelected > 0 && maxSelected != null) {
+                  hint = t("productOptions.chooseBetween", {
+                    min: minSelected,
+                    max: maxSelected,
+                    defaultValue: `Choose ${minSelected}-${maxSelected}`,
+                  });
+                } else if (minSelected > 0) {
+                  hint = t("productOptions.chooseAtLeast", {
+                    min: minSelected,
+                    defaultValue: `Choose at least ${minSelected}`,
+                  });
+                } else if (maxSelected != null) {
+                  hint = t("productOptions.chooseUpTo", {
+                    max: maxSelected,
+                    defaultValue: `Choose up to ${maxSelected}`,
+                  });
+                }
+                return (
+                  <div key={group.id} className="rounded-2xl border border-gray-200 bg-white p-4 space-y-3 shadow-card">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <p className="font-medium text-gray-900">{groupLabel}</p>
+                        <p className="text-xs text-gray-500">{hint}</p>
+                      </div>
+                      {minSelected > 0 && (
+                        <Badge variant="secondary" className="rounded-full">
+                          {t("productOptions.required", "Required")}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      {(group.options ?? []).map((option) => {
+                        const qty = optionQuantities[option.id] ?? 0;
+                        const maxQty = option.maxQtyPerOption ?? MAX_OPTION_QTY;
+                        const isSelected = qty > 0;
+                        const optionLabel = lang === "ar" ? option.nameAr || option.name : option.name || option.nameAr || option.name;
+                        return (
+                          <div
+                            key={option.id}
+                            className={`flex items-center justify-between gap-3 rounded-xl border px-3 py-2 transition ${
+                              isSelected ? "border-primary/40 bg-primary/5" : "border-gray-200 bg-gray-50"
+                            }`}
+                          >
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">{optionLabel}</p>
+                              <p className="text-xs text-gray-500">{fmtEGP(fromCents(option.priceCents))}</p>
+                            </div>
+                            {isSelected ? (
+                              <div className="inline-flex items-center border border-gray-200 rounded-full bg-white shadow-inner">
+                                <button
+                                  className="px-2 py-1 text-gray-600 disabled:text-gray-300"
+                                  onClick={() => updateOptionQty(group.id, option.id, qty - 1)}
+                                  disabled={qty <= 0}
+                                >
+                                  <Minus className="w-3 h-3" />
+                                </button>
+                                <span className="px-2 text-sm font-semibold min-w-[32px] text-center">{qty}</span>
+                                <button
+                                  className="px-2 py-1 text-gray-600 disabled:text-gray-300"
+                                  onClick={() => updateOptionQty(group.id, option.id, qty + 1)}
+                                  disabled={qty >= maxQty}
+                                >
+                                  <Plus className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="rounded-full"
+                                onClick={() => updateOptionQty(group.id, option.id, 1)}
+                              >
+                                {t("productOptions.add", "Add")}
+                              </Button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           <div className="flex items-center justify-between mb-4 bg-white rounded-2xl p-4 border shadow-card">
             <div className="flex items-center gap-3">
@@ -387,7 +631,7 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
           <div className="flex-1">
             <p className="text-xs text-gray-500">{etaLabel}</p>
             <p className="text-lg font-semibold text-gray-900 price-text">
-              {fmtEGP(sellPrice * quantity)}
+              {fmtEGP(totalWithQty)}
             </p>
           </div>
           <Button
@@ -397,10 +641,11 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
           >
             {(product.stock ?? 0) <= 0
               ? t("product.stock.out")
-              : t("product.cta", { total: fmtEGP(sellPrice * quantity) })}
+              : t("product.cta", { total: fmtEGP(totalWithQty) })}
           </Button>
         </div>
       </div>
+      {cartGuard.dialog}
     </div>
   );
 }

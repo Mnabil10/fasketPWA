@@ -10,6 +10,7 @@ import { useToast } from "../providers/ToastProvider";
 import { ImageWithFallback } from "../../figma/ImageWithFallback";
 import {
   useCart,
+  useCartGuard,
   useCategories,
   useNetworkStatus,
   useProducts,
@@ -55,6 +56,7 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
   const mobileConfig = appState.settings?.mobileApp ?? null;
   const lang = i18n.language?.startsWith("ar") ? "ar" : "en";
   const cartHook = useCart({ userId: appState.user?.id });
+  const cartGuard = useCartGuard(cartHook);
   const { isOffline } = useNetworkStatus();
   const apiErrorToast = useApiErrorToast("products.error");
   const providersQuery = useProviders();
@@ -133,9 +135,11 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
 
   const handleAddToCart = async (product: Product) => {
     try {
-      await cartHook.addProduct(product);
-      trackAddToCart(product.id, 1);
-      showToast({ type: "success", message: t("products.buttons.added") });
+      const added = await cartGuard.requestAdd(product, 1, undefined, () => {
+        trackAddToCart(product.id, 1);
+        showToast({ type: "success", message: t("products.buttons.added") });
+      });
+      if (!added) return;
     } catch (error: any) {
       apiErrorToast(error, "products.error");
     }
@@ -705,6 +709,7 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
       </div>
 
       <MobileNav appState={appState} updateAppState={updateAppState} />
+      {cartGuard.dialog}
     </div>
   );
 

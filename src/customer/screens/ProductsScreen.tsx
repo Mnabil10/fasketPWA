@@ -8,7 +8,7 @@ import { MobileNav } from "../MobileNav";
 import { AppState, type UpdateAppState } from "../CustomerApp";
 import { useToast } from "../providers/ToastProvider";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
-import { useCart, useProducts, useSearchHistory, useNetworkStatus, useApiErrorToast } from "../hooks";
+import { useCart, useCartGuard, useProducts, useSearchHistory, useNetworkStatus, useApiErrorToast } from "../hooks";
 import { ProductCard, ProductCardSkeleton, NetworkBanner, RetryBlock, EmptyState } from "../components";
 import { goToCategory, goToProduct } from "../navigation/navigation";
 import type { Product } from "../../types/api";
@@ -24,6 +24,7 @@ export function ProductsScreen({ appState, updateAppState }: ProductsScreenProps
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
   const cart = useCart({ userId: appState.user?.id });
+  const cartGuard = useCartGuard(cart);
   const { isOffline } = useNetworkStatus();
   const apiErrorToast = useApiErrorToast("products.error");
   const [searchQuery, setSearchQuery] = useState("");
@@ -103,9 +104,11 @@ export function ProductsScreen({ appState, updateAppState }: ProductsScreenProps
 
   const handleAddToCart = async (product: Product) => {
     try {
-      await cart.addProduct(product, 1);
-      trackAddToCart(product.id, 1);
-      showToast({ type: "success", message: t("products.buttons.added") });
+      const added = await cartGuard.requestAdd(product, 1, undefined, () => {
+        trackAddToCart(product.id, 1);
+        showToast({ type: "success", message: t("products.buttons.added") });
+      });
+      if (!added) return;
     } catch (err: any) {
       apiErrorToast(err, "products.error");
     }
@@ -202,6 +205,7 @@ export function ProductsScreen({ appState, updateAppState }: ProductsScreenProps
           />
         </div>
         <MobileNav appState={appState} updateAppState={updateAppState} />
+        {cartGuard.dialog}
       </div>
     );
   }
@@ -377,6 +381,7 @@ export function ProductsScreen({ appState, updateAppState }: ProductsScreenProps
       {renderProducts()}
 
       <MobileNav appState={appState} updateAppState={updateAppState} />
+      {cartGuard.dialog}
     </div>
   );
 }

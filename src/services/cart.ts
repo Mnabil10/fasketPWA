@@ -1,6 +1,7 @@
 // src/services/cart.ts
 import { request } from "../api/client";
 import { getActiveLang } from "../lib/i18nParam";
+import type { ProductOptionSelection } from "../types/api";
 
 export type ApiCartItem = {
   id: string;
@@ -9,6 +10,7 @@ export type ApiCartItem = {
   branchId?: string | null;
   qty: number;
   priceCents: number;
+  options?: ProductOptionSelection[];
   product?: {
     name: string;
     imageUrl?: string;
@@ -89,6 +91,12 @@ function normalizeCart(payload: CartPayload): ApiCart {
       if (!cart.couponCode && (cart as any).coupon?.code) {
         cart.couponCode = (cart as any).coupon.code;
       }
+      if (Array.isArray(cart.items)) {
+        cart.items = cart.items.map((item) => ({
+          ...item,
+          options: normalizeCartOptions((item as any).options),
+        }));
+      }
       if (cart.delivery) {
         if (cart.delivery.etaMinutes !== undefined && cart.deliveryEstimateMinutes === undefined) {
           cart.deliveryEstimateMinutes = cart.delivery.etaMinutes ?? null;
@@ -104,6 +112,20 @@ function normalizeCart(payload: CartPayload): ApiCart {
     }
   }
   return payload as ApiCart;
+}
+
+function normalizeCartOptions(options?: Array<Record<string, any>> | null): ProductOptionSelection[] | undefined {
+  if (!Array.isArray(options)) return undefined;
+  return options.map((opt) => ({
+    optionId: opt.optionId ?? opt.id ?? "",
+    name: opt.name ?? "",
+    nameAr: opt.nameAr ?? null,
+    priceCents: opt.priceCents ?? opt.priceSnapshotCents ?? 0,
+    qty: opt.qty ?? 1,
+    groupId: opt.groupId ?? undefined,
+    groupName: opt.groupName ?? undefined,
+    groupNameAr: opt.groupNameAr ?? null,
+  }));
 }
 
 const buildQueryString = (params: Record<string, string | number | undefined | null>) => {
@@ -124,7 +146,7 @@ export const getCart = async (options?: { lang?: "ar" | "en"; addressId?: string
 };
 
 export const addItem = (
-  body: { productId: string; qty: number; branchId?: string | null },
+  body: { productId: string; qty: number; branchId?: string | null; options?: Array<{ optionId: string; qty?: number }> },
   options?: { addressId?: string | null }
 ) => {
   const lang = getActiveLang() ?? "en";
@@ -132,10 +154,18 @@ export const addItem = (
   return request<CartPayload>({ url: `/cart/items${qs}`, method: "POST", data: body }).then(normalizeCart);
 };
 
-export const updateItemQty = (id: string, qty: number, options?: { addressId?: string | null }) => {
+export const updateItemQty = (
+  id: string,
+  qty: number,
+  options?: { addressId?: string | null; itemOptions?: Array<{ optionId: string; qty?: number }> }
+) => {
   const lang = getActiveLang() ?? "en";
   const qs = buildQueryString({ lang, addressId: options?.addressId ?? undefined });
-  return request<CartPayload>({ url: `/cart/items/${id}${qs}`, method: "PATCH", data: { qty } }).then(normalizeCart);
+  const data: { qty: number; options?: Array<{ optionId: string; qty?: number }> } = { qty };
+  if (options?.itemOptions) {
+    data.options = options.itemOptions;
+  }
+  return request<CartPayload>({ url: `/cart/items/${id}${qs}`, method: "PATCH", data }).then(normalizeCart);
 };
 
 export const removeItem = (id: string, options?: { addressId?: string | null }) => {

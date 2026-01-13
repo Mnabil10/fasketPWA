@@ -1,4 +1,4 @@
-import type { Product } from "../types/api";
+import type { Product, ProductOptionSelection } from "../types/api";
 
 export type CartPreviewItem = {
   id: string;
@@ -10,4 +10,5 @@ export type CartPreviewItem = {
   quantity: number;
   category?: string;
   product?: Partial<Product>;
+  options?: ProductOptionSelection[];
 };

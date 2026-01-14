@@ -63,6 +63,11 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
   const selectedProvider = appState.selectedProvider ?? null;
   const providerId = selectedProvider?.id ?? appState.selectedProviderId ?? null;
   const providerSelected = Boolean(providerId);
+  const providerLabel = selectedProvider
+    ? lang === "ar"
+      ? selectedProvider.nameAr || selectedProvider.name
+      : selectedProvider.name || selectedProvider.nameAr
+    : null;
 
   const [q, setQ] = useState("");
   const debouncedQ = useDebouncedValue(q, 250);
@@ -138,7 +143,7 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
       const added = await cartGuard.requestAdd(product, 1, undefined, () => {
         trackAddToCart(product.id, 1);
         showToast({ type: "success", message: t("products.buttons.added") });
-      });
+      }, { nextProviderLabel: providerLabel });
       if (!added) return;
     } catch (error: any) {
       apiErrorToast(error, "products.error");

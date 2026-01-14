@@ -24,6 +24,7 @@ export function CategoriesScreen({ appState, updateAppState }: CategoriesScreenP
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
   const apiErrorToast = useApiErrorToast("products.error");
+  const lang = i18n.language?.startsWith("ar") ? "ar" : "en";
   const [searchQuery, setSearchQuery] = useState("");
   const [showHistory, setShowHistory] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<"all" | "popular" | "trending">("all");
@@ -32,6 +33,11 @@ export function CategoriesScreen({ appState, updateAppState }: CategoriesScreenP
   const cartGuard = useCartGuard(cart);
   const selectedProvider = appState.selectedProvider ?? null;
   const providerId = selectedProvider?.id ?? null;
+  const providerLabel = selectedProvider
+    ? lang === "ar"
+      ? selectedProvider.nameAr || selectedProvider.name
+      : selectedProvider.name || selectedProvider.nameAr
+    : null;
 
   const categoriesQuery = useCategories({ providerId }, { enabled: Boolean(providerId) });
   const featuredQuery = useProducts({ type: "hot-offers", limit: 6, providerId }, { enabled: Boolean(providerId) });
@@ -61,7 +67,7 @@ export function CategoriesScreen({ appState, updateAppState }: CategoriesScreenP
       const added = await cartGuard.requestAdd(product, 1, undefined, () => {
         trackAddToCart(product.id, 1);
         showToast({ type: "success", message: t("products.buttons.added") });
-      });
+      }, { nextProviderLabel: providerLabel });
       if (!added) return;
     } catch (error: any) {
       apiErrorToast(error, "products.error");

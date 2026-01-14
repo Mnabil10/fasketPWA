@@ -533,6 +533,10 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
       showToast({ type: "error", message: t("checkout.deliveryTerms.required", "Please accept the delivery terms.") });
       return;
     }
+    if (cart.cartScopeMixed) {
+      showToast({ type: "error", message: t("checkout.messages.cartScopeMixed") });
+      return;
+    }
     if (!guestCheckoutEnabled) {
       showToast({ type: "error", message: t("checkout.guest.disabled", "Guest checkout is disabled.") });
       return;
@@ -631,6 +635,10 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
     if (savingRef.current) return;
     if (!deliveryTermsAccepted) {
       showToast({ type: "error", message: t("checkout.deliveryTerms.required", "Please accept the delivery terms.") });
+      return;
+    }
+    if (cart.cartScopeMixed) {
+      showToast({ type: "error", message: t("checkout.messages.cartScopeMixed") });
       return;
     }
     if (isGuest) {

@@ -19,10 +19,13 @@ type PendingAdd = {
   qty: number;
   options?: ProductOptionSelection[];
   onAdded?: () => void;
+  context?: {
+    nextProviderLabel?: string | null;
+  };
 };
 
 export function useCartGuard(cart: UseCartResult) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { showToast } = useToast();
   const [pending, setPending] = useState<PendingAdd | null>(null);
   const [open, setOpen] = useState(false);
@@ -48,10 +51,11 @@ export function useCartGuard(cart: UseCartResult) {
     product: Product,
     qty = 1,
     options?: ProductOptionSelection[],
-    onAdded?: () => void
+    onAdded?: () => void,
+    context?: { nextProviderLabel?: string | null }
   ) => {
     if (hasConflict(product)) {
-      setPending({ product, qty, options, onAdded });
+      setPending({ product, qty, options, onAdded, context });
       setOpen(true);
       return false;
     }
@@ -76,16 +80,29 @@ export function useCartGuard(cart: UseCartResult) {
     }
   };
 
+  const resolveCartLabel = () => {
+    const groups = cart.rawCart?.groups ?? [];
+    const group = groups[0];
+    if (!group) return null;
+    const isArabic = i18n.language?.startsWith("ar");
+    return isArabic ? group.branchNameAr || group.branchName : group.branchName || group.branchNameAr;
+  };
+
+  const currentLabel = resolveCartLabel() || t("providers.providerFallback", "Provider");
+  const nextLabel = pending?.context?.nextProviderLabel || t("providers.providerFallback", "Provider");
+  const conflictMessage = t("cart.conflict.message", {
+    current: currentLabel,
+    next: nextLabel,
+    defaultValue: `Your cart is currently from ${currentLabel}. Clear it to add items from ${nextLabel}.`,
+  });
+
   const dialog = (
     <AlertDialog open={open} onOpenChange={(next) => !next && reset()}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{t("cart.conflict.title", "Replace cart?")}</AlertDialogTitle>
           <AlertDialogDescription>
-            {t(
-              "cart.conflict.message",
-              "Your cart already has items from another provider. Clear it to add this item."
-            )}
+            {conflictMessage}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

@@ -6,7 +6,7 @@ import { Badge } from "../../ui/badge";
 import { CheckCircle, Clock, MapPin, Phone, Star, CreditCard, MessageCircle } from "lucide-react";
 import { AppState, type UpdateAppState } from "../CustomerApp";
 import { useProducts, useCart, useCartGuard, useApiErrorToast } from "../hooks";
-import type { OrderDetail, OrderGroupSummary, Product } from "../../types/api";
+import type { OrderDetail, OrderGroupSummary, Product, ProductOptionSelection } from "../../types/api";
 import { fmtEGP, fromCents } from "../../lib/money";
 import { NetworkBanner, ProductCard, ProductCardSkeleton } from "../components";
 import { trackAddToCart, trackOrderPlaced } from "../../lib/analytics";
@@ -42,6 +42,11 @@ export function OrderSuccessScreen({ appState, updateAppState }: OrderSuccessScr
   const cart = useCart({ userId: appState.user?.id });
   const cartGuard = useCartGuard(cart);
   const apiErrorToast = useApiErrorToast("cart.updateError");
+  const providerLabel = useMemo(() => {
+    const provider = appState.selectedProvider;
+    if (!provider) return null;
+    return lang === "ar" ? provider.nameAr || provider.name : provider.name || provider.nameAr;
+  }, [appState.selectedProvider, lang]);
 
   useEffect(() => {
     const timer = setTimeout(() => setShowConfetti(false), 3000);
@@ -111,6 +116,26 @@ export function OrderSuccessScreen({ appState, updateAppState }: OrderSuccessScr
     return scheduledAtLabel || windowLabel;
   }, [detailOrder, lang, t]);
 
+  const formatOptionLabel = (opt: ProductOptionSelection) => {
+    const name = lang === "ar" ? opt.nameAr || opt.name : opt.name || opt.nameAr;
+    const group = lang === "ar" ? opt.groupNameAr || opt.groupName : opt.groupName || opt.groupNameAr;
+    const safeName = name || "";
+    const safeGroup = group || "";
+    const base = safeGroup ? `${safeGroup}: ${safeName}` : safeName;
+    return opt.qty > 1 ? `${base} x${opt.qty}` : base;
+  };
+
+  const renderOptions = (options?: ProductOptionSelection[]) => {
+    if (!options?.length) return null;
+    return (
+      <div className="mt-1 space-y-1 text-xs text-gray-500">
+        {options.map((opt) => (
+          <div key={`${opt.optionId}-${opt.qty}-${opt.groupId ?? "group"}`}>- {formatOptionLabel(opt)}</div>
+        ))}
+      </div>
+    );
+  };
+
   const addressLine = useMemo(() => {
     if (detailOrder?.address) {
       const parts = [detailOrder.address.label, detailOrder.address.street, detailOrder.address.city, detailOrder.address.zone]
@@ -173,7 +198,7 @@ export function OrderSuccessScreen({ appState, updateAppState }: OrderSuccessScr
       const added = await cartGuard.requestAdd(product, 1, undefined, () => {
         trackAddToCart(product.id, 1);
         showToast({ type: "success", message: t("products.buttons.added") });
-      });
+      }, { nextProviderLabel: providerLabel });
       if (!added) return;
     } catch (error: any) {
       apiErrorToast(error, "cart.updateError");
@@ -279,6 +304,27 @@ export function OrderSuccessScreen({ appState, updateAppState }: OrderSuccessScr
             ))}
           </div>
         )}
+
+        {!isGroup && detailOrder?.items?.length ? (
+          <div className="bg-white rounded-2xl shadow-sm w-full max-w-2xl p-4 sm:p-5 space-y-3">
+            <h3 className="font-semibold text-gray-900">{t("checkout.sections.items", "Items")}</h3>
+            {detailOrder.items.map((item) => {
+              const lineTotal = fromCents(item.priceSnapshotCents * item.qty);
+              return (
+                <div key={item.id} className="border-b last:border-b-0 pb-3 last:pb-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-900 break-words">{item.productNameSnapshot}</p>
+                      <p className="text-xs text-gray-500">x{item.qty}</p>
+                      {renderOptions(item.options)}
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900">{fmtEGP(lineTotal)}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
 
         <div className="w-full max-w-3xl flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
           <Button onClick={goToTrackOrder} className="rounded-xl w-full sm:w-auto justify-center">

@@ -37,6 +37,11 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [addingCart, setAddingCart] = useState(false);
   const selectedProviderId = appState.selectedProvider?.id ?? appState.selectedProviderId ?? null;
+  const providerLabel = useMemo(() => {
+    const provider = appState.selectedProvider;
+    if (!provider) return null;
+    return lang === "ar" ? provider.nameAr || provider.name : provider.name || provider.nameAr;
+  }, [appState.selectedProvider, lang]);
 
   const detailQuery = useProductDetail(
     { idOrSlug: productKey, initialData: hasInitial ? (selected as Product) : null },
@@ -255,7 +260,8 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
         () => {
           trackAddToCart(product.id, clampedQty);
           showToast({ type: "success", message: t("products.buttons.added") });
-        }
+        },
+        { nextProviderLabel: providerLabel }
       );
       if (!added) return;
     } catch (error: any) {
@@ -274,10 +280,16 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
       return;
     }
     try {
-      const added = await cartGuard.requestAdd(p, 1, undefined, () => {
-        trackAddToCart(p.id, 1);
-        showToast({ type: "success", message: t("products.buttons.added") });
-      });
+      const added = await cartGuard.requestAdd(
+        p,
+        1,
+        undefined,
+        () => {
+          trackAddToCart(p.id, 1);
+          showToast({ type: "success", message: t("products.buttons.added") });
+        },
+        { nextProviderLabel: providerLabel }
+      );
       if (!added) return;
     } catch (error: any) {
       apiErrorToast(error, "cart.updateError");

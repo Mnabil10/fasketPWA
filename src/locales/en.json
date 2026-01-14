@@ -22,7 +22,7 @@
     "timeout": "The connection is too slow. Please check your internet and try again.",
     "authInvalidCredentials": "Invalid email/phone or password.",
     "authAccountDisabled": "Your account has been disabled. Please contact support.",
-    "addressInvalidZone": "The selected delivery area is not available.",
+    "addressInvalidZone": "This address is outside this provider's delivery area.",
     "addressZoneInactive": "This delivery area is not available right now.",
     "addressZoneRequired": "Please choose a delivery area.",
     "driverNotFound": "Driver not found.",
@@ -307,7 +307,7 @@
     "clear": "Clear cart",
     "conflict": {
       "title": "Replace cart?",
-      "message": "Your cart already has items from another provider. Clear it to add this item.",
+      "message": "Your cart is currently from {{current}}. Clear it to add items from {{next}}.",
       "clearAction": "Clear cart",
       "clearFailed": "Unable to clear the cart. Please try again."
     },
@@ -330,7 +330,8 @@
     "serviceFeeLabel": "Service fee",
     "etaLabel": "Estimated delivery time",
     "summaryEtaFallback": "Delivery time will be confirmed at checkout.",
-    "totalLabel": "Total"
+    "totalLabel": "Total",
+    "deliveryUnavailable": "This address is outside this provider's delivery area."
   },
   "checkout": {
     "title": "Checkout",
@@ -364,7 +365,8 @@
       "minutes": "min",
       "discount": "Discount",
       "etaUnknown": "Estimated time is not available.",
-      "freeDelivery": "Free delivery"
+      "freeDelivery": "Free delivery",
+      "deliveryUnavailable": "This address is outside this provider's delivery area."
     },
     "deliveryEstimate": {
       "label": "Estimated delivery fee",
@@ -421,7 +423,8 @@
       "submitError": "Something went wrong while creating your order. Please try again.",
       "missingZone": "Please select a delivery zone.",
       "missingLocation": "Location is required for delivery.",
-      "quoteError": "Unable to calculate delivery fees. Please try again."
+      "quoteError": "Unable to calculate delivery fees. Please try again.",
+      "cartScopeMixed": "Your cart contains items from multiple providers. Please clear it to continue."
     },
     "address": {
       "subtitle": "Create an address to place your order.",

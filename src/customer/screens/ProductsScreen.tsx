@@ -27,6 +27,7 @@ export function ProductsScreen({ appState, updateAppState }: ProductsScreenProps
   const cartGuard = useCartGuard(cart);
   const { isOffline } = useNetworkStatus();
   const apiErrorToast = useApiErrorToast("products.error");
+  const lang = i18n.language?.startsWith("ar") ? "ar" : "en";
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedQuery = useDebouncedValue(searchQuery, 250);
   const [sortBy, setSortBy] = useState<"popularity" | "price-low" | "price-high" | "rating" | "name">("popularity");
@@ -40,6 +41,11 @@ export function ProductsScreen({ appState, updateAppState }: ProductsScreenProps
   const { history, addQuery, clearHistory } = useSearchHistory("products");
   const selectedProvider = appState.selectedProvider ?? null;
   const providerId = selectedProvider?.id ?? null;
+  const providerLabel = selectedProvider
+    ? lang === "ar"
+      ? selectedProvider.nameAr || selectedProvider.name
+      : selectedProvider.name || selectedProvider.nameAr
+    : null;
 
   const isRTL = i18n.dir() === "rtl";
 
@@ -107,7 +113,7 @@ export function ProductsScreen({ appState, updateAppState }: ProductsScreenProps
       const added = await cartGuard.requestAdd(product, 1, undefined, () => {
         trackAddToCart(product.id, 1);
         showToast({ type: "success", message: t("products.buttons.added") });
-      });
+      }, { nextProviderLabel: providerLabel });
       if (!added) return;
     } catch (err: any) {
       apiErrorToast(err, "products.error");

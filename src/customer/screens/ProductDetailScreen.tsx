@@ -79,16 +79,32 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
             groupId: group.id,
             groupName,
             groupNameAr,
+            groupPriceMode: group.priceMode ?? "ADD",
           });
         }
       }
     }
     return selections;
   }, [optionGroups, optionQuantities]);
-  const optionsTotalCents = useMemo(
-    () => selectedOptions.reduce((sum, opt) => sum + opt.priceCents * opt.qty, 0),
-    [selectedOptions]
-  );
+  const optionTotals = useMemo(() => {
+    let addOnsTotalCents = 0;
+    let baseOverrideCents = 0;
+    let hasOverride = false;
+    for (const opt of selectedOptions) {
+      const qty = Math.max(1, Math.floor(opt.qty ?? 1));
+      const price = opt.priceCents ?? 0;
+      if (opt.groupPriceMode === "SET") {
+        baseOverrideCents += price * qty;
+        hasOverride = true;
+      } else {
+        addOnsTotalCents += price * qty;
+      }
+    }
+    return {
+      addOnsTotalCents,
+      baseOverrideCents: hasOverride ? baseOverrideCents : null,
+    };
+  }, [selectedOptions]);
 
   const similarQuery = useProducts(
     { categoryId: product?.category?.id, providerId: resolvedProviderId, enabled: Boolean(product?.category?.id) },
@@ -122,15 +138,20 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
     return combined.length ? combined : fallback;
   }, [product?.gallery, product?.imageUrl]);
 
-  const hasDiscount = product ? product.salePriceCents !== null && product.salePriceCents !== undefined : false;
-  const basePrice = product ? fromCents(product.priceCents) : 0;
-  const sellPrice = product ? fromCents(product.salePriceCents ?? product.priceCents) : 0;
-  const baseUnitCents = product ? product.salePriceCents ?? product.priceCents : 0;
-  const unitTotalCents = baseUnitCents + optionsTotalCents;
+  const listPriceCents = product?.priceCents ?? 0;
+  const salePriceCents = product?.salePriceCents ?? null;
+  const hasDiscount = salePriceCents !== null && salePriceCents !== undefined;
+  const showDiscount = optionTotals.baseOverrideCents === null && hasDiscount;
+  const basePrice = fromCents(listPriceCents);
+  const baseUnitCents = optionTotals.baseOverrideCents ?? (salePriceCents ?? listPriceCents);
+  const sellPrice = fromCents(baseUnitCents);
+  const unitTotalCents = baseUnitCents + optionTotals.addOnsTotalCents;
   const unitTotal = fromCents(unitTotalCents);
   const totalWithQty = fromCents(unitTotalCents * quantity);
   const discountPct =
-    hasDiscount && product ? Math.max(0, Math.round((1 - (product.salePriceCents || 0) / product.priceCents) * 100)) : 0;
+    showDiscount && product
+      ? Math.max(0, Math.round((1 - (product.salePriceCents || 0) / product.priceCents) * 100))
+      : 0;
   const etaLabel = product?.deliveryEstimateMinutes
     ? t("checkout.summary.etaValue", {
         value: `${product.deliveryEstimateMinutes} ${t("checkout.summary.minutes", "min")}`,
@@ -404,7 +425,7 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
             ) : (
               <div className="w-full h-full bg-gray-100" />
             )}
-            {hasDiscount && (
+            {showDiscount && (
               <Badge className="absolute left-3 top-3 rounded-full shadow-card bg-white text-primary border border-primary/20">
                 -{discountPct}%
               </Badge>
@@ -454,7 +475,7 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
               </h1>
               <p className="text-gray-600 mb-3">{product.category?.name}</p>
             </div>
-            {hasDiscount && (
+            {showDiscount && (
               <Badge className="rounded-lg bg-red-100 text-red-600 border border-red-200">
                 -{discountPct}%
               </Badge>
@@ -466,15 +487,15 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
               <span className="font-poppins text-3xl text-primary" style={{ fontWeight: 700 }}>
                 {fmtEGP(sellPrice)}
               </span>
-              {hasDiscount && (
+              {showDiscount && (
                 <span className="text-gray-500 line-through text-lg">{fmtEGP(basePrice)}</span>
               )}
             </div>
-            {optionsTotalCents > 0 && (
+            {optionTotals.addOnsTotalCents > 0 && (
               <p className="text-xs text-gray-500">
                 {t("productOptions.addonsTotal", {
-                  value: fmtEGP(fromCents(optionsTotalCents)),
-                  defaultValue: `Add-ons ${fmtEGP(fromCents(optionsTotalCents))}`,
+                  value: fmtEGP(fromCents(optionTotals.addOnsTotalCents)),
+                  defaultValue: `Add-ons ${fmtEGP(fromCents(optionTotals.addOnsTotalCents))}`,
                 })}
               </p>
             )}

@@ -199,6 +199,7 @@ export type ProviderSummary = {
 };
 
 export type ProductOptionGroupType = "SINGLE" | "MULTI";
+export type ProductOptionGroupPriceMode = "ADD" | "SET";
 
 export type ProductOption = {
   id: string;
@@ -215,6 +216,7 @@ export type ProductOptionGroup = {
   name: string;
   nameAr?: string | null;
   type: ProductOptionGroupType;
+  priceMode?: ProductOptionGroupPriceMode;
   minSelected?: number | null;
   maxSelected?: number | null;
   sortOrder?: number | null;
@@ -231,6 +233,7 @@ export type ProductOptionSelection = {
   groupId?: string;
   groupName?: string;
   groupNameAr?: string | null;
+  groupPriceMode?: ProductOptionGroupPriceMode;
 };
 
 export type Product = {

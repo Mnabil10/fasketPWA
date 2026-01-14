@@ -13,7 +13,28 @@ function normalizeOptionSelections(options?: Array<Record<string, any>> | null):
     groupId: opt.groupId ?? undefined,
     groupName: opt.groupName ?? undefined,
     groupNameAr: opt.groupNameAr ?? null,
+    groupPriceMode: opt.groupPriceMode ?? undefined,
   }));
+}
+
+export function computeOptionTotals(options?: ProductOptionSelection[]) {
+  if (!options?.length) {
+    return { addOnsTotalCents: 0, baseOverrideCents: null as number | null };
+  }
+  let addOnsTotalCents = 0;
+  let baseOverrideCents = 0;
+  let hasOverride = false;
+  for (const opt of options) {
+    const qty = Math.max(1, Math.floor(opt.qty ?? 1));
+    const price = opt.priceCents ?? 0;
+    if (opt.groupPriceMode === "SET") {
+      baseOverrideCents += price * qty;
+      hasOverride = true;
+    } else {
+      addOnsTotalCents += price * qty;
+    }
+  }
+  return { addOnsTotalCents, baseOverrideCents: hasOverride ? baseOverrideCents : null };
 }
 
 export function mapServerCartToUiItems(server: { items: any[] } | null): CartPreviewItem[] {

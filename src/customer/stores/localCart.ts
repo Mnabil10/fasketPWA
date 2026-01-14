@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Product, ProductOptionSelection } from "../../types/api";
+import { computeOptionTotals } from "../utils/cart";
 import type { CartPreviewItem } from "../types";
 
 export type LocalCartItem = {
@@ -66,11 +67,8 @@ export const useLocalCartStore = create<LocalCartState>()(
         const itemId = buildItemKey(product.id, product.branchId ?? null, optionsKey);
         const existing = items[itemId];
         const nextQty = Math.max(1, Math.min(MAX_QTY, (existing?.quantity || 0) + qty));
-        const basePriceCents = product.salePriceCents ?? product.priceCents;
-        const optionsTotalCents = normalizedOptions.reduce(
-          (sum, opt) => sum + (opt.priceCents ?? 0) * (opt.qty ?? 1),
-          0
-        );
+        const { addOnsTotalCents, baseOverrideCents } = computeOptionTotals(normalizedOptions);
+        const basePriceCents = baseOverrideCents ?? (product.salePriceCents ?? product.priceCents);
         items[itemId] = {
           id: itemId,
           productId: product.id,
@@ -78,7 +76,7 @@ export const useLocalCartStore = create<LocalCartState>()(
           providerId: product.providerId ?? null,
           name: product.name,
           image: product.imageUrl ?? undefined,
-          priceCents: basePriceCents + optionsTotalCents,
+          priceCents: basePriceCents + addOnsTotalCents,
           salePriceCents: product.salePriceCents,
           optionsKey,
           options: normalizedOptions,

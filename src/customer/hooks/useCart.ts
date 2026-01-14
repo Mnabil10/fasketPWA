@@ -11,7 +11,7 @@ import {
   type ApiCart,
 } from "../../services/cart";
 import type { Product, ProductOptionSelection } from "../../types/api";
-import { mapServerCartToUiItems } from "../utils/cart";
+import { computeOptionTotals, mapServerCartToUiItems } from "../utils/cart";
 import {
   getLocalCartTotals,
   mapLocalCartToPreview,
@@ -109,10 +109,6 @@ function mapOptionsPayload(options?: ProductOptionSelection[]) {
   const normalized = normalizeOptions(options);
   if (!normalized.length) return undefined;
   return normalized.map((opt) => ({ optionId: opt.optionId, qty: opt.qty }));
-}
-
-function sumOptionsCents(options?: ProductOptionSelection[]) {
-  return normalizeOptions(options).reduce((sum, opt) => sum + (opt.priceCents ?? 0) * (opt.qty ?? 1), 0);
 }
 
 export function useCart(options?: UseCartOptions): UseCartResult {
@@ -244,8 +240,9 @@ export function useCart(options?: UseCartOptions): UseCartResult {
       return optimisticUpdate((cart) => {
         if (!cart) return cart;
         const optionsKey = buildOptionsKey(variables.options);
-        const optionsTotal = sumOptionsCents(variables.options);
-        const basePriceCents = variables.product?.salePriceCents ?? variables.product?.priceCents;
+        const { addOnsTotalCents, baseOverrideCents } = computeOptionTotals(variables.options);
+        const basePriceCents =
+          baseOverrideCents ?? variables.product?.salePriceCents ?? variables.product?.priceCents;
         const existing = cart.items.find(
           (it) =>
             it.productId === variables.productId &&
@@ -253,7 +250,9 @@ export function useCart(options?: UseCartOptions): UseCartResult {
             buildOptionsKey((it as any).options) === optionsKey
         );
         const priceCents =
-          basePriceCents != null ? basePriceCents + optionsTotal : existing?.priceCents ?? optionsTotal;
+          basePriceCents != null
+            ? basePriceCents + addOnsTotalCents
+            : existing?.priceCents ?? addOnsTotalCents;
         if (existing) {
           existing.qty += variables.qty;
         } else {

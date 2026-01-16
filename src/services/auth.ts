@@ -50,6 +50,21 @@ export async function authLogin(body: LoginBody): Promise<AuthResponse> {
   return normalizeAuthResponse(data);
 }
 
+export async function authRegister(body: RegisterBody): Promise<AuthResponse> {
+  const trimmedEmail = body.email?.trim();
+  const { data } = await api.post(
+    "/auth/register",
+    {
+      name: body.name,
+      phone: body.phone,
+      email: trimmedEmail || undefined,
+      password: body.password,
+    },
+    { skipAuth: true }
+  );
+  return normalizeAuthResponse(data);
+}
+
 export async function logout(payload?: { deviceToken?: string; refreshToken?: string }) {
   const refreshToken = payload?.refreshToken;
   await api.post(

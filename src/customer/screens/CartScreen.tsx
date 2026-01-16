@@ -16,7 +16,6 @@ import type { CartPreviewItem } from "../types";
 import type { ApiCart } from "../../services/cart";
 import { mapApiErrorToMessage } from "../../utils/mapApiErrorToMessage";
 import { extractNoticeMessage } from "../../utils/extractNoticeMessage";
-import { isFeatureEnabled } from "../utils/mobileAppConfig";
 
 interface CartScreenProps {
   appState: AppState;
@@ -79,7 +78,7 @@ export function CartScreen({ appState, updateAppState }: CartScreenProps) {
   const cart = useCart({ userId: appState.user?.id, addressId: primaryAddress?.id ?? null });
   const apiErrorToast = useApiErrorToast("cart.updateError");
   const isAuthenticated = Boolean(appState.user);
-  const guestCheckoutEnabled = isFeatureEnabled(appState.settings?.mobileApp, "guestCheckout", true);
+  const guestCheckoutEnabled = false;
   const [pendingItemId, setPendingItemId] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<"inc" | "dec" | "remove" | null>(null);
   const isRTL = i18n.dir() === "rtl";

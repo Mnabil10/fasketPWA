@@ -70,6 +70,7 @@ export type Screen =
 const authRequiredScreens = new Set<Screen>([
   "orders",
   "order-detail",
+  "checkout",
   "profile",
   "addresses",
   "payment-methods",
@@ -291,11 +292,6 @@ export function CustomerApp() {
       });
       throw error instanceof Error ? error : new Error("Failed to load profile");
     }
-  }, [updateAppState]);
-
-  const handleContinueAsGuest = useCallback(() => {
-    goToHome(updateAppState);
-    updateAppState({ postOnboardingScreen: "home", user: null });
   }, [updateAppState]);
 
   const toggleAuthMode = useCallback(() => {
@@ -626,7 +622,6 @@ export function CustomerApp() {
           mode={mode}
           onAuthSuccess={handleAuthSuccess}
           onToggleMode={toggleAuthMode}
-          onContinueAsGuest={handleContinueAsGuest}
           branding={appState.settings?.mobileApp?.branding}
         />
       );

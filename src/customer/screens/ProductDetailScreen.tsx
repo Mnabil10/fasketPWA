@@ -105,6 +105,7 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
       baseOverrideCents: hasOverride ? baseOverrideCents : null,
     };
   }, [selectedOptions]);
+  const hasSetPriceGroup = optionGroups.some((group) => (group.priceMode ?? "ADD") === "SET");
 
   const similarQuery = useProducts(
     { categoryId: product?.category?.id, providerId: resolvedProviderId, enabled: Boolean(product?.category?.id) },
@@ -148,6 +149,10 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
   const unitTotalCents = baseUnitCents + optionTotals.addOnsTotalCents;
   const unitTotal = fromCents(unitTotalCents);
   const totalWithQty = fromCents(unitTotalCents * quantity);
+  const showSelectPrice = hasSetPriceGroup && optionTotals.baseOverrideCents === null;
+  const selectPriceLabel = t("products.priceOnSelect", "Select options to set price");
+  const sellPriceLabel = showSelectPrice ? selectPriceLabel : fmtEGP(sellPrice);
+  const totalLabel = showSelectPrice ? selectPriceLabel : fmtEGP(totalWithQty);
   const discountPct =
     showDiscount && product
       ? Math.max(0, Math.round((1 - (product.salePriceCents || 0) / product.priceCents) * 100))
@@ -485,7 +490,7 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
           <div className="bg-gray-50 rounded-xl p-4 space-y-3 shadow-inner">
             <div className="flex items-center gap-2">
               <span className="font-poppins text-3xl text-primary" style={{ fontWeight: 700 }}>
-                {fmtEGP(sellPrice)}
+                {sellPriceLabel}
               </span>
               {showDiscount && (
                 <span className="text-gray-500 line-through text-lg">{fmtEGP(basePrice)}</span>
@@ -664,7 +669,7 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
           <div className="flex-1">
             <p className="text-xs text-gray-500">{etaLabel}</p>
             <p className="text-lg font-semibold text-gray-900 price-text">
-              {fmtEGP(totalWithQty)}
+              {totalLabel}
             </p>
           </div>
           <Button
@@ -674,7 +679,7 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
           >
             {(product.stock ?? 0) <= 0
               ? t("product.stock.out")
-              : t("product.cta", { total: fmtEGP(totalWithQty) })}
+              : t("product.cta", { total: totalLabel })}
           </Button>
         </div>
       </div>

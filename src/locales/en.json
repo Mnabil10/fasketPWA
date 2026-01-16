@@ -217,6 +217,7 @@
     "featuredBadge": "Featured",
     "filterButton": "Filter",
     "filterTitle": "Filters",
+    "priceOnSelect": "Select options to set price",
     "sort": {
       "label": "Sort by",
       "popularity": "Most popular",

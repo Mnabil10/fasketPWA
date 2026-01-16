@@ -32,6 +32,7 @@ export function ProductCard({
   const isOnSale = product.salePriceCents !== null && product.salePriceCents !== undefined;
   const salePrice = isOnSale ? fmtEGP(fromCents(product.salePriceCents || 0)) : null;
   const effectivePriceCents = product.salePriceCents ?? product.priceCents;
+  const showSelectPrice = effectivePriceCents <= 0;
   const discountPct = isOnSale
     ? Math.max(0, Math.round((1 - (product.salePriceCents || 0) / product.priceCents) * 100))
     : null;
@@ -101,9 +102,9 @@ export function ProductCard({
         )}
         <div className="flex items-baseline gap-2 flex-wrap">
           <span className="font-semibold text-[var(--color-primary)] price-text whitespace-nowrap" data-price>
-            {fmtEGP(fromCents(effectivePriceCents))}
+            {showSelectPrice ? t("products.priceOnSelect", "Select options to set price") : fmtEGP(fromCents(effectivePriceCents))}
           </span>
-          {salePrice && (
+          {salePrice && !showSelectPrice && (
             <span className="text-xs text-[var(--ink-500)] line-through price-text whitespace-nowrap" data-price>
               {price}
             </span>

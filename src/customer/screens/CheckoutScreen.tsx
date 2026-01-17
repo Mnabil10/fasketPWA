@@ -816,17 +816,16 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
       : address.zone;
     const line1 = [address.city, zoneName].filter(Boolean).join(", ");
     const line2 = [address.street, address.building, address.apartment].filter(Boolean).join(", ");
-    const zoneSummary = address.deliveryZone
-      ? [
-          fmtEGP(fromCents(address.deliveryZone.feeCents)),
-          address.deliveryZone.etaMinutes
-            ? t("addresses.zoneEta", { value: address.deliveryZone.etaMinutes })
-            : null,
-        ]
-          .filter(Boolean)
-          .join(" - ")
-      : null;
     const isSelected = selectedAddressId === address.id;
+    const feeLabel = isSelected
+      ? deliveryFeeLabel
+      : address.deliveryZone
+        ? fmtEGP(fromCents(address.deliveryZone.feeCents))
+        : null;
+    const zoneEta = address.deliveryZone?.etaMinutes
+      ? t("addresses.zoneEta", { value: address.deliveryZone.etaMinutes })
+      : null;
+    const zoneSummary = [feeLabel, zoneEta].filter(Boolean).join(" - ") || null;
 
     return (
       <button

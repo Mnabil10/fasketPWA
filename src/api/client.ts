@@ -135,14 +135,16 @@ api.interceptors.response.use(
 
     if (status === 401 && !original._retry && !original.skipAuth && !isAuthPath(original.url)) {
       original._retry = true;
-      const newToken = await refreshTokens();
-      if (newToken) {
+      const refreshResult = await refreshTokens();
+      if (refreshResult.status === "ok" && refreshResult.token) {
         const headers = AxiosHeaders.from(original.headers ?? {});
-        headers.set("Authorization", `Bearer ${newToken}`);
+        headers.set("Authorization", `Bearer ${refreshResult.token}`);
         original.headers = headers;
         return api.request(original);
       }
-      await clearSessionTokens("expired");
+      if (refreshResult.status === "invalid" || refreshResult.status === "missing") {
+        await clearSessionTokens("expired");
+      }
     }
 
     const shouldRetry =

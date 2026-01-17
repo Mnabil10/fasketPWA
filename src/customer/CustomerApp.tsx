@@ -39,6 +39,7 @@ import { useCart } from "./hooks";
 import { flushAnalytics, trackAppOpen } from "../lib/analytics";
 import { getAppSettings } from "../services/settings";
 import { initPush, registerDeviceToken, subscribeToNotifications } from "../lib/notifications";
+import { playNotificationSound } from "../lib/notificationSound";
 import { useNotificationPreferences } from "./stores/notificationPreferences";
 import { useToast } from "./providers/ToastProvider";
 import { App as CapacitorApp } from "@capacitor/app";
@@ -340,6 +341,18 @@ export function CustomerApp() {
 
   useEffect(() => {
     const unsubscribe = subscribeToNotifications((payload) => {
+      playNotificationSound();
+      if (typeof document !== "undefined" && typeof Notification !== "undefined") {
+        if (Notification.permission === "granted" && document.visibilityState !== "visible") {
+          try {
+            new Notification(payload.title ?? t("notifications.title", "Notification"), {
+              body: payload.body ?? t("notifications.orderUpdated", "Your order was updated"),
+            });
+          } catch {
+            // ignore notification failures
+          }
+        }
+      }
       if (payload.type === "order_status" && payload.orderId) {
         showToast({
           type: "info",

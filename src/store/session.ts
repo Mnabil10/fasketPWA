@@ -1,8 +1,11 @@
+import type { AxiosError } from "axios";
 import { secureStorage } from "../lib/secureStorage";
 import { authRefresh } from "../services/auth";
 import type { UserProfile } from "../types/api";
 
 export type TokenPair = { accessToken: string | null; refreshToken: string | null };
+export type RefreshStatus = "ok" | "missing" | "invalid" | "error";
+export type RefreshResult = { token: string | null; status: RefreshStatus };
 export type SessionEndReason = "unknown" | "expired" | "logout";
 type Listener = (reason: SessionEndReason) => void;
 
@@ -25,7 +28,7 @@ let state: SessionState = {
 };
 
 let hydrationPromise: Promise<void> | null = null;
-let refreshPromise: Promise<string | null> | null = null;
+let refreshPromise: Promise<RefreshResult> | null = null;
 
 async function hydrateFromStorage() {
   try {
@@ -108,22 +111,28 @@ export function persistSessionTokens(accessToken: string | null, refreshToken: s
   void saveTokens({ accessToken, refreshToken });
 }
 
-export async function refreshTokens(): Promise<string | null> {
+export async function refreshTokens(): Promise<RefreshResult> {
   if (refreshPromise) return refreshPromise;
   refreshPromise = (async () => {
     await ensureSessionHydrated();
     const refreshToken = state.refreshToken;
-    if (!refreshToken) return null;
+    if (!refreshToken) return { token: null, status: "missing" };
     try {
       const res = await authRefresh(refreshToken);
       if (!res?.accessToken) {
         throw new Error("refresh_missing_access_token");
       }
       await saveTokens({ accessToken: res.accessToken, refreshToken: res.refreshToken || refreshToken });
-      return res.accessToken || null;
-    } catch {
-      await clearSessionTokens("expired");
-      return null;
+      return { token: res.accessToken || null, status: "ok" };
+    } catch (error) {
+      const status = (error as any)?.status ?? (error as AxiosError)?.response?.status;
+      const code = (error as any)?.code ?? (error as AxiosError)?.response?.data?.code;
+      const invalid =
+        status === 401 ||
+        status === 403 ||
+        code === "AUTH_SESSION_EXPIRED" ||
+        code === "AUTH_INVALID_CREDENTIALS";
+      return { token: null, status: invalid ? "invalid" : "error" };
     } finally {
       refreshPromise = null;
     }

@@ -125,8 +125,9 @@ export async function refreshTokens(): Promise<RefreshResult> {
       await saveTokens({ accessToken: res.accessToken, refreshToken: res.refreshToken || refreshToken });
       return { token: res.accessToken || null, status: "ok" };
     } catch (error) {
-      const status = (error as any)?.status ?? (error as AxiosError)?.response?.status;
-      const code = (error as any)?.code ?? (error as AxiosError)?.response?.data?.code;
+      const axiosError = error as AxiosError<{ code?: string }>;
+      const status = (error as any)?.status ?? axiosError?.response?.status;
+      const code = (error as any)?.code ?? axiosError?.response?.data?.code;
       const invalid =
         status === 401 ||
         status === 403 ||

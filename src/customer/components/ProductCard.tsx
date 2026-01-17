@@ -58,7 +58,12 @@ export function ProductCard({
   };
 
   const handleAdd = () => {
-    if (disabled || !onAddToCart) return;
+    if (disabled) return;
+    if (showSelectPrice) {
+      onPress?.(product);
+      return;
+    }
+    if (!onAddToCart) return;
     onAddToCart(product);
   };
 

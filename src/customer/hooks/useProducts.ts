@@ -1,6 +1,6 @@
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { bestSelling, hotOffers, listProducts } from "../../services/catalog";
+import { bestSelling, hotOffers, listAllProducts, listProducts } from "../../services/catalog";
 import type { Product } from "../../types/api";
 import type { CachedResult } from "../../lib/offlineCache";
 
@@ -19,6 +19,7 @@ export type UseProductsParams = {
   pageSize?: number;
   limit?: number;
   type?: ProductQueryKind;
+  fetchAll?: boolean;
   enabled?: boolean;
 };
 
@@ -38,6 +39,7 @@ type ProductsQueryKey = [
     page?: number;
     pageSize?: number;
     limit?: number;
+    fetchAll?: boolean;
   }
 ];
 
@@ -64,6 +66,7 @@ export function useProducts<TData = CachedResult<Product[]>>(
   const page = params?.page;
   const pageSize = params?.pageSize;
   const limit = params?.limit;
+  const fetchAll = params?.fetchAll ?? false;
   const enabled = params?.enabled ?? true;
 
   return useQuery({
@@ -83,6 +86,7 @@ export function useProducts<TData = CachedResult<Product[]>>(
         page,
         pageSize,
         limit,
+        fetchAll,
       },
     ],
     queryFn: () => {
@@ -92,7 +96,8 @@ export function useProducts<TData = CachedResult<Product[]>>(
       if (type === "hot-offers") {
         return hotOffers({ pageSize: limit ?? pageSize ?? 10, lang, providerId });
       }
-      return listProducts({
+      const listFn = fetchAll ? listAllProducts : listProducts;
+      return listFn({
         q: search,
         categoryId,
         categorySlug,

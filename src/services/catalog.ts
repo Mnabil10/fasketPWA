@@ -9,6 +9,9 @@ function cacheKey(name: string, parts: Array<string | number | undefined | null>
   return [name, ...parts.map((part) => (part === undefined || part === null || part === "" ? "all" : part))].join(":");
 }
 
+const DEFAULT_PRODUCTS_PAGE_SIZE = 20;
+const DEFAULT_PRODUCTS_BATCH_SIZE = 100;
+
 type PaginatedProducts = {
   items?: Product[];
   total?: number;
@@ -82,6 +85,35 @@ function normalizeProducts(payload: ProductsPayload): Product[] {
   return [];
 }
 
+function normalizePaginatedProducts(payload: ProductsPayload): {
+  items: Product[];
+  total?: number;
+  page?: number;
+  pageSize?: number;
+} {
+  const items = normalizeProducts(payload);
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return { items };
+  }
+
+  const meta = payload as PaginatedProducts;
+  let total = typeof meta.total === "number" ? meta.total : undefined;
+  let page = typeof meta.page === "number" ? meta.page : undefined;
+  let pageSize = typeof meta.pageSize === "number" ? meta.pageSize : undefined;
+  if (total !== undefined || page !== undefined || pageSize !== undefined) {
+    return { items, total, page, pageSize };
+  }
+
+  const data = (payload as { data?: any }).data;
+  if (data && typeof data === "object") {
+    total = typeof data.total === "number" ? data.total : undefined;
+    page = typeof data.page === "number" ? data.page : undefined;
+    pageSize = typeof data.pageSize === "number" ? data.pageSize : undefined;
+  }
+
+  return { items, total, page, pageSize };
+}
+
 type ProductPayload =
   | Product
   | {
@@ -111,6 +143,8 @@ function normalizeProductEntity(payload: ProductPayload): Product | null {
 // GET /products?q=&categoryId=&categorySlug=&min=&max=&orderBy=&sort=&page=&pageSize&lang=
 export const listProducts = (params: ListProductsParams = {}): Promise<CachedResult<Product[]>> => {
   const lang = params.lang ?? getActiveLang("en");
+  const page = params.page ?? 1;
+  const pageSize = params.pageSize ?? DEFAULT_PRODUCTS_PAGE_SIZE;
   const qs = withLang(
     {
       q: params.q,
@@ -121,8 +155,8 @@ export const listProducts = (params: ListProductsParams = {}): Promise<CachedRes
       max: params.max,
       orderBy: params.orderBy,
       sort: params.sort,
-      page: params.page ?? 1,
-      pageSize: params.pageSize ?? 20,
+      page,
+      pageSize,
     },
     lang
   );
@@ -137,12 +171,68 @@ export const listProducts = (params: ListProductsParams = {}): Promise<CachedRes
       params.max,
       params.orderBy,
       params.sort,
-      params.page ?? 1,
-      params.pageSize ?? 20,
+      page,
+      pageSize,
     ]),
     async () => {
       const res = await request<ProductsPayload>({ url: `/products${qs}`, method: "GET" });
       return normalizeProducts(res);
+    },
+    { ttlMs: 5 * 60 * 1000, version: APP_VERSION, lang }
+  );
+};
+
+export const listAllProducts = (params: ListProductsParams = {}): Promise<CachedResult<Product[]>> => {
+  const lang = params.lang ?? getActiveLang("en");
+  const pageSize = Math.max(1, params.pageSize ?? DEFAULT_PRODUCTS_BATCH_SIZE);
+  const baseParams = {
+    q: params.q,
+    categoryId: params.categoryId,
+    categorySlug: params.categorySlug,
+    providerId: params.providerId,
+    min: params.min,
+    max: params.max,
+    orderBy: params.orderBy,
+    sort: params.sort,
+  };
+  return withOfflineCache(
+    cacheKey("products-all", [
+      lang,
+      params.q,
+      params.categoryId,
+      params.categorySlug,
+      params.providerId,
+      params.min,
+      params.max,
+      params.orderBy,
+      params.sort,
+      pageSize,
+    ]),
+    async () => {
+      const all: Product[] = [];
+      let page = 1;
+      let total: number | undefined;
+      let effectivePageSize = pageSize;
+
+      while (true) {
+        const qs = withLang({ ...baseParams, page, pageSize }, lang);
+        const res = await request<ProductsPayload>({ url: `/products${qs}`, method: "GET" });
+        const { items, total: responseTotal, pageSize: responsePageSize } = normalizePaginatedProducts(res);
+        if (typeof responseTotal === "number") total = responseTotal;
+        if (typeof responsePageSize === "number" && responsePageSize > 0) {
+          effectivePageSize = responsePageSize;
+        }
+        if (items.length) all.push(...items);
+        if (!items.length) break;
+        if (total !== undefined) {
+          if (all.length >= total) break;
+        } else if (items.length < effectivePageSize) {
+          break;
+        }
+        page += 1;
+      }
+
+      return all;
     },
     { ttlMs: 5 * 60 * 1000, version: APP_VERSION, lang }
   );

@@ -59,6 +59,7 @@ export function ProductsScreen({ appState, updateAppState }: ProductsScreenProps
       providerId,
       minPrice: minPriceValue,
       maxPrice: maxPriceValue,
+      fetchAll: true,
     },
     { enabled: Boolean(providerId) }
   );

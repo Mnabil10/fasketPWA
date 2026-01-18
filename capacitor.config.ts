@@ -1,10 +1,14 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: "customer.fasket.cloud",  
+  appId: "customer.fasket.cloud",
   appName: "Fasket",
-  webDir: "dist"
-
+  webDir: "dist",
+  plugins: {
+    CapacitorHttp: {
+      enabled: true,
+    },
+  },
 };
 
 export default config;

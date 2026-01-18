@@ -12,6 +12,9 @@ export type NotificationPayload = {
   title?: string;
   body?: string;
   route?: string;
+  priority?: string;
+  sound?: string;
+  vibrate?: string | boolean;
 };
 
 type NotificationListener = (payload: NotificationPayload) => void;
@@ -38,7 +41,7 @@ function notifyListeners(payload: NotificationPayload) {
 function mapNotification(notification: PushNotificationSchema | NotificationPayload): NotificationPayload {
   if (!notification) return {};
   if ("data" in notification && notification.data) {
-    const { type, orderId, points, route } = notification.data;
+    const { type, orderId, points, route, priority, sound, vibrate } = notification.data;
     return {
       type: type ?? notification.data?.eventType,
       orderId: orderId ?? notification.data?.order_id,
@@ -46,6 +49,9 @@ function mapNotification(notification: PushNotificationSchema | NotificationPayl
       title: notification.title ?? notification.data?.title,
       body: notification.body ?? notification.data?.body,
       route: route ?? notification.data?.route,
+      priority: priority ?? notification.data?.priority,
+      sound: sound ?? notification.data?.sound,
+      vibrate: vibrate ?? notification.data?.vibrate,
     };
   }
   return notification as NotificationPayload;

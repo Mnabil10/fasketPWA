@@ -341,7 +341,17 @@ export function CustomerApp() {
 
   useEffect(() => {
     const unsubscribe = subscribeToNotifications((payload) => {
-      playNotificationSound();
+      const isCritical = payload.priority === "high" || payload.sound === "alert";
+      if (isCritical || payload.sound) {
+        playNotificationSound();
+      }
+      if ((payload.vibrate || isCritical) && typeof navigator !== "undefined" && "vibrate" in navigator) {
+        try {
+          navigator.vibrate([200, 80, 200]);
+        } catch {
+          // ignore vibration errors
+        }
+      }
       if (typeof document !== "undefined" && typeof Notification !== "undefined") {
         if (Notification.permission === "granted" && document.visibilityState !== "visible") {
           try {

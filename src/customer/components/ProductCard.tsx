@@ -7,6 +7,7 @@ import { Skeleton } from "../../ui/skeleton";
 import type { Product } from "../../types/api";
 import { fmtEGP, fromCents } from "../../lib/money";
 import { SmartImage } from "../../components/SmartImage";
+import { requiresOptionSelection } from "../utils/productOptions";
 
 type ProductCardProps = {
   product: Product;
@@ -32,7 +33,12 @@ export function ProductCard({
   const isOnSale = product.salePriceCents !== null && product.salePriceCents !== undefined;
   const salePrice = isOnSale ? fmtEGP(fromCents(product.salePriceCents || 0)) : null;
   const effectivePriceCents = product.salePriceCents ?? product.priceCents;
-  const showSelectPrice = effectivePriceCents <= 0;
+  const hasSetPriceGroup = (product.optionGroups ?? []).some(
+    (group) => group.isActive !== false && (group.priceMode ?? "ADD") === "SET"
+  );
+  const showSelectPrice = effectivePriceCents <= 0 || hasSetPriceGroup;
+  const requiresOptions = requiresOptionSelection(product);
+  const requiresSelection = showSelectPrice || requiresOptions;
   const discountPct = isOnSale
     ? Math.max(0, Math.round((1 - (product.salePriceCents || 0) / product.priceCents) * 100))
     : null;
@@ -59,7 +65,7 @@ export function ProductCard({
 
   const handleAdd = () => {
     if (disabled) return;
-    if (showSelectPrice) {
+    if (requiresSelection) {
       onPress?.(product);
       return;
     }
@@ -135,12 +141,14 @@ export function ProductCard({
               ? t("product.stock.out")
               : adding
                 ? t("products.buttons.adding")
-                : (
-                  <>
-                    <ShoppingCart className="w-4 h-4" />
-                    {t("products.buttons.add")}
-                  </>
-                )}
+                : requiresSelection
+                  ? t("products.buttons.selectOptions", "Select options")
+                  : (
+                    <>
+                      <ShoppingCart className="w-4 h-4" />
+                      {t("products.buttons.add")}
+                    </>
+                  )}
           </Button>
         </div>
       </div>

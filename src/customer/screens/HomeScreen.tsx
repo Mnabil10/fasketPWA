@@ -35,6 +35,7 @@ import { mapApiErrorToMessage } from "../../utils/mapApiErrorToMessage";
 import { FASKET_GRADIENTS } from "../../styles/designSystem";
 import type { CachedResult } from "../../lib/offlineCache";
 import { getLocalizedString, isFeatureEnabled } from "../utils/mobileAppConfig";
+import { resolveQuickAddProduct } from "../utils/productOptions";
 
 interface HomeScreenProps {
   appState: AppState;
@@ -140,8 +141,13 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
 
   const handleAddToCart = async (product: Product) => {
     try {
-      const added = await cartGuard.requestAdd(product, 1, undefined, () => {
-        trackAddToCart(product.id, 1);
+      const resolved = await resolveQuickAddProduct(product, lang, !cartHook.isOffline);
+      if (resolved.requiresOptions) {
+        goToProduct(resolved.product.slug || resolved.product.id, updateAppState, { product: resolved.product });
+        return;
+      }
+      const added = await cartGuard.requestAdd(resolved.product, 1, undefined, () => {
+        trackAddToCart(resolved.product.id, 1);
         showToast({ type: "success", message: t("products.buttons.added") });
       }, { nextProviderLabel: providerLabel });
       if (!added) return;

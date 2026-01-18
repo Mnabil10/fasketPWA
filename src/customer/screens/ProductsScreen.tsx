@@ -14,6 +14,7 @@ import { goToCategory, goToProduct } from "../navigation/navigation";
 import type { Product } from "../../types/api";
 import { trackAddToCart } from "../../lib/analytics";
 import { mapApiErrorToMessage } from "../../utils/mapApiErrorToMessage";
+import { resolveQuickAddProduct } from "../utils/productOptions";
 
 interface ProductsScreenProps {
   appState: AppState;
@@ -111,8 +112,13 @@ export function ProductsScreen({ appState, updateAppState }: ProductsScreenProps
 
   const handleAddToCart = async (product: Product) => {
     try {
-      const added = await cartGuard.requestAdd(product, 1, undefined, () => {
-        trackAddToCart(product.id, 1);
+      const resolved = await resolveQuickAddProduct(product, lang, !isOffline);
+      if (resolved.requiresOptions) {
+        goToProduct(resolved.product.slug || resolved.product.id, updateAppState, { product: resolved.product });
+        return;
+      }
+      const added = await cartGuard.requestAdd(resolved.product, 1, undefined, () => {
+        trackAddToCart(resolved.product.id, 1);
         showToast({ type: "success", message: t("products.buttons.added") });
       }, { nextProviderLabel: providerLabel });
       if (!added) return;
@@ -135,7 +141,7 @@ export function ProductsScreen({ appState, updateAppState }: ProductsScreenProps
       );
     }
 
-    const gridClasses = viewMode === "grid" ? "premium-grid" : "space-y-3";
+    const gridClasses = viewMode === "grid" ? "product-grid" : "space-y-3";
 
     if (productsQuery.isLoading) {
       return (

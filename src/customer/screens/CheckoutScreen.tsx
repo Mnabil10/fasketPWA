@@ -39,6 +39,14 @@ type DeliverySlot = {
   scheduledAt: string;
 };
 
+const WEIGHT_PATTERN = /\b(weight|weighed|weighing|kg|kilo|kilogram|grams|gram|g)\b/i;
+const AR_WEIGHT_PATTERN = /(\u0627\u0644\u0648\u0632\u0646|\u0648\u0632\u0646|\u0643\u064a\u0644\u0648|\u0643\u062c\u0645|\u062c\u0645)/;
+
+function hasWeightKeyword(value?: string | null) {
+  if (!value) return false;
+  return WEIGHT_PATTERN.test(value) || AR_WEIGHT_PATTERN.test(value);
+}
+
 export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps) {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
@@ -83,6 +91,7 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
   const idempotencyKeyRef = useRef<string | null>(null);
   const savingRef = useRef(false);
   const [deliveryTermsAccepted, setDeliveryTermsAccepted] = useState(false);
+  const [weightNoticeAccepted, setWeightNoticeAccepted] = useState(false);
   const [selectedPaymentType, setSelectedPaymentType] = useState<"COD" | "CARD" | "WALLET">("COD");
   const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string | null>(null);
   const [deliveryMode, setDeliveryMode] = useState<"ASAP" | "SCHEDULED">("ASAP");
@@ -274,6 +283,12 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
       setSelectedSlotId(null);
     }
   }, [selectedSlotId, selectedSlot]);
+
+  useEffect(() => {
+    if (!hasWeightBasedItems) {
+      setWeightNoticeAccepted(false);
+    }
+  }, [hasWeightBasedItems]);
   const cardMethods = useMemo(
     () => paymentMethods.filter((method) => method.type === "CARD"),
     [paymentMethods]
@@ -299,6 +314,26 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
         : t("checkout.deliveryEstimate.pending", "Select an address to see delivery fee");
   const couponNotice = !isGuest ? serverCart?.couponNotice : null;
   const couponNoticeText = extractNoticeMessage(couponNotice);
+  const hasWeightBasedItems = useMemo(
+    () =>
+      previewItems.some((item) => {
+        const product = item.product ?? {};
+        const weightFlag =
+          (product as any).weightBased ?? (product as any).soldByWeight ?? (product as any).isWeightBased;
+        if (weightFlag) return true;
+        const tags = (product as any).tags;
+        if (Array.isArray(tags) && tags.some((tag) => hasWeightKeyword(tag))) return true;
+        if (
+          item.options?.some((opt) =>
+            [opt.groupName, opt.groupNameAr, opt.name, opt.nameAr].some((label) => hasWeightKeyword(label))
+          )
+        ) {
+          return true;
+        }
+        return [item.name, (product as any).name, (product as any).nameAr].some((label) => hasWeightKeyword(label));
+      }),
+    [previewItems]
+  );
   const loyaltyNotices = useMemo(() => {
     if (!loyaltyEnabled) return [];
     const notes: string[] = [];
@@ -513,6 +548,7 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
     previewItems.length > 0 &&
     !isOffline &&
     deliveryTermsAccepted &&
+    (!hasWeightBasedItems || weightNoticeAccepted) &&
     (isGuest ? guestReady : Boolean(selectedAddressId && cartId && paymentReady));
 
   const isOrderGroupSummary = (value: any): value is OrderGroupSummary =>
@@ -531,6 +567,10 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
   async function handleGuestOrder() {
     if (!deliveryTermsAccepted) {
       showToast({ type: "error", message: t("checkout.deliveryTerms.required", "Please accept the delivery terms.") });
+      return;
+    }
+    if (hasWeightBasedItems && !weightNoticeAccepted) {
+      showToast({ type: "error", message: t("checkout.weightNotice.required", "Please accept the weight-based pricing notice.") });
       return;
     }
     if (cart.cartScopeMixed) {
@@ -635,6 +675,10 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
     if (savingRef.current) return;
     if (!deliveryTermsAccepted) {
       showToast({ type: "error", message: t("checkout.deliveryTerms.required", "Please accept the delivery terms.") });
+      return;
+    }
+    if (hasWeightBasedItems && !weightNoticeAccepted) {
+      showToast({ type: "error", message: t("checkout.weightNotice.required", "Please accept the weight-based pricing notice.") });
       return;
     }
     if (cart.cartScopeMixed) {
@@ -1603,6 +1647,22 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
             <span>{t("checkout.summary.total")}</span>
             <span className="price-text">{fmtEGP(total)}</span>
           </div>
+          {hasWeightBasedItems && (
+            <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-white p-3 text-xs text-gray-700">
+              <input
+                type="checkbox"
+                className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                checked={weightNoticeAccepted}
+                onChange={(e) => setWeightNoticeAccepted(e.target.checked)}
+              />
+              <span>
+                {t(
+                  "checkout.weightNotice.text",
+                  "Some items are sold by weight. The final total may go up or down after weighing."
+                )}
+              </span>
+            </label>
+          )}
           <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-white p-3 text-xs text-gray-700">
             <input
               type="checkbox"

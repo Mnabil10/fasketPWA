@@ -57,6 +57,10 @@ export function mapServerCartToUiItems(server: { items: any[] } | null): CartPre
           priceCents: it.product.priceCents,
           salePriceCents: it.product.salePriceCents,
           category: it.product.category,
+          tags: (it.product as any).tags ?? undefined,
+          weightBased: (it.product as any).weightBased ?? undefined,
+          soldByWeight: (it.product as any).soldByWeight ?? undefined,
+          isWeightBased: (it.product as any).isWeightBased ?? undefined,
         }
       : undefined,
   }));

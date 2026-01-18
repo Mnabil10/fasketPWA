@@ -14,6 +14,7 @@ import type { Category, Product } from "../../types/api";
 import { goToCategory, goToHome, goToProduct } from "../navigation/navigation";
 import { trackAddToCart } from "../../lib/analytics";
 import { mapApiErrorToMessage } from "../../utils/mapApiErrorToMessage";
+import { resolveQuickAddProduct } from "../utils/productOptions";
 
 interface CategoriesScreenProps {
   appState: AppState;
@@ -64,8 +65,13 @@ export function CategoriesScreen({ appState, updateAppState }: CategoriesScreenP
 
   const handleAddProduct = async (product: Product) => {
     try {
-      const added = await cartGuard.requestAdd(product, 1, undefined, () => {
-        trackAddToCart(product.id, 1);
+      const resolved = await resolveQuickAddProduct(product, lang, !cart.isOffline);
+      if (resolved.requiresOptions) {
+        goToProduct(resolved.product.slug || resolved.product.id, updateAppState, { product: resolved.product });
+        return;
+      }
+      const added = await cartGuard.requestAdd(resolved.product, 1, undefined, () => {
+        trackAddToCart(resolved.product.id, 1);
         showToast({ type: "success", message: t("products.buttons.added") });
       }, { nextProviderLabel: providerLabel });
       if (!added) return;

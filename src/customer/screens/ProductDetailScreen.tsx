@@ -13,6 +13,7 @@ import type { Product } from "../../types/api";
 import { trackAddToCart, trackViewProduct } from "../../lib/analytics";
 import { goToCart, goToCategory, goToHome, goToProduct } from "../navigation/navigation";
 import { mapApiErrorToMessage } from "../../utils/mapApiErrorToMessage";
+import { resolveQuickAddProduct } from "../utils/productOptions";
 
 interface ProductDetailScreenProps {
   appState: AppState;
@@ -306,12 +307,17 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
       return;
     }
     try {
+      const resolved = await resolveQuickAddProduct(p, lang, !cart.isOffline);
+      if (resolved.requiresOptions) {
+        goToProduct(resolved.product.slug || resolved.product.id, updateAppState, { product: resolved.product });
+        return;
+      }
       const added = await cartGuard.requestAdd(
-        p,
+        resolved.product,
         1,
         undefined,
         () => {
-          trackAddToCart(p.id, 1);
+          trackAddToCart(resolved.product.id, 1);
           showToast({ type: "success", message: t("products.buttons.added") });
         },
         { nextProviderLabel: providerLabel }

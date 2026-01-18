@@ -13,6 +13,10 @@ export type LocalCartItem = {
   image?: string;
   priceCents: number;
   salePriceCents?: number | null;
+  tags?: string[] | null;
+  weightBased?: boolean | null;
+  soldByWeight?: boolean | null;
+  isWeightBased?: boolean | null;
   optionsKey: string;
   options?: ProductOptionSelection[];
   quantity: number;
@@ -78,6 +82,10 @@ export const useLocalCartStore = create<LocalCartState>()(
           image: product.imageUrl ?? undefined,
           priceCents: basePriceCents + addOnsTotalCents,
           salePriceCents: product.salePriceCents,
+          tags: product.tags ?? undefined,
+          weightBased: (product as any).weightBased ?? undefined,
+          soldByWeight: (product as any).soldByWeight ?? undefined,
+          isWeightBased: (product as any).isWeightBased ?? undefined,
           optionsKey,
           options: normalizedOptions,
           quantity: nextQty,
@@ -148,6 +156,10 @@ export function mapLocalCartToPreview(items: Record<string, LocalCartItem>): Car
       imageUrl: item.image,
       priceCents: item.priceCents,
       salePriceCents: item.salePriceCents ?? undefined,
+      tags: item.tags ?? undefined,
+      weightBased: item.weightBased ?? undefined,
+      soldByWeight: item.soldByWeight ?? undefined,
+      isWeightBased: item.isWeightBased ?? undefined,
       stock: item.stock,
       category: item.category
         ? { id: item.category, name: item.category, slug: item.category }

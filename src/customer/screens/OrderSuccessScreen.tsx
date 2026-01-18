@@ -15,6 +15,7 @@ import { useToast } from "../providers/ToastProvider";
 import { openExternalUrl } from "../../lib/fasketLinks";
 import { resolveSupportConfig } from "../utils/mobileAppConfig";
 import { useNotificationPreferences } from "../stores/notificationPreferences";
+import { resolveQuickAddProduct } from "../utils/productOptions";
 
 interface OrderSuccessScreenProps {
   appState: AppState;
@@ -195,8 +196,13 @@ export function OrderSuccessScreen({ appState, updateAppState }: OrderSuccessScr
 
   const handleAddRecommendation = async (product: Product) => {
     try {
-      const added = await cartGuard.requestAdd(product, 1, undefined, () => {
-        trackAddToCart(product.id, 1);
+      const resolved = await resolveQuickAddProduct(product, lang, !cart.isOffline);
+      if (resolved.requiresOptions) {
+        goToProduct(resolved.product.slug || resolved.product.id, updateAppState, { product: resolved.product });
+        return;
+      }
+      const added = await cartGuard.requestAdd(resolved.product, 1, undefined, () => {
+        trackAddToCart(resolved.product.id, 1);
         showToast({ type: "success", message: t("products.buttons.added") });
       }, { nextProviderLabel: providerLabel });
       if (!added) return;

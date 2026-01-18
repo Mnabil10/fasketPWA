@@ -248,7 +248,8 @@
     "buttons": {
       "add": "Add to cart",
       "added": "Added to cart",
-      "adding": "Adding..."
+      "adding": "Adding...",
+      "selectOptions": "Select options"
     },
     "backToCategories": "Back to categories",
     "recentSearches": "Recent searches",
@@ -395,6 +396,10 @@
     "deliveryTerms": {
       "text": "For the safety of our delivery captain and vehicle, delivery is at the building entrance by default. If a safe place is available, the captain can go up to the apartment door when possible.",
       "required": "Please accept the delivery terms."
+    },
+    "weightNotice": {
+      "text": "Some items are sold by weight. The final total may go up or down after weighing.",
+      "required": "Please accept the weight-based pricing notice."
     },
     "actions": {
       "placeOrder": "Place order",

@@ -245,6 +245,9 @@ export type Product = {
   gallery?: string[] | null;
   images?: string[] | null;
   tags?: string[] | null;
+  weightBased?: boolean | null;
+  soldByWeight?: boolean | null;
+  isWeightBased?: boolean | null;
   description?: string | null;
   descriptionAr?: string | null;
   priceCents: number;

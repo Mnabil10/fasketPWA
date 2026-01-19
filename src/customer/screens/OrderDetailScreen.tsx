@@ -239,6 +239,7 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
   );
   const failureReason = isGroup ? failedProvider?.deliveryFailedReason : orderDetail?.deliveryFailedReason;
   const failureNote = isGroup ? failedProvider?.deliveryFailedNote : orderDetail?.deliveryFailedNote;
+  const shippingDisplayedCents = order ? (order.shippingFeeCents || 0) + (order.serviceFeeCents || 0) : 0;
 
   const goBack = () => {
     goToOrders(updateAppState);
@@ -558,14 +559,10 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
                             <span>{fmtEGP(fromCents(sub.subtotalCents || 0))}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span>{t("checkout.summary.serviceFee", "Service fee")}</span>
-                            <span>{fmtEGP(fromCents(sub.serviceFeeCents || 0))}</span>
-                          </div>
-                          <div className="flex justify-between">
                             <span>{t("checkout.summary.delivery")}</span>
-                            <span>{fmtEGP(fromCents(sub.shippingFeeCents || 0))}</span>
+                            <span>{fmtEGP(fromCents((sub.shippingFeeCents || 0) + (sub.serviceFeeCents || 0)))}</span>
                           </div>
-                          <div className="flex justify-between font-semibold text-gray-900">
+                          <div className="flex justify-between font-semibold text-gray-900 col-span-2">
                             <span>{t("checkout.summary.total")}</span>
                             <span>{fmtEGP(fromCents(sub.totalCents || 0))}</span>
                           </div>
@@ -608,11 +605,7 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
                 </div>
                 <div className="flex justify-between">
                   <span>{t("checkout.summary.delivery")}</span>
-                  <span className="price-text">{fmtEGP(fromCents(order.shippingFeeCents || 0))}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>{t("checkout.summary.serviceFee", "Service fee")}</span>
-                  <span className="price-text">{fmtEGP(fromCents(order.serviceFeeCents || 0))}</span>
+                  <span className="price-text">{fmtEGP(fromCents(shippingDisplayedCents))}</span>
                 </div>
                 {order.discountCents ? (
                   <div className="flex justify-between text-red-500">

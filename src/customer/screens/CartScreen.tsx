@@ -97,8 +97,8 @@ export function CartScreen({ appState, updateAppState }: CartScreenProps) {
   );
   const locationMissing = !primaryAddress || primaryAddress.lat == null || primaryAddress.lng == null;
   const subtotalDisplay = fmtEGP(cart.subtotal);
-  const shippingDisplay = fmtEGP(fromCents(cart.shippingFeeCents));
-  const serviceFeeDisplay = fmtEGP(fromCents(cart.serviceFeeCents));
+  const shippingDisplayedCents = cart.shippingFeeCents + cart.serviceFeeCents;
+  const shippingDisplay = fmtEGP(fromCents(shippingDisplayedCents));
   const couponDisplay = cart.discountCents ? fmtEGP(fromCents(cart.discountCents)) : null;
   const loyaltyDisplay = cart.loyaltyDiscountCents ? fmtEGP(fromCents(cart.loyaltyDiscountCents)) : null;
   const totalCents = Math.max(
@@ -452,12 +452,6 @@ export function CartScreen({ appState, updateAppState }: CartScreenProps) {
           <span>{t("cart.shippingLabel")}</span>
           <span className="font-medium text-gray-900 price-text">{shippingDisplay}</span>
         </div>
-        {cart.source === "server" && (
-          <div className="flex items-center justify-between text-gray-600 text-sm">
-            <span>{t("cart.serviceFeeLabel", "Service fee")}</span>
-            <span className="font-medium text-gray-900 price-text">{serviceFeeDisplay}</span>
-          </div>
-        )}
         {couponDisplay && (
           <div className="flex items-center justify-between text-red-500 text-sm">
             <span>{t("cart.couponLabel")}</span>

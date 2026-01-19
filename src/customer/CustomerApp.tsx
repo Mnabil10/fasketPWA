@@ -28,14 +28,22 @@ import type {
   UserProfile,
 } from "../types/api";
 import { getMyProfile } from "../services/users.service";
-import { clearSessionTokens, ensureSessionHydrated, getSessionTokens, onSessionInvalid } from "../store/session";
+import {
+  clearSessionTokens,
+  ensureSessionHydrated,
+  getSessionTokens,
+  getSessionUser,
+  onSessionInvalid,
+  refreshTokens,
+  updateUser,
+} from "../store/session";
 import { useLocalCartStore } from "./stores/localCart";
 import { getLocalCartSnapshot, mergeLocalCartIntoServer } from "./utils/cartSync";
 import { parseHash, buildHashFromState } from "./navigation/deepLinking";
 import { listCategories } from "../services/catalog";
 import i18n from "../i18n";
 import type { CartPreviewItem } from "./types";
-import { useCart } from "./hooks";
+import { useCart, useNetworkStatus } from "./hooks";
 import { flushAnalytics, trackAppOpen } from "../lib/analytics";
 import { getAppSettings } from "../services/settings";
 import { initPush, registerDeviceToken, subscribeToNotifications } from "../lib/notifications";
@@ -46,6 +54,16 @@ import { App as CapacitorApp } from "@capacitor/app";
 import { goToCart, goToCategory, goToHome, goToOrders, goToProduct } from "./navigation/navigation";
 import { HelpScreen } from "./screens/HelpScreen";
 import { applyMobileAppTheme } from "./utils/mobileAppTheme";
+import { LegalHtmlScreen } from "./screens/LegalHtmlScreen";
+
+function isNetworkError(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const err = error as { code?: string; message?: string; response?: unknown };
+  if (err.code === "ECONNABORTED" || err.code === "ERR_NETWORK") return true;
+  if (err.message === "Network Error") return true;
+  if ("response" in err && !err.response) return true;
+  return false;
+}
 
 export type Screen =
   | "splash"
@@ -66,7 +84,9 @@ export type Screen =
   | "addresses"
   | "payment-methods"
   | "loyalty-history"
-  | "about";
+  | "about"
+  | "privacy"
+  | "terms";
 
 const authRequiredScreens = new Set<Screen>([
   "orders",
@@ -152,12 +172,14 @@ function areCartPreviewsEqual(prev: CartPreviewItem[], next: CartPreviewItem[]) 
 export function CustomerApp() {
   const { t } = useTranslation();
   const { showToast } = useToast();
+  const { isOffline } = useNetworkStatus();
   const notificationPrefs = useNotificationPreferences((state) => state.preferences);
   const hydrateNotificationPreferences = useNotificationPreferences((state) => state.hydratePreferences);
   const [appState, setAppState] = useState<AppState>(initialState);
   const prevUserId = useRef<string | null>(null);
   const analyticsFlushRef = useRef<string | null>(null);
   const swipeStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const reconnectingRef = useRef(false);
 
   const updateAppState: UpdateAppState = useCallback((updates) => {
     setAppState((prev) => ({
@@ -200,6 +222,23 @@ export function CustomerApp() {
 
     if (typeof window !== "undefined" && window.history.length > 1) {
       window.history.back();
+    }
+  }, []);
+
+  const scrollToTop = useCallback(() => {
+    if (typeof document === "undefined") return;
+    const content = document.querySelector("ion-content");
+    if (content && "scrollToTop" in content) {
+      void (content as { scrollToTop: (duration?: number) => Promise<void> }).scrollToTop(0);
+      return;
+    }
+    if (document.scrollingElement) {
+      document.scrollingElement.scrollTop = 0;
+      document.scrollingElement.scrollLeft = 0;
+      return;
+    }
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
     }
   }, []);
 
@@ -250,6 +289,14 @@ export function CustomerApp() {
         updateAppState({ currentScreen: "help" });
         return;
       }
+      if (first === "privacy") {
+        updateAppState({ currentScreen: "privacy" });
+        return;
+      }
+      if (first === "terms") {
+        updateAppState({ currentScreen: "terms" });
+        return;
+      }
       goToHome(updateAppState);
     },
     [updateAppState]
@@ -272,25 +319,68 @@ export function CustomerApp() {
 
   const { items: syncedCart } = useCart({ userId: appState.user?.id });
 
+  const pageKey = (() => {
+    switch (appState.currentScreen) {
+      case "product-detail": {
+        const productKey = appState.selectedProduct?.id ?? appState.selectedProduct?.slug ?? "";
+        return `product-detail:${productKey}`;
+      }
+      case "order-detail": {
+        if (appState.selectedOrderId) {
+          return `order-detail:${appState.selectedOrderId}`;
+        }
+        if (appState.selectedOrderSummary?.id) {
+          return `order-detail:${appState.selectedOrderSummary.id}`;
+        }
+        const selectedOrder = appState.selectedOrder;
+        if (selectedOrder && "orderGroupId" in selectedOrder) {
+          return `order-detail:${selectedOrder.orderGroupId ?? ""}`;
+        }
+        if (selectedOrder) {
+          return `order-detail:${selectedOrder.id ?? ""}`;
+        }
+        return "order-detail";
+      }
+      case "order-success": {
+        if (appState.lastOrderId) {
+          return `order-success:${appState.lastOrderId}`;
+        }
+        const lastOrder = appState.lastOrder;
+        if (lastOrder && "orderGroupId" in lastOrder) {
+          return `order-success:${lastOrder.orderGroupId ?? ""}`;
+        }
+        if (lastOrder) {
+          return `order-success:${lastOrder.id ?? ""}`;
+        }
+        return "order-success";
+      }
+      default:
+        return appState.currentScreen;
+    }
+  })();
+
   const handleAuthSuccess = useCallback(async () => {
     try {
       const profile = await getMyProfile();
-        updateAppState({
-          user: profile,
-          currentScreen: "home",
-          bootstrapping: false,
-          postOnboardingScreen: "home",
-          guestSession: null,
-          guestTracking: null,
-        });
-    } catch (error) {
-      clearSessionTokens();
+      updateUser(profile);
       updateAppState({
-        user: null,
-        currentScreen: "auth",
+        user: profile,
+        currentScreen: "home",
         bootstrapping: false,
-        postOnboardingScreen: "auth",
+        postOnboardingScreen: "home",
+        guestSession: null,
+        guestTracking: null,
       });
+    } catch (error) {
+      if (!isNetworkError(error)) {
+        await clearSessionTokens("expired");
+        updateAppState({
+          user: null,
+          currentScreen: "auth",
+          bootstrapping: false,
+          postOnboardingScreen: "auth",
+        });
+      }
       throw error instanceof Error ? error : new Error("Failed to load profile");
     }
   }, [updateAppState]);
@@ -304,6 +394,11 @@ export function CustomerApp() {
   useEffect(() => {
     trackAppOpen();
   }, []);
+
+  useEffect(() => {
+    if (appState.bootstrapping) return;
+    scrollToTop();
+  }, [appState.bootstrapping, pageKey, scrollToTop]);
 
   useEffect(() => {
     const userId = appState.user?.id ?? null;
@@ -446,6 +541,7 @@ export function CustomerApp() {
 
       try {
         const profile = await getMyProfile();
+        updateUser(profile);
         if (!cancelled) {
           setAppState((prev) => ({
             ...prev,
@@ -456,8 +552,22 @@ export function CustomerApp() {
             settingsLoaded: true,
           }));
         }
-      } catch {
-        clearSessionTokens("expired");
+      } catch (error) {
+        if (isNetworkError(error)) {
+          const cachedUser = getSessionUser();
+          if (!cancelled) {
+            setAppState((prev) => ({
+              ...prev,
+              user: cachedUser ?? prev.user,
+              bootstrapping: false,
+              postOnboardingScreen: cachedUser ? "home" : prev.postOnboardingScreen,
+              settings: resolvedSettings ?? prev.settings,
+              settingsLoaded: true,
+            }));
+          }
+          return;
+        }
+        await clearSessionTokens("expired");
         if (!cancelled) {
           setAppState((prev) => ({
             ...prev,
@@ -505,6 +615,54 @@ export function CustomerApp() {
       unsubscribe();
     };
   }, [showToast, t]);
+
+  useEffect(() => {
+    if (isOffline) return;
+    if (reconnectingRef.current) return;
+    reconnectingRef.current = true;
+    let cancelled = false;
+
+    const resumeSession = async () => {
+      await ensureSessionHydrated();
+      const { accessToken, refreshToken } = getSessionTokens();
+      if (!accessToken && !refreshToken) return;
+
+      const refreshed = await refreshTokens();
+      if (refreshed.status === "invalid") {
+        await clearSessionTokens("expired");
+        return;
+      }
+      if (refreshed.status === "missing" && !accessToken) return;
+      if (refreshed.status === "error") return;
+
+      try {
+        const profile = await getMyProfile();
+        updateUser(profile);
+        if (!cancelled) {
+          updateAppState((prev) => ({
+            ...prev,
+            user: profile,
+            postOnboardingScreen: "home",
+            currentScreen: prev.currentScreen === "auth" || prev.currentScreen === "register" ? "home" : prev.currentScreen,
+          }));
+        }
+      } catch (error) {
+        if (!isNetworkError(error)) {
+          await clearSessionTokens("expired");
+        }
+      }
+    };
+
+    resumeSession()
+      .catch(() => undefined)
+      .finally(() => {
+        reconnectingRef.current = false;
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOffline, updateAppState]);
 
   useEffect(() => {
     const unsubscribe = useLocalCartStore.subscribe(() => {
@@ -707,6 +865,9 @@ export function CustomerApp() {
         return <LoyaltyHistoryScreen appState={appState} updateAppState={updateAppState} />;
       case "about":
         return <AboutFasketScreen appState={appState} updateAppState={updateAppState} />;
+      case "privacy":
+      case "terms":
+        return <LegalHtmlScreen appState={appState} updateAppState={updateAppState} />;
       default:
         return <HomeScreen appState={appState} updateAppState={updateAppState} />;
     }

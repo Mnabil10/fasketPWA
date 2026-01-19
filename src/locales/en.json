@@ -218,6 +218,7 @@
     "filterButton": "Filter",
     "filterTitle": "Filters",
     "priceOnSelect": "Select options to set price",
+    "weight_select_price": "Select a weight to set the price",
     "sort": {
       "label": "Sort by",
       "popularity": "Most popular",
@@ -642,7 +643,7 @@
     "openWebApp": "Open Web App (PWA)",
     "contactWhatsapp": "Contact via WhatsApp",
     "contactEmail": "Contact via Email",
-    "emailSubject": "Support request from Fasket app",
+    "emailSubject": "Fasket Support",
     "shareTitle": "Share Fasket",
     "shareSubtitle": "Invite friends to shop via the web app or mobile.",
     "shareButton": "Share / Invite a friend",
@@ -706,7 +707,7 @@
       "whatsapp": "Contact via WhatsApp",
       "whatsappMessage": "Hi, I'd like to ask about an order from Fasket.",
       "email": "Support email",
-      "emailSubject": "Support request from Fasket app",
+      "emailSubject": "Fasket Support",
       "share": "Share Fasket / Invite a friend",
       "phone": "Call support"
     },

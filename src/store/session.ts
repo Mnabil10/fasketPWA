@@ -32,21 +32,24 @@ let refreshPromise: Promise<RefreshResult> | null = null;
 
 async function hydrateFromStorage() {
   try {
-    const [accessToken, refreshToken, storedLang, localLang] = await Promise.all([
+    const [accessToken, refreshToken, storedLang, localLang, storedUser] = await Promise.all([
       secureStorage.getAccessToken(),
       secureStorage.getRefreshToken(),
       secureStorage.getLanguage(),
       getCachedLanguage(),
+      secureStorage.getUserProfile(),
     ]);
+    const parsedUser = parseStoredUser(storedUser);
     state = {
       ...state,
       accessToken,
       refreshToken,
+      user: parsedUser ?? state.user,
       language: (storedLang as SessionState["language"]) || (localLang as SessionState["language"]) || "ar",
       hydrated: true,
     };
   } catch {
-    state = { ...state, accessToken: null, refreshToken: null, hydrated: true };
+    state = { ...state, accessToken: null, refreshToken: null, user: null, hydrated: true };
   }
 }
 
@@ -77,6 +80,10 @@ if (typeof window !== "undefined") {
 
 export function getSessionTokens(): TokenPair {
   return { accessToken: state.accessToken, refreshToken: state.refreshToken };
+}
+
+export function getSessionUser(): UserProfile | null {
+  return state.user;
 }
 
 export function getAccessToken(): string | null {
@@ -143,15 +150,29 @@ export async function refreshTokens(): Promise<RefreshResult> {
 
 export async function clearSessionTokens(reason: SessionEndReason = "unknown") {
   state = { ...state, accessToken: null, refreshToken: null, user: null };
-  await secureStorage.clearTokens();
+  await Promise.all([secureStorage.clearTokens(), secureStorage.setUserProfile(null)]);
   logoutListeners.forEach((listener) => listener(reason));
 }
 
 export function updateUser(user: UserProfile | null) {
   state = { ...state, user };
+  void secureStorage.setUserProfile(user ? JSON.stringify(user) : null);
 }
 
 export function onSessionInvalid(listener: Listener) {
   logoutListeners.add(listener);
   return () => logoutListeners.delete(listener);
+}
+
+function parseStoredUser(value: string | null): UserProfile | null {
+  if (!value) return null;
+  try {
+    const parsed = JSON.parse(value);
+    if (parsed && typeof parsed === "object") {
+      return parsed as UserProfile;
+    }
+  } catch {
+    return null;
+  }
+  return null;
 }

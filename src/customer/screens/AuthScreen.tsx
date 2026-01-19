@@ -9,7 +9,7 @@ import { useApiErrorToast } from "../hooks";
 import type { MobileAppConfig } from "../../types/api";
 import { getLocalizedString } from "../utils/mobileAppConfig";
 import { authLogin, authRegister } from "../../services/auth";
-import { persistSessionTokens } from "../../store/session";
+import { persistSessionTokens, updateUser } from "../../store/session";
 import { App as CapacitorApp } from "@capacitor/app";
 import { isPhoneLike, isValidEgyptPhone, normalizeEgyptPhone, sanitizeEgyptPhoneInput } from "../../utils/phone";
 
@@ -106,6 +106,7 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode, branding }: Auth
           throw new Error(t("auth.errorLogin"));
         }
         persistTokens(res.accessToken, res.refreshToken);
+        if (res.user) updateUser(res.user);
         clearSensitiveFields();
         await onAuthSuccess();
       }
@@ -131,6 +132,7 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode, branding }: Auth
           throw new Error(t("auth.errorRegister"));
         }
         persistTokens(res.accessToken, res.refreshToken);
+        if (res.user) updateUser(res.user);
         clearSensitiveFields();
         await onAuthSuccess();
       }

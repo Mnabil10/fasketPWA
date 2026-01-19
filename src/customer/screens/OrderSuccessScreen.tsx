@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import dayjs from "dayjs";
 import { useTranslation } from "react-i18next";
 import { Button } from "../../ui/button";
@@ -40,6 +40,7 @@ export function OrderSuccessScreen({ appState, updateAppState }: OrderSuccessScr
     { enabled: !detailOrder?.recommendedProducts?.length }
   );
   const [showConfetti, setShowConfetti] = useState(true);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const cart = useCart({ userId: appState.user?.id });
   const cartGuard = useCartGuard(cart);
   const apiErrorToast = useApiErrorToast("cart.updateError");
@@ -53,6 +54,16 @@ export function OrderSuccessScreen({ appState, updateAppState }: OrderSuccessScr
     const timer = setTimeout(() => setShowConfetti(false), 3000);
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.scrollTop = 0;
+    }
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    }
+  }, [detailOrder?.id, groupOrder?.orderGroupId]);
 
   useEffect(() => {
     if (!order) return;
@@ -78,8 +89,8 @@ export function OrderSuccessScreen({ appState, updateAppState }: OrderSuccessScr
 
   const totalDisplay = order ? fmtEGP(fromCents(order.totalCents)) : "";
   const subtotalDisplay = order ? fmtEGP(fromCents(order.subtotalCents ?? 0)) : "";
-  const shippingDisplay = order ? fmtEGP(fromCents(order.shippingFeeCents || 0)) : "";
-  const serviceFeeDisplay = order ? fmtEGP(fromCents(order.serviceFeeCents || 0)) : "";
+  const shippingDisplayedCents = order ? (order.shippingFeeCents || 0) + (order.serviceFeeCents || 0) : 0;
+  const shippingDisplay = order ? fmtEGP(fromCents(shippingDisplayedCents)) : "";
   const discountDisplay =
     order && order.discountCents ? fmtEGP(fromCents(order.discountCents)) : null;
 
@@ -214,7 +225,7 @@ export function OrderSuccessScreen({ appState, updateAppState }: OrderSuccessScr
   return (
     <div className="flex flex-col h-full bg-gradient-to-b from-green-50 to-white">
       <NetworkBanner stale={staleData} />
-      <div className="flex-1 flex flex-col items-center justify-start lg:justify-center px-4 sm:px-6 py-6 sm:py-8 overflow-y-auto gap-6">
+      <div ref={scrollContainerRef} className="flex-1 flex flex-col items-center justify-start lg:justify-center px-4 sm:px-6 py-6 sm:py-8 overflow-y-auto gap-6 pb-32">
         <div className={`relative ${showConfetti ? "animate-bounce" : ""}`}>
           <div className="w-24 h-24 sm:w-32 sm:h-32 bg-green-100 rounded-full flex items-center justify-center">
             <CheckCircle className="w-12 h-12 sm:w-16 sm:h-16 text-green-600" />
@@ -332,22 +343,6 @@ export function OrderSuccessScreen({ appState, updateAppState }: OrderSuccessScr
           </div>
         ) : null}
 
-        <div className="w-full max-w-3xl flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
-          <Button onClick={goToTrackOrder} className="rounded-xl w-full sm:w-auto justify-center">
-            {t("orderSuccess.buttons.track")}
-          </Button>
-          <Button variant="outline" onClick={() => goToHome(updateAppState)} className="rounded-xl w-full sm:w-auto justify-center">
-            {t("orderSuccess.buttons.continue")}
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={() => openExternalUrl(`tel:${supportConfig.supportPhone}`)}
-            className="rounded-xl w-full sm:w-auto justify-center"
-          >
-            <Phone className="w-4 h-4 mr-1" /> {t("orderSuccess.buttons.call")}
-          </Button>
-        </div>
-
         <div className="bg-white rounded-2xl shadow-sm w-full max-w-2xl p-4 sm:p-5 space-y-2 sm:space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-sm text-gray-500">{t("checkout.summary.subtotal")}</span>
@@ -356,10 +351,6 @@ export function OrderSuccessScreen({ appState, updateAppState }: OrderSuccessScr
           <div className="flex items-center justify-between">
             <span className="text-sm text-gray-500">{t("checkout.summary.delivery")}</span>
             <span className="font-semibold text-gray-900">{shippingDisplay}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-500">{t("checkout.summary.serviceFee", "Service fee")}</span>
-            <span className="font-semibold text-gray-900">{serviceFeeDisplay}</span>
           </div>
           {discountDisplay && (
             <div className="flex items-center justify-between text-red-500">
@@ -398,6 +389,23 @@ export function OrderSuccessScreen({ appState, updateAppState }: OrderSuccessScr
               ))}
             </div>
           ) : null}
+        </div>
+      </div>
+      <div className="fixed bottom-0 left-0 right-0 bg-white/95 border-t border-gray-200 shadow-lg backdrop-blur z-20">
+        <div className="mx-auto w-full max-w-3xl px-4 pt-3 pb-[calc(env(safe-area-inset-bottom,16px)+12px)] flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
+          <Button onClick={goToTrackOrder} className="rounded-xl w-full sm:w-auto justify-center">
+            {t("orderSuccess.buttons.track")}
+          </Button>
+          <Button variant="outline" onClick={() => goToHome(updateAppState)} className="rounded-xl w-full sm:w-auto justify-center">
+            {t("orderSuccess.buttons.continue")}
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => openExternalUrl(`tel:${supportConfig.supportPhone}`)}
+            className="rounded-xl w-full sm:w-auto justify-center"
+          >
+            <Phone className="w-4 h-4 mr-1" /> {t("orderSuccess.buttons.call")}
+          </Button>
         </div>
       </div>
       {cartGuard.dialog}

@@ -1,4 +1,5 @@
 import { App as CapacitorApp } from "@capacitor/app";
+import { Browser } from "@capacitor/browser";
 import { FASKET_CONFIG } from "../config/fasketConfig";
 
 export function digitsOnly(input: string) {
@@ -11,18 +12,45 @@ export function buildWhatsappUrl(message: string, phoneOverride?: string) {
   return `https://wa.me/${number}?text=${encoded}`;
 }
 
+const ALLOWED_PROTOCOLS = new Set(["http:", "https:", "mailto:", "tel:"]);
+
+function isValidExternalUrl(url: string) {
+  try {
+    const parsed = new URL(url);
+    return ALLOWED_PROTOCOLS.has(parsed.protocol);
+  } catch {
+    return false;
+  }
+}
+
 export async function openExternalUrl(url: string) {
+  if (!url || typeof url !== "string") return;
+  const trimmed = url.trim();
+  if (!trimmed || !isValidExternalUrl(trimmed)) return;
+
+  const parsed = new URL(trimmed);
+  const protocol = parsed.protocol;
+
+  if (protocol === "http:" || protocol === "https:") {
+    try {
+      await Browser.open({ url: trimmed });
+      return;
+    } catch {
+      // fall back to App/window open
+    }
+  }
+
   const maybeApp = CapacitorApp as unknown as { openUrl?: (options: { url: string }) => Promise<void> };
   try {
     if (maybeApp.openUrl) {
-      await maybeApp.openUrl({ url });
+      await maybeApp.openUrl({ url: trimmed });
       return;
     }
   } catch {
     // fall through
   }
   if (typeof window !== "undefined") {
-    window.open(url, "_blank", "noopener,noreferrer");
+    window.open(trimmed, "_blank", "noopener,noreferrer");
   }
 }
 

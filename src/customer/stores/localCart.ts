@@ -13,6 +13,9 @@ export type LocalCartItem = {
   image?: string;
   priceCents: number;
   salePriceCents?: number | null;
+  pricingModel?: "unit" | "weight";
+  pricePerKg?: number | null;
+  unitLabel?: string | null;
   tags?: string[] | null;
   weightBased?: boolean | null;
   soldByWeight?: boolean | null;
@@ -82,6 +85,9 @@ export const useLocalCartStore = create<LocalCartState>()(
           image: product.imageUrl ?? undefined,
           priceCents: basePriceCents + addOnsTotalCents,
           salePriceCents: product.salePriceCents,
+          pricingModel: (product as any).pricingModel ?? undefined,
+          pricePerKg: (product as any).pricePerKg ?? undefined,
+          unitLabel: (product as any).unitLabel ?? undefined,
           tags: product.tags ?? undefined,
           weightBased: (product as any).weightBased ?? undefined,
           soldByWeight: (product as any).soldByWeight ?? undefined,
@@ -156,6 +162,9 @@ export function mapLocalCartToPreview(items: Record<string, LocalCartItem>): Car
       imageUrl: item.image,
       priceCents: item.priceCents,
       salePriceCents: item.salePriceCents ?? undefined,
+      pricingModel: item.pricingModel ?? undefined,
+      pricePerKg: item.pricePerKg ?? undefined,
+      unitLabel: item.unitLabel ?? undefined,
       tags: item.tags ?? undefined,
       weightBased: item.weightBased ?? undefined,
       soldByWeight: item.soldByWeight ?? undefined,

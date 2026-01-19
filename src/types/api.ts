@@ -251,6 +251,9 @@ export type Product = {
   description?: string | null;
   descriptionAr?: string | null;
   priceCents: number;
+  pricingModel?: "unit" | "weight";
+  pricePerKg?: number | null;
+  unitLabel?: string | null;
   salePriceCents?: number | null;
   stock: number;
   status: "ACTIVE" | "INACTIVE";
@@ -341,7 +344,15 @@ export type DeliveryDriver = {
 
 export type CartItem = {
   id: string; cartId: string; productId: string; branchId?: string | null; qty: number; priceCents: number;
-  product: { name: string; imageUrl?: string | null; priceCents: number; salePriceCents?: number | null };
+  product: {
+    name: string;
+    imageUrl?: string | null;
+    priceCents: number;
+    salePriceCents?: number | null;
+    pricingModel?: "unit" | "weight";
+    pricePerKg?: number | null;
+    unitLabel?: string | null;
+  };
   options?: ProductOptionSelection[];
 };
 

@@ -131,6 +131,55 @@ label {
   overflow: hidden;
 }
 
+.legal-content {
+  direction: rtl;
+  text-align: right;
+  font-family: var(--font-ar);
+  font-size: 0.95rem;
+  line-height: 1.8;
+  color: var(--ink-700);
+}
+
+.legal-content h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 12px;
+  color: var(--ink-900);
+}
+
+.legal-content h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 18px 0 8px;
+  color: var(--ink-900);
+}
+
+.legal-content h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 16px 0 6px;
+  color: var(--ink-900);
+}
+
+.legal-content p {
+  margin: 0 0 10px;
+}
+
+.legal-content ul {
+  padding-inline-start: 18px;
+  margin: 0 0 10px;
+}
+
+.legal-content li {
+  margin-bottom: 6px;
+}
+
+.legal-content hr {
+  border: none;
+  border-top: 1px solid var(--border-soft);
+  margin: 16px 0;
+}
+
 .inline-card {
   background: var(--surface-card);
   border: 1px solid var(--border-soft);

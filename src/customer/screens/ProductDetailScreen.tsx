@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "../../ui/button";
 import { Badge } from "../../ui/badge";
@@ -37,6 +37,7 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
   const [optionQuantities, setOptionQuantities] = useState<Record<string, number>>({});
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [addingCart, setAddingCart] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const selectedProviderId = appState.selectedProvider?.id ?? appState.selectedProviderId ?? null;
   const providerLabel = useMemo(() => {
     const provider = appState.selectedProvider;
@@ -133,6 +134,16 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
     }
   }, [product?.slug, product?.id]);
 
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.scrollTop = 0;
+    }
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    }
+  }, [productKey]);
+
   const productImages = useMemo(() => {
     const gallery = product?.gallery?.length ? product.gallery : [];
     const fallback = product?.imageUrl ? [product.imageUrl] : [];
@@ -140,9 +151,16 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
     return combined.length ? combined : fallback;
   }, [product?.gallery, product?.imageUrl]);
 
+  const isWeightProduct =
+    product?.pricingModel === "weight" ||
+    product?.isWeightBased ||
+    product?.weightBased ||
+    product?.soldByWeight;
+  const unitLabel = product?.unitLabel || "kg";
+  const pricePerKgCents = product?.pricePerKg ?? (isWeightProduct ? product?.priceCents ?? 0 : null);
   const listPriceCents = product?.priceCents ?? 0;
   const salePriceCents = product?.salePriceCents ?? null;
-  const hasDiscount = salePriceCents !== null && salePriceCents !== undefined;
+  const hasDiscount = !isWeightProduct && salePriceCents !== null && salePriceCents !== undefined;
   const showDiscount = optionTotals.baseOverrideCents === null && hasDiscount;
   const basePrice = fromCents(listPriceCents);
   const baseUnitCents = optionTotals.baseOverrideCents ?? (salePriceCents ?? listPriceCents);
@@ -151,9 +169,15 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
   const unitTotal = fromCents(unitTotalCents);
   const totalWithQty = fromCents(unitTotalCents * quantity);
   const showSelectPrice = hasSetPriceGroup && optionTotals.baseOverrideCents === null;
-  const selectPriceLabel = t("products.priceOnSelect", "Select options to set price");
+  const selectPriceLabel = isWeightProduct
+    ? t("products.weight_select_price", "Select a weight to set the price")
+    : t("products.priceOnSelect", "Select options to set price");
   const sellPriceLabel = showSelectPrice ? selectPriceLabel : fmtEGP(sellPrice);
   const totalLabel = showSelectPrice ? selectPriceLabel : fmtEGP(totalWithQty);
+  const weightPriceLabel =
+    isWeightProduct && pricePerKgCents !== null && pricePerKgCents !== undefined
+      ? `${fmtEGP(fromCents(pricePerKgCents))} / ${unitLabel}`
+      : null;
   const discountPct =
     showDiscount && product
       ? Math.max(0, Math.round((1 - (product.salePriceCents || 0) / product.priceCents) * 100))
@@ -424,9 +448,9 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto pb-28">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto pb-28">
         <div className="px-4 mb-4">
-          <div className="relative w-full aspect-[3/4] rounded-3xl overflow-hidden shadow-card bg-gradient-to-br from-primary/10 via-white to-white flex items-center justify-center">
+          <div className="relative w-full h-[220px] sm:h-[240px] rounded-3xl overflow-hidden shadow-card bg-gradient-to-br from-primary/10 via-white to-white flex items-center justify-center">
             {productImages[0] ? (
               <ImageWithFallback
                 src={productImages[currentImageIndex]}
@@ -502,6 +526,7 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
                 <span className="text-gray-500 line-through text-lg">{fmtEGP(basePrice)}</span>
               )}
             </div>
+            {weightPriceLabel && <p className="text-xs text-gray-500">{weightPriceLabel}</p>}
             {optionTotals.addOnsTotalCents > 0 && (
               <p className="text-xs text-gray-500">
                 {t("productOptions.addonsTotal", {

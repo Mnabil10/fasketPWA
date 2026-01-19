@@ -148,7 +148,7 @@ export function ProductsScreen({ appState, updateAppState }: ProductsScreenProps
         <div className="px-3 py-2">
           <div className={gridClasses}>
             {Array.from({ length: viewMode === "grid" ? 6 : 4 }).map((_, i) => (
-              <ProductCardSkeleton key={i} layout={viewMode} />
+              <ProductCardSkeleton key={i} layout={viewMode} imageVariant="compact" />
             ))}
           </div>
         </div>
@@ -179,6 +179,7 @@ export function ProductsScreen({ appState, updateAppState }: ProductsScreenProps
               key={product.id}
               product={product}
               layout={viewMode}
+              imageVariant="compact"
               adding={cart.addingProductId === product.id}
               disabled={isOffline}
               onAddToCart={handleAddToCart}

@@ -217,6 +217,7 @@
     "filterButton": "تصفية",
     "filterTitle": "خيارات التصفية",
     "priceOnSelect": "اختار لتحديد السعر",
+    "weight_select_price": "اختر الوزن لتحديد السعر",
     "sort": {
       "label": "ترتيب حسب",
       "popularity": "الأكثر شيوعًا",
@@ -692,7 +693,7 @@
       "whatsapp": "التواصل عبر واتساب",
       "whatsappMessage": "مرحبًا، أحتاج مساعدة بخصوص استخدام تطبيق فاسكت.",
       "email": "الإيميل للدعم",
-      "emailSubject": "استفسار / مشكلة في تطبيق فاسكت",
+      "emailSubject": "Fasket Support",
       "share": "مشاركة التطبيق",
       "phone": "الاتصال بخدمة العملاء"
     }
@@ -872,7 +873,7 @@
     "openWebApp": "فتح الموقع كتطبيق ويب تقدمي",
     "contactWhatsapp": "التواصل عبر واتساب",
     "contactEmail": "التواصل عبر الإيميل",
-    "emailSubject": "استفسار بخصوص خدمة فاسكت",
+    "emailSubject": "Fasket Support",
     "shareTitle": "شارك فاسكت مع أصدقائك",
     "shareSubtitle": "عرّف أصدقاءك على فاسكت ليستمتعوا بتجربة تسوّق أسهل وأسرع.",
     "shareButton": "مشاركة / نسخ الرابط",

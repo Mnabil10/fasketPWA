@@ -16,6 +16,9 @@ export type ApiCartItem = {
     imageUrl?: string;
     priceCents: number;
     salePriceCents?: number | null;
+    pricingModel?: "unit" | "weight";
+    pricePerKg?: number | null;
+    unitLabel?: string | null;
   };
 };
 

@@ -12,6 +12,7 @@ import { requiresOptionSelection } from "../utils/productOptions";
 type ProductCardProps = {
   product: Product;
   layout?: "grid" | "list";
+  imageVariant?: "default" | "compact";
   disabled?: boolean;
   adding?: boolean;
   onPress?: (product: Product) => void;
@@ -19,9 +20,19 @@ type ProductCardProps = {
   showCategory?: boolean;
 };
 
+const resolveImageSizeClasses = (layout: "grid" | "list", variant: "default" | "compact") => {
+  if (variant === "compact") {
+    return layout === "list"
+      ? "w-24 h-24"
+      : "w-full max-w-[120px] aspect-square mx-auto";
+  }
+  return layout === "list" ? "w-24 aspect-[3/4]" : "w-full aspect-[3/4]";
+};
+
 export function ProductCard({
   product,
   layout = "grid",
+  imageVariant = "default",
   disabled,
   adding,
   onPress,
@@ -29,14 +40,21 @@ export function ProductCard({
   showCategory = true,
 }: ProductCardProps) {
   const { t } = useTranslation();
+  const isWeightProduct =
+    product.pricingModel === "weight" ||
+    product.isWeightBased ||
+    product.weightBased ||
+    product.soldByWeight;
+  const unitLabel = product.unitLabel || "kg";
+  const pricePerKgCents = product.pricePerKg ?? (isWeightProduct ? product.priceCents : null);
   const price = fmtEGP(fromCents(product.priceCents));
-  const isOnSale = product.salePriceCents !== null && product.salePriceCents !== undefined;
+  const isOnSale = !isWeightProduct && product.salePriceCents !== null && product.salePriceCents !== undefined;
   const salePrice = isOnSale ? fmtEGP(fromCents(product.salePriceCents || 0)) : null;
   const effectivePriceCents = product.salePriceCents ?? product.priceCents;
   const hasSetPriceGroup = (product.optionGroups ?? []).some(
     (group) => group.isActive !== false && (group.priceMode ?? "ADD") === "SET"
   );
-  const showSelectPrice = effectivePriceCents <= 0 || hasSetPriceGroup;
+  const showSelectPrice = !isWeightProduct && (effectivePriceCents <= 0 || hasSetPriceGroup);
   const requiresOptions = requiresOptionSelection(product);
   const requiresSelection = showSelectPrice || requiresOptions;
   const discountPct = isOnSale
@@ -56,7 +74,7 @@ export function ProductCard({
       ? "group flex gap-4 items-center w-full"
       : "group flex flex-col gap-3 h-full w-full";
 
-  const imageSize = layout === "list" ? "w-24 aspect-[3/4]" : "w-full aspect-[3/4]";
+  const imageSize = resolveImageSizeClasses(layout, imageVariant);
 
   const handlePress = () => {
     if (disabled) return;
@@ -113,7 +131,11 @@ export function ProductCard({
         )}
         <div className="flex items-baseline gap-2 flex-wrap">
           <span className="font-semibold text-[var(--color-primary)] price-text whitespace-nowrap" data-price>
-            {showSelectPrice ? t("products.priceOnSelect", "Select options to set price") : fmtEGP(fromCents(effectivePriceCents))}
+            {isWeightProduct && pricePerKgCents !== null && pricePerKgCents !== undefined
+              ? `${fmtEGP(fromCents(pricePerKgCents))} / ${unitLabel}`
+              : showSelectPrice
+              ? t("products.priceOnSelect", "Select options to set price")
+              : fmtEGP(fromCents(effectivePriceCents))}
           </span>
           {salePrice && !showSelectPrice && (
             <span className="text-xs text-[var(--ink-500)] line-through price-text whitespace-nowrap" data-price>
@@ -156,12 +178,18 @@ export function ProductCard({
   );
 }
 
-export function ProductCardSkeleton({ layout = "grid" }: { layout?: "grid" | "list" }) {
+export function ProductCardSkeleton({
+  layout = "grid",
+  imageVariant = "default",
+}: {
+  layout?: "grid" | "list";
+  imageVariant?: "default" | "compact";
+}) {
   const containerClasses =
     layout === "list"
       ? "flex gap-3 items-center bg-white rounded-xl p-3 shadow-sm w-full"
       : "bg-white rounded-xl p-3 shadow-sm flex flex-col gap-3 h-full";
-  const imageSize = layout === "list" ? "w-24 aspect-[3/4]" : "w-full aspect-[3/4]";
+  const imageSize = resolveImageSizeClasses(layout, imageVariant);
 
   return (
     <div className={`${containerClasses} motion-fade`}>

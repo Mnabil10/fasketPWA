@@ -147,6 +147,8 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
   const subtotal = fromCents(subtotalCents);
   const shippingFee = fromCents(shippingFeeCents);
   const serviceFee = fromCents(serviceFeeCents);
+  const shippingDisplayedCents = shippingFeeCents + serviceFeeCents;
+  const shippingDisplayed = fromCents(shippingDisplayedCents);
   const couponDiscount = fromCents(discountCents);
   const loyaltyDiscount = fromCents(loyaltyDiscountCents);
   const cartId = serverCart?.cartId ?? null;
@@ -283,6 +285,29 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
       setSelectedSlotId(null);
     }
   }, [selectedSlotId, selectedSlot]);
+  const hasWeightBasedItems = useMemo(
+    () =>
+      previewItems.some((item) => {
+        const product = item.product ?? {};
+        const weightFlag =
+          (product as any).pricingModel === "weight" ||
+          (product as any).weightBased ||
+          (product as any).soldByWeight ||
+          (product as any).isWeightBased;
+        if (weightFlag) return true;
+        const tags = (product as any).tags;
+        if (Array.isArray(tags) && tags.some((tag) => hasWeightKeyword(tag))) return true;
+        if (
+          item.options?.some((opt) =>
+            [opt.groupName, opt.groupNameAr, opt.name, opt.nameAr].some((label) => hasWeightKeyword(label))
+          )
+        ) {
+          return true;
+        }
+        return [item.name, (product as any).name, (product as any).nameAr].some((label) => hasWeightKeyword(label));
+      }),
+    [previewItems]
+  );
 
   useEffect(() => {
     if (!hasWeightBasedItems) {
@@ -301,7 +326,7 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
     ? t("checkout.summary.etaValue", { value: `${estimatedDeliveryMinutes} ${t("checkout.summary.minutes", "min")}` })
     : t("checkout.summary.etaValue", { value: "30-45 min" });
   const deliveryFeeLabel =
-    shippingFeeCents > 0 ? fmtEGP(shippingFee) : t("checkout.summary.freeDelivery", "Free");
+    shippingDisplayedCents > 0 ? fmtEGP(shippingDisplayed) : t("checkout.summary.freeDelivery", "Free");
   const deliveryFeeEstimate =
     isGuest
       ? guestQuoteLoading
@@ -314,26 +339,6 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
         : t("checkout.deliveryEstimate.pending", "Select an address to see delivery fee");
   const couponNotice = !isGuest ? serverCart?.couponNotice : null;
   const couponNoticeText = extractNoticeMessage(couponNotice);
-  const hasWeightBasedItems = useMemo(
-    () =>
-      previewItems.some((item) => {
-        const product = item.product ?? {};
-        const weightFlag =
-          (product as any).weightBased ?? (product as any).soldByWeight ?? (product as any).isWeightBased;
-        if (weightFlag) return true;
-        const tags = (product as any).tags;
-        if (Array.isArray(tags) && tags.some((tag) => hasWeightKeyword(tag))) return true;
-        if (
-          item.options?.some((opt) =>
-            [opt.groupName, opt.groupNameAr, opt.name, opt.nameAr].some((label) => hasWeightKeyword(label))
-          )
-        ) {
-          return true;
-        }
-        return [item.name, (product as any).name, (product as any).nameAr].some((label) => hasWeightKeyword(label));
-      }),
-    [previewItems]
-  );
   const loyaltyNotices = useMemo(() => {
     if (!loyaltyEnabled) return [];
     const notes: string[] = [];
@@ -1579,11 +1584,9 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
               <Truck className="w-4 h-4" />
               {t("checkout.summary.delivery")}
             </span>
-            <span className="price-text">{shippingFee ? fmtEGP(shippingFee) : t("checkout.summary.freeDelivery", "Free")}</span>
-          </div>
-          <div className="flex items-center justify-between text-sm text-gray-600">
-            <span>{t("checkout.summary.serviceFee", "Service fee")}</span>
-            <span className="price-text">{fmtEGP(serviceFee)}</span>
+            <span className="price-text">
+              {shippingDisplayedCents > 0 ? fmtEGP(shippingDisplayed) : t("checkout.summary.freeDelivery", "Free")}
+            </span>
           </div>
           {cartGroups.length > 0 && (
             <div className="rounded-xl bg-gray-50 p-3 text-xs text-gray-600 space-y-2">

@@ -49,8 +49,8 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
-             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
-             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+            // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
@@ -74,11 +74,17 @@ android {
                 println("WARNING: Release signing config missing. Build will be unsigned; set keystore vars before uploading to Play.")
             }
         }
+        debug {
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
+        }
     }
+
 }
 
 repositories {
-    flatDir{
+    flatDir {
         dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
     }
 }
@@ -102,6 +108,6 @@ try {
     if (servicesJSON.text) {
         apply plugin: 'com.google.gms.google-services'
     }
-} catch(Exception e) {
+} catch (ignored) {
     logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
 }

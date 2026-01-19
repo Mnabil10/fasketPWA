@@ -1,4 +1,4 @@
-package customer.fasket.cloud;
+package fasket.user;
 
 import com.getcapacitor.BridgeActivity;
 

@@ -24,7 +24,7 @@ try {
 } catch(Exception ignored) {}
 
 android {
-    namespace "customer.fasket.cloud"
+    namespace "fasket.user"
     compileSdk rootProject.ext.compileSdkVersion
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
@@ -41,7 +41,7 @@ android {
         }
     }
     defaultConfig {
-        applicationId "customer.fasket.cloud"
+        applicationId "fasket.user"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode parsedVersionCode

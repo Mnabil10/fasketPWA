@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: "customer.fasket.cloud",
+  appId: "fasket.user",
   appName: "Fasket",
   webDir: "dist",
   plugins: {

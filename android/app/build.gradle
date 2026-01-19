@@ -16,12 +16,12 @@ def releaseKeyAlias = envOrProp("FASKET_KEY_ALIAS", keystoreProperties.getProper
 def releaseKeyPassword = envOrProp("FASKET_KEY_PASS", keystoreProperties.getProperty("keyPassword"))
 def hasReleaseSigning = releaseStoreFile && releaseStorePassword && releaseKeyAlias && releaseKeyPassword
 
-def envVersionCode = System.getenv("VERSION_CODE")
-def envVersionName = System.getenv("VERSION_NAME")
-def parsedVersionCode = 1
-try {
-    parsedVersionCode = envVersionCode ? Integer.parseInt(envVersionCode) : 2
-} catch(Exception ignored) {}
+//def envVersionCode = System.getenv("VERSION_CODE")
+//def envVersionName = System.getenv("VERSION_NAME")
+//def parsedVersionCode = 1
+//try {
+//    parsedVersionCode = envVersionCode ? Integer.parseInt(envVersionCode) : 2
+//} catch(Exception ignored) {}
 
 android {
     namespace "fasket.user"
@@ -41,11 +41,12 @@ android {
         }
     }
     defaultConfig {
+        // Set Android app version here
+        versionCode 1 // Build number
+        versionName "0.1.0" // App Version
         applicationId "fasket.user"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode parsedVersionCode
-        versionName envVersionName ?: "1.0.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

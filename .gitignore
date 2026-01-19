@@ -29,8 +29,3 @@ yarn-error.log*
 
 # Optional eslint cache
 .eslintcache
-
-# Android signing artifacts
-android/keystore.properties
-android/*.keystore
-android/*.jks

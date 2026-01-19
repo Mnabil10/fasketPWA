@@ -7,6 +7,6 @@ export const FASKET_CONFIG = {
   supportEmail: "support@fasket.shop",
   supportPhone: "+201233329708",
   whatsappNumber: "201233329708",
-  playStoreUrl: "https://play.google.com/store/apps/details?id=customer.fasket.cloud",
+  playStoreUrl: "https://play.google.com/store/apps/details?id=fasket.user",
   appStoreUrl: "",
 };

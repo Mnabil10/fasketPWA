@@ -16,15 +16,15 @@ def releaseKeyAlias = envOrProp("FASKET_KEY_ALIAS", keystoreProperties.getProper
 def releaseKeyPassword = envOrProp("FASKET_KEY_PASS", keystoreProperties.getProperty("keyPassword"))
 def hasReleaseSigning = releaseStoreFile && releaseStorePassword && releaseKeyAlias && releaseKeyPassword
 
-def envVersionCode = System.getenv("VERSION_CODE")
-def envVersionName = System.getenv("VERSION_NAME")
-def parsedVersionCode = 1
-try {
-    parsedVersionCode = envVersionCode ? Integer.parseInt(envVersionCode) : 2
-} catch(Exception ignored) {}
+//def envVersionCode = System.getenv("VERSION_CODE")
+//def envVersionName = System.getenv("VERSION_NAME")
+//def parsedVersionCode = 1
+//try {
+//    parsedVersionCode = envVersionCode ? Integer.parseInt(envVersionCode) : 2
+//} catch(Exception ignored) {}
 
 android {
-    namespace "customer.fasket.cloud"
+    namespace "fasket.user"
     compileSdk rootProject.ext.compileSdkVersion
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
@@ -41,15 +41,16 @@ android {
         }
     }
     defaultConfig {
-        applicationId "customer.fasket.cloud"
+        // Set Android app version here
+        versionCode 1 // Build number
+        versionName "0.1.0" // App Version
+        applicationId "fasket.user"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode parsedVersionCode
-        versionName envVersionName ?: "1.0.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
-             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
-             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+            // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
@@ -73,11 +74,17 @@ android {
                 println("WARNING: Release signing config missing. Build will be unsigned; set keystore vars before uploading to Play.")
             }
         }
+        debug {
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
+        }
     }
+
 }
 
 repositories {
-    flatDir{
+    flatDir {
         dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
     }
 }
@@ -101,6 +108,6 @@ try {
     if (servicesJSON.text) {
         apply plugin: 'com.google.gms.google-services'
     }
-} catch(Exception e) {
+} catch (ignored) {
     logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
 }

@@ -9,7 +9,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:616967267192:android:08474450e4f42e1dc01e8d",
         "android_client_info": {
-          "package_name": "customer.fasket.cloud"
+          "package_name": "fasket.user"
         }
       },
       "oauth_client": [],

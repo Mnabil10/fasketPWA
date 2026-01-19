@@ -20,7 +20,7 @@ import {
 import { Badge } from "../../ui/badge";
 import { ArrowLeft, MapPin, Plus } from "lucide-react";
 import { AppState, type UpdateAppState } from "../CustomerApp";
-import { NetworkBanner, EmptyState, RetryBlock, LocationPicker } from "../components";
+import { NetworkBanner, EmptyState, RetryBlock } from "../components";
 import { useAddresses, useNetworkStatus, useApiErrorToast, useDeliveryZones } from "../hooks";
 import { mapApiErrorToMessage } from "../../utils/mapApiErrorToMessage";
 import { useToast } from "../providers/ToastProvider";
@@ -40,8 +40,7 @@ const emptyForm: Omit<Address, "id"> = {
   street: "",
   building: "",
   apartment: "",
-  lat: undefined,
-  lng: undefined,
+  notes: "",
   deliveryZone: null,
   isDefault: false,
 };
@@ -50,7 +49,6 @@ export function AddressesScreen({ appState, updateAppState }: AddressesScreenPro
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
   const { isOffline } = useNetworkStatus();
-  const distancePricingEnabled = appState.settings?.delivery?.distancePricingEnabled ?? true;
   const apiErrorToast = useApiErrorToast();
   const {
     addresses,
@@ -107,56 +105,11 @@ export function AddressesScreen({ appState, updateAppState }: AddressesScreenPro
   const zoneErrorMessage = deliveryZonesQuery.isError
     ? mapApiErrorToMessage(deliveryZonesQuery.error, "addresses.error.zones")
     : null;
-  const locationValue = useMemo(() => {
-    if (form.lat == null || form.lng == null) return null;
-    if (!Number.isFinite(form.lat) || !Number.isFinite(form.lng)) return null;
-    return { lat: form.lat, lng: form.lng };
-  }, [form.lat, form.lng]);
-
   const headerSubtitle = useMemo(() => {
     if (isLoading) return t("addresses.loading");
     if (addresses.length === 0) return t("addresses.empty");
     return t("addresses.count", { count: addresses.length, defaultValue: `${addresses.length}` });
   }, [isLoading, addresses.length, t]);
-
-  const parseCoordinate = (value: string) => {
-    const trimmed = value.trim();
-    if (!trimmed) return undefined;
-    const num = Number(trimmed);
-    return Number.isFinite(num) ? num : undefined;
-  };
-
-  const handleLocationChange = (value: { lat: number; lng: number }) => {
-    setForm((prev) => ({ ...prev, lat: value.lat, lng: value.lng }));
-  };
-
-  const handleUseCurrentLocation = () => {
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      showToast({
-        type: "error",
-        message: t("addresses.locationUnavailable", "Location services are not available."),
-      });
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const lat = Number(pos.coords.latitude.toFixed(6));
-        const lng = Number(pos.coords.longitude.toFixed(6));
-        setForm((prev) => ({ ...prev, lat, lng }));
-        showToast({
-          type: "success",
-          message: t("addresses.locationSet", "Location updated."),
-        });
-      },
-      () => {
-        showToast({
-          type: "error",
-          message: t("addresses.locationError", "Unable to get your location."),
-        });
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  };
 
   const validate = () => {
     const next: Record<string, string> = {};
@@ -164,14 +117,6 @@ export function AddressesScreen({ appState, updateAppState }: AddressesScreenPro
     if (!form.city?.trim()) next.city = t("addresses.validation.city");
     if (!form.zoneId) next.zoneId = t("addresses.validation.zone");
     if (!form.street?.trim()) next.street = t("addresses.validation.street");
-    const hasLocation =
-      typeof form.lat === "number" &&
-      Number.isFinite(form.lat) &&
-      typeof form.lng === "number" &&
-      Number.isFinite(form.lng);
-    if (distancePricingEnabled && !hasLocation) {
-      next.location = t("addresses.validation.location", "Select your location on the map.");
-    }
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -196,8 +141,7 @@ export function AddressesScreen({ appState, updateAppState }: AddressesScreenPro
       region: zoneName || undefined,
       building: form.building?.trim() || undefined,
       apartment: form.apartment?.trim() || undefined,
-      lat: form.lat ?? undefined,
-      lng: form.lng ?? undefined,
+      notes: form.notes?.trim() || undefined,
       isDefault: form.isDefault ?? undefined,
     };
   };
@@ -258,8 +202,7 @@ export function AddressesScreen({ appState, updateAppState }: AddressesScreenPro
       street: address.street ?? "",
       building: address.building ?? "",
       apartment: address.apartment ?? "",
-      lat: address.lat ?? undefined,
-      lng: address.lng ?? undefined,
+      notes: address.notes ?? "",
       deliveryZone: zoneData ?? null,
       isDefault: address.isDefault ?? false,
     });
@@ -271,6 +214,7 @@ export function AddressesScreen({ appState, updateAppState }: AddressesScreenPro
     const zoneData = address.deliveryZone || (address.zoneId ? zoneById.get(address.zoneId) ?? null : null);
     const line1 = [address.city, getZoneName(zoneData, address.zone ?? "")].filter(Boolean).join(", ");
     const line2 = [address.street, address.building, address.apartment].filter(Boolean).join(", ");
+    const notesLine = address.notes?.trim();
     const shippingInfo = zoneData
       ? [
           fmtEGP(fromCents(zoneData.feeCents)),
@@ -296,6 +240,11 @@ export function AddressesScreen({ appState, updateAppState }: AddressesScreenPro
           <p className="text-gray-700 text-sm">{line1}</p>
           {line2 && <p className="text-gray-500 text-sm">{line2}</p>}
           {shippingInfo && <p className="text-xs text-gray-500 mt-1">{shippingInfo}</p>}
+          {notesLine && (
+            <p className="text-xs text-gray-500 mt-1">
+              {t("addresses.form.notesLabel", "Landmark")}: {notesLine}
+            </p>
+          )}
         </div>
         <div className="flex gap-2">
           {!address.isDefault && (
@@ -441,59 +390,6 @@ export function AddressesScreen({ appState, updateAppState }: AddressesScreenPro
               )}
               {!selectedZone && form.zone && <p className="text-xs text-gray-500 mt-1">{form.zone}</p>}
             </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>{t("addresses.form.location", "Location")}</Label>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="rounded-xl"
-                  onClick={handleUseCurrentLocation}
-                >
-                  <MapPin className="w-4 h-4 mr-1" />
-                  {t("addresses.buttons.useLocation", "Use current location")}
-                </Button>
-              </div>
-              <LocationPicker
-                value={locationValue}
-                onChange={handleLocationChange}
-                placeholder={t("addresses.locationHint", "Tap the map to drop a pin")}
-                active={dialogOpen}
-              />
-              {errors.location && <p className="text-xs text-red-500 mt-1">{errors.location}</p>}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>{t("addresses.form.lat")}</Label>
-                  <Input
-                    type="number"
-                    step="0.000001"
-                    value={form.lat ?? ""}
-                    onChange={(e) =>
-                      setForm((f) => ({
-                        ...f,
-                        lat: parseCoordinate(e.target.value),
-                      }))
-                    }
-                    placeholder="30.123456"
-                  />
-                </div>
-                <div>
-                  <Label>{t("addresses.form.lng")}</Label>
-                  <Input
-                    type="number"
-                    step="0.000001"
-                    value={form.lng ?? ""}
-                    onChange={(e) =>
-                      setForm((f) => ({
-                        ...f,
-                        lng: parseCoordinate(e.target.value),
-                      }))
-                    }
-                    placeholder="31.123456"
-                  />
-                </div>
-              </div>
-            </div>
             <div>
               <Label>{t("addresses.form.street")}</Label>
               <Textarea
@@ -501,6 +397,15 @@ export function AddressesScreen({ appState, updateAppState }: AddressesScreenPro
                 onChange={(e) => setForm((f) => ({ ...f, street: e.target.value }))}
               />
               {errors.street && <p className="text-xs text-red-500 mt-1">{errors.street}</p>}
+            </div>
+
+            <div>
+              <Label>{t("addresses.form.notesLabel", "Landmark")}</Label>
+              <Textarea
+                value={form.notes ?? ""}
+                onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+                placeholder={t("addresses.form.notesPlaceholder", "Nearby landmark or delivery notes")}
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-3">

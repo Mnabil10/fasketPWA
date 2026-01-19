@@ -16,7 +16,7 @@ import { placeGuestOrder, placeOrder, quoteGuestOrder, type GuestOrderQuote } fr
 import { getDeliveryWindows } from "../../services/settings";
 import { fmtEGP, fromCents } from "../../lib/money";
 import type { Address, OrderDetail, OrderGroupSummary, SavedPaymentMethod } from "../../types/api";
-import { NetworkBanner, EmptyState, RetryBlock, LocationPicker } from "../components";
+import { NetworkBanner, EmptyState, RetryBlock } from "../components";
 import { trackCheckoutStarted, trackOrderFailed, trackOrderPlaced } from "../../lib/analytics";
 import { goToCart } from "../navigation/navigation";
 import { mapApiErrorToMessage } from "../../utils/mapApiErrorToMessage";
@@ -72,12 +72,6 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
   const [guestName, setGuestName] = useState(guestSession?.name ?? "");
   const [guestPhone, setGuestPhone] = useState(guestSession?.phone ?? "");
   const [guestAddress, setGuestAddress] = useState(guestSession?.address?.fullAddress ?? "");
-  const [guestLatInput, setGuestLatInput] = useState(
-    guestSession?.address?.lat != null ? String(guestSession.address.lat) : ""
-  );
-  const [guestLngInput, setGuestLngInput] = useState(
-    guestSession?.address?.lng != null ? String(guestSession.address.lng) : ""
-  );
   const [guestAddressNotes, setGuestAddressNotes] = useState(guestSession?.address?.notes ?? "");
   const [guestQuote, setGuestQuote] = useState<GuestOrderQuote | null>(null);
   const [guestQuoteError, setGuestQuoteError] = useState<string | null>(null);
@@ -97,13 +91,6 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
   const [deliveryMode, setDeliveryMode] = useState<"ASAP" | "SCHEDULED">("ASAP");
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
 
-  const parseCoordinate = (value: string) => {
-    const trimmed = value.trim();
-    if (!trimmed) return null;
-    const num = Number(trimmed);
-    return Number.isFinite(num) ? num : null;
-  };
-
   const loading = cart.isLoading || cart.isFetching || (!isGuest && addressesLoading);
   const hasError = cart.isError || (!isGuest && addressesError);
   const combinedError = cart.error || addressesErrorObj;
@@ -111,21 +98,9 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
 
   const serverCart = cart.rawCart;
   const previewItems = cart.items;
-  const distancePricingEnabled = appState.settings?.delivery?.distancePricingEnabled ?? true;
-  const guestLat = parseCoordinate(guestLatInput);
-  const guestLng = parseCoordinate(guestLngInput);
-  const guestLocationValid = !distancePricingEnabled || (guestLat != null && guestLng != null);
   const guestAddressValid = guestAddress.trim().length > 0;
   const normalizedGuestPhone = normalizeEgyptPhone(guestPhone);
   const guestPhoneValid = Boolean(normalizedGuestPhone);
-  const guestLocationValue = useMemo(
-    () => (guestLat != null && guestLng != null ? { lat: guestLat, lng: guestLng } : null),
-    [guestLat, guestLng]
-  );
-  const handleGuestLocationPick = (value: { lat: number; lng: number }) => {
-    setGuestLatInput(value.lat.toFixed(6));
-    setGuestLngInput(value.lng.toFixed(6));
-  };
 
   const guestItems = useMemo(
     () =>
@@ -186,11 +161,6 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
     return false;
   });
   const walletEnabled = enabledWalletProviders.length > 0;
-  const deliveryRequiresLocation = distancePricingEnabled
-    ? isGuest
-      ? true
-      : Boolean(serverCart?.delivery?.requiresLocation || cartGroups.some((group) => group.deliveryRequiresLocation))
-    : false;
   const scheduleProviderId = cart.cartProviderId ?? null;
   const scheduleBranchId = cart.cartBranchId ?? null;
   const canSchedule = !cart.cartScopeMixed && Boolean(scheduleProviderId || scheduleBranchId);
@@ -398,22 +368,9 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
   }, [selectedPaymentType, cardMethods, walletMethods]);
 
   const debouncedGuestAddress = useDebouncedValue(guestAddress, 350);
-  const debouncedGuestLat = useDebouncedValue(guestLatInput, 350);
-  const debouncedGuestLng = useDebouncedValue(guestLngInput, 350);
 
   const checkoutSteps = isGuest
-    ? distancePricingEnabled
-      ? [
-          t("checkout.steps.cart", "Cart"),
-          t("checkout.steps.guest", "Details"),
-          t("checkout.steps.location", "Location"),
-          t("checkout.steps.confirm", "Confirm"),
-        ]
-      : [
-          t("checkout.steps.cart", "Cart"),
-          t("checkout.steps.guest", "Details"),
-          t("checkout.steps.confirm", "Confirm"),
-        ]
+    ? [t("checkout.steps.cart", "Cart"), t("checkout.steps.guest", "Details"), t("checkout.steps.confirm", "Confirm")]
     : [
         t("checkout.steps.cart", "Cart"),
         t("checkout.steps.address", "Address"),
@@ -450,8 +407,6 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
         phone: guestPhone.trim() || undefined,
         address: {
           fullAddress: guestAddress.trim() || undefined,
-          lat: guestLat ?? undefined,
-          lng: guestLng ?? undefined,
           notes: guestAddressNotes.trim() || undefined,
         },
       },
@@ -461,8 +416,6 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
     guestName,
     guestPhone,
     guestAddress,
-    guestLat,
-    guestLng,
     guestAddressNotes,
     updateAppState,
   ]);
@@ -475,9 +428,7 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
       return;
     }
     const addressValue = debouncedGuestAddress.trim();
-    const lat = parseCoordinate(debouncedGuestLat ?? "");
-    const lng = parseCoordinate(debouncedGuestLng ?? "");
-    if (!addressValue || (distancePricingEnabled && (lat == null || lng == null))) {
+    if (!addressValue) {
       setGuestQuote(null);
       setGuestQuoteError(null);
       return;
@@ -488,11 +439,9 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
     guestQuoteRef.current = requestId;
     setGuestQuoteLoading(true);
     setGuestQuoteError(null);
-    const addressPayload: { fullAddress: string; lat?: number; lng?: number } = {
+    const addressPayload: { fullAddress: string } = {
       fullAddress: addressValue,
     };
-    if (lat != null) addressPayload.lat = lat;
-    if (lng != null) addressPayload.lng = lng;
 
     quoteGuestOrder({
       items: guestItems,
@@ -519,9 +468,6 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
     guestCheckoutEnabled,
     guestItems,
     debouncedGuestAddress,
-    debouncedGuestLat,
-    debouncedGuestLng,
-    distancePricingEnabled,
     isOffline,
     deliveryMode,
     selectedSlot?.scheduledAt,
@@ -532,21 +478,14 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
     if (isGuest) return null;
     return addresses.find((addr: Address) => addr.id === selectedAddressId) || null;
   }, [addresses, selectedAddressId, isGuest]);
-  const locationMissing = isGuest
-    ? !guestLocationValid
-    : !selectedAddress || selectedAddress.lat == null || selectedAddress.lng == null;
   const showAddressWarning = isGuest
-    ? (deliveryRequiresLocation && locationMissing) || !guestAddressValid
-    : Boolean(
-        appState.user &&
-          (deliveryRequiresLocation ? locationMissing : !selectedAddress || !selectedAddress.zoneId)
-      );
+    ? !guestAddressValid
+    : Boolean(appState.user && (!selectedAddress || !selectedAddress.zoneId));
   const guestReady =
     guestCheckoutEnabled &&
     Boolean(guestName.trim()) &&
     guestPhoneValid &&
-    guestAddressValid &&
-    guestLocationValid;
+    guestAddressValid;
   const paymentReady =
     isGuest || selectedPaymentType === "COD" || Boolean(selectedPaymentMethodId);
   const canPlaceOrder =
@@ -602,11 +541,7 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
       return;
     }
     if (!fullAddress) {
-      showToast({ type: "error", message: t("checkout.guest.addressRequired", "Full address is required.") });
-      return;
-    }
-    if (distancePricingEnabled && (!guestLocationValid || guestLat == null || guestLng == null)) {
-      showToast({ type: "error", message: t("checkout.messages.missingLocation", "Location is required for delivery.") });
+      showToast({ type: "error", message: t("checkout.guest.addressRequired", "Enter full address to continue.") });
       return;
     }
     if (deliveryMode === "SCHEDULED" && !selectedSlot) {
@@ -622,12 +557,10 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
     setSaving(true);
     try {
       const note = deliveryNotes.trim();
-      const addressPayload: { fullAddress: string; lat?: number; lng?: number; notes?: string } = {
+      const addressPayload: { fullAddress: string; notes?: string } = {
         fullAddress,
         notes: guestAddressNotes.trim() || undefined,
       };
-      if (guestLat != null) addressPayload.lat = guestLat;
-      if (guestLng != null) addressPayload.lng = guestLng;
 
       const res = await placeGuestOrder({
         name,
@@ -711,11 +644,7 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
       showToast({ type: "error", message: t("checkout.messages.missingAddress") });
       return;
     }
-    if (deliveryRequiresLocation && locationMissing) {
-      showToast({ type: "error", message: t("checkout.messages.missingLocation", "Location is required for delivery.") });
-      return;
-    }
-    if (!deliveryRequiresLocation && !selectedAddress?.zoneId) {
+    if (!selectedAddress?.zoneId) {
       showToast({ type: "error", message: t("checkout.messages.missingZone") });
       return;
     }
@@ -831,33 +760,6 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
       setCouponFeedback({ type: "error", message });
     }
   }
-
-  const handleUseCurrentLocation = () => {
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      showToast({
-        type: "error",
-        message: t("checkout.guest.locationUnavailable", "Location services are not available."),
-      });
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setGuestLatInput(pos.coords.latitude.toFixed(6));
-        setGuestLngInput(pos.coords.longitude.toFixed(6));
-        showToast({
-          type: "success",
-          message: t("checkout.guest.locationSet", "Location updated."),
-        });
-      },
-      () => {
-        showToast({
-          type: "error",
-          message: t("checkout.guest.locationError", "Unable to get your location."),
-        });
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  };
 
   const renderAddress = (address: Address) => {
     const zoneName = address.deliveryZone
@@ -1033,7 +935,7 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
       <div className="section-card glass-surface space-y-2">
         <p className="text-xs text-gray-500">
           {isGuest
-            ? t("checkout.stepsLabelGuest", "Cart > Details > Location > Confirm")
+            ? t("checkout.stepsLabelGuest", "Cart > Details > Confirm")
             : t("checkout.stepsLabel", "Cart > Address > Summary > Confirm")}
         </p>
         <div className="flex items-center gap-3 text-sm font-semibold text-gray-900">
@@ -1145,51 +1047,10 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
                     className="min-h-[80px]"
                   />
                 </div>
-                {distancePricingEnabled && (
-                  <>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label>{t("checkout.guest.locationTitle", "Location")}</Label>
-                        <Button variant="outline" size="sm" onClick={handleUseCurrentLocation} className="rounded-xl">
-                          <MapPin className="w-4 h-4 mr-1" />
-                          {t("checkout.guest.useLocation", "Use current location")}
-                        </Button>
-                      </div>
-                      <LocationPicker
-                        value={guestLocationValue}
-                        onChange={handleGuestLocationPick}
-                        placeholder={t("checkout.guest.locationHint", "Tap the map to drop a pin")}
-                        active
-                      />
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <Label>{t("checkout.guest.latLabel", "Latitude")}</Label>
-                        <Input
-                          type="number"
-                          step="0.000001"
-                          value={guestLatInput}
-                          onChange={(e) => setGuestLatInput(e.target.value)}
-                          placeholder="30.123456"
-                        />
-                      </div>
-                      <div>
-                        <Label>{t("checkout.guest.lngLabel", "Longitude")}</Label>
-                        <Input
-                          type="number"
-                          step="0.000001"
-                          value={guestLngInput}
-                          onChange={(e) => setGuestLngInput(e.target.value)}
-                          placeholder="31.123456"
-                        />
-                      </div>
-                    </div>
-                  </>
-                )}
                 <div>
-                  <Label>{t("checkout.guest.notesLabel", "Address notes")}</Label>
+                  <Label>{t("checkout.guest.notesLabel", "Landmark (optional)")}</Label>
                   <Textarea
-                    placeholder={t("checkout.guest.notesPlaceholder", "Apartment, landmark, delivery notes")}
+                    placeholder={t("checkout.guest.notesPlaceholder", "Nearby landmark or delivery notes")}
                     value={guestAddressNotes}
                     onChange={(e) => setGuestAddressNotes(e.target.value)}
                     className="min-h-[70px]"
@@ -1563,9 +1424,9 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
               <AlertTriangle className="w-4 h-4" />
               <span>
                 {isGuest
-                  ? t("checkout.guest.addressRequired", "Enter full address and location to continue.")
-                  : deliveryRequiresLocation
-                    ? t("checkout.messages.missingLocation", "Location is required for delivery.")
+                  ? t("checkout.guest.addressRequired", "Enter full address to continue.")
+                  : !selectedAddress
+                    ? t("checkout.messages.missingAddress")
                     : t("checkout.messages.missingZone")}
               </span>
             </div>
@@ -1617,7 +1478,7 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
             </span>
             <span>
               {isGuest
-                ? guestLocationValid
+                ? guestAddressValid
                   ? etaLabel
                   : t("checkout.summary.etaUnknown")
                 : selectedAddress

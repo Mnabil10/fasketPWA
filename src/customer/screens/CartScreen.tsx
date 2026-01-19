@@ -92,10 +92,6 @@ export function CartScreen({ appState, updateAppState }: CartScreenProps) {
   const cartError = cart.isError ? cart.error : cart.mergeError;
   const showEmptyState = !loading && displayItems.length === 0 && !cartError;
   const cartGroups = cart.rawCart?.groups ?? [];
-  const deliveryRequiresLocation = Boolean(
-    cart.rawCart?.delivery?.requiresLocation || cartGroups.some((group) => group.deliveryRequiresLocation)
-  );
-  const locationMissing = !primaryAddress || primaryAddress.lat == null || primaryAddress.lng == null;
   const subtotalDisplay = fmtEGP(cart.subtotal);
   const shippingDisplayedCents = cart.shippingFeeCents + cart.serviceFeeCents;
   const shippingDisplay = fmtEGP(fromCents(shippingDisplayedCents));
@@ -130,14 +126,12 @@ export function CartScreen({ appState, updateAppState }: CartScreenProps) {
     : guestCheckoutEnabled
       ? t("cart.deliveryEstimateGuest", "Set your address at checkout to see delivery fees.")
       : t("cart.deliveryEstimateLogin", "Sign in to see delivery fees.");
-  const addressWarningText = deliveryRequiresLocation
-    ? t("cart.locationRequired", "Add a delivery location to calculate delivery fees.")
-    : t("cart.addressWarning");
+  const addressWarningText = t("cart.addressWarning");
   const showAddressWarning = Boolean(
     appState.user &&
       !addressesQuery.isLoading &&
       !addressesQuery.isFetching &&
-      (deliveryRequiresLocation ? locationMissing : !primaryAddress || !primaryAddress.zoneId)
+      (!primaryAddress || !primaryAddress.zoneId)
   );
   const cartErrorMessage = cartError
     ? mapApiErrorToMessage(cartError, "cart.loadError")

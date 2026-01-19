@@ -499,14 +499,14 @@
       "latLabel": "خط العرض",
       "lngLabel": "خط الطول",
       "useLocation": "استخدم موقعي الحالي",
-      "notesLabel": "ملاحظات العنوان",
-      "notesPlaceholder": "الشقة، علامة مميزة، ملاحظات التوصيل",
+      "notesLabel": "علامة مميزة (اختياري)",
+      "notesPlaceholder": "علامة مميزة قريبة أو ملاحظات للتوصيل",
       "quoteLoading": "جارٍ حساب رسوم التوصيل...",
       "skippedBranches": "بعض العناصر مش متاحة وتم تجاوزها.",
       "disabled": "الطلب كضيف معطّل. من فضلك تسجيل الدخول للمتابعة.",
       "nameRequired": "الاسم مطلوب.",
       "phoneRequired": "رقم الموبايل مطلوب.",
-      "addressRequired": "اكتب العنوان الكامل والموقع للمتابعة.",
+      "addressRequired": "اكتب العنوان الكامل للمتابعة.",
       "noRewards": "طلبات الضيوف لا تستخدم الكوبونات أو نقاط الولاء.",
       "locationUnavailable": "خدمات الموقع مش متاحة.",
       "locationSet": "تم تحديث الموقع.",
@@ -514,7 +514,7 @@
       "locationTitle": "الموقع",
       "locationHint": "اضغط على الخريطة لتحديد الموقع."
     },
-    "stepsLabelGuest": "السلة > البيانات > الموقع > التأكيد"
+    "stepsLabelGuest": "السلة > البيانات > التأكيد"
   },
   "orders": {
     "title": "طلباتي",
@@ -715,7 +715,9 @@
       "labelPlaceholder": "المنزل / العمل / أخرى",
       "defaultLabel": "تعيين كافتراضي",
       "defaultHint": "يُستخدم تلقائيًا عند الدفع",
-      "location": "الموقع"
+      "location": "الموقع",
+      "notesLabel": "علامة مميزة",
+      "notesPlaceholder": "علامة مميزة قريبة أو ملاحظات للتوصيل"
     },
     "buttons": {
       "add": "إضافة عنوان",
@@ -735,7 +737,7 @@
       "editTitle": "تعديل العنوان"
     },
     "count": "{{count}} عنوان",
-    "emptySubtitle": "أضف موقع التوصيل للمتابعة.",
+    "emptySubtitle": "أضف عنوان التوصيل للمتابعة.",
     "validation": {
       "label": "اسم العنوان مطلوب",
       "city": "المدينة مطلوبة",

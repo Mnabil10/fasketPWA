@@ -68,6 +68,28 @@ function translate(key: string, translator?: Translator) {
   return fn(key);
 }
 
+export type ExtractedApiError = {
+  code?: string;
+  message?: string;
+  details?: Record<string, unknown>;
+  status?: number;
+  requestUrl?: string;
+};
+
+export function extractApiError(error: unknown): ExtractedApiError {
+  if (!error) return {};
+  const axiosError = error as AxiosError<ApiErrorPayload>;
+  const data = axiosError?.response?.data;
+  const nested = data && typeof (data as any).error === "object" ? (data as any).error : undefined;
+  return {
+    code: (nested?.code as string | undefined) ?? data?.code,
+    message: (nested?.message as string | undefined) ?? data?.message,
+    details: (nested?.details as Record<string, unknown> | undefined) ?? data?.details,
+    status: axiosError?.response?.status,
+    requestUrl: (axiosError?.config?.url as string | undefined) || "",
+  };
+}
+
 export function mapApiErrorToMessage(
   error: unknown,
   fallbackKey: string = DEFAULT_FALLBACK,
@@ -75,12 +97,7 @@ export function mapApiErrorToMessage(
 ): string {
   if (!error) return translate(fallbackKey, translator);
   const axiosError = error as AxiosError<ApiErrorPayload>;
-  const data = axiosError?.response?.data;
-  const status = axiosError?.response?.status;
-  const nested = data && typeof (data as any).error === "object" ? (data as any).error : undefined;
-  const code = (nested?.code as string | undefined) ?? data?.code;
-  const message = (nested?.message as string | undefined) ?? data?.message;
-  const requestUrl = (axiosError?.config?.url as string | undefined) || "";
+  const { code, message, status, requestUrl = "" } = extractApiError(error);
 
   if (axiosError?.code === "ECONNABORTED") {
     return translate("errors.timeout", translator);

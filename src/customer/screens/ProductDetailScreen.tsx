@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "../../ui/button";
 import { Badge } from "../../ui/badge";
@@ -12,7 +12,7 @@ import { useCart, useCartGuard, useProductDetail, useProducts, useApiErrorToast 
 import type { Product } from "../../types/api";
 import { trackAddToCart, trackViewProduct } from "../../lib/analytics";
 import { goToCart, goToCategory, goToHome, goToProduct } from "../navigation/navigation";
-import { mapApiErrorToMessage } from "../../utils/mapApiErrorToMessage";
+import { extractApiError, mapApiErrorToMessage } from "../../utils/mapApiErrorToMessage";
 import { resolveQuickAddProduct } from "../utils/productOptions";
 
 interface ProductDetailScreenProps {
@@ -21,6 +21,13 @@ interface ProductDetailScreenProps {
 }
 
 const MAX_OPTION_QTY = 99;
+type OptionLabelCandidate = {
+  name?: string | null;
+  nameAr?: string | null;
+  groupName?: string | null;
+  groupNameAr?: string | null;
+  qty?: number | null;
+};
 
 export function ProductDetailScreen({ appState, updateAppState }: ProductDetailScreenProps) {
   const selected = appState.selectedProduct as Partial<Product> | undefined;
@@ -195,6 +202,75 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
     return t("product.stock.in");
   }, [product?.stock, t]);
 
+  const formatOptionLabels = useCallback(
+    (options?: OptionLabelCandidate[]) => {
+      if (!options?.length) return [];
+      return options
+        .map((opt) => {
+          const optionName = lang === "ar" ? opt.nameAr || opt.name : opt.name || opt.nameAr || "";
+          const groupName = lang === "ar" ? opt.groupNameAr || opt.groupName : opt.groupName || opt.groupNameAr || "";
+          const label = groupName ? `${groupName}: ${optionName}` : optionName;
+          const qtyLabel = opt.qty && opt.qty > 1 ? ` x${opt.qty}` : "";
+          return `${label}${qtyLabel}`.trim();
+        })
+        .filter(Boolean);
+    },
+    [lang]
+  );
+
+  const resolveProductName = useCallback(
+    (target?: Product | null) => {
+      if (!target) return "";
+      if (lang === "ar") return target.nameAr || target.name || "";
+      return target.name || target.nameAr || "";
+    },
+    [lang]
+  );
+
+  const showCartErrorMessage = useCallback(
+    (error: unknown, context?: { product?: Product | null; options?: OptionLabelCandidate[] }) => {
+      const { code, details } = extractApiError(error);
+      const productName = resolveProductName(context?.product) || t("product.title", "Product");
+      if (code === "CART_PRODUCT_OUT_OF_STOCK") {
+        showToast({
+          type: "error",
+          message: t("errors.cartProductOutOfStockNamed", {
+            product: productName,
+            defaultValue: `${productName} is out of stock right now.`,
+          }),
+        });
+        return;
+      }
+      if (code === "CART_PRODUCT_UNAVAILABLE") {
+        showToast({
+          type: "error",
+          message: t("errors.cartProductUnavailableNamed", {
+            product: productName,
+            defaultValue: `${productName} is currently unavailable.`,
+          }),
+        });
+        return;
+      }
+      if (code === "CART_OPTIONS_INVALID") {
+        const detailOptions = Array.isArray((details as any)?.options) ? ((details as any).options as string[]) : [];
+        const optionLabels = detailOptions.length ? detailOptions : formatOptionLabels(context?.options);
+        if (optionLabels.length) {
+          const joined = optionLabels.join(lang === "ar" ? "، " : ", ");
+          showToast({
+            type: "error",
+            message: t("errors.cartOptionsInvalidNamed", {
+              options: joined,
+              defaultValue: `These options are no longer available: ${joined}.`,
+            }),
+          });
+          return;
+        }
+      }
+      apiErrorToast(error, "cart.updateError");
+    },
+    [apiErrorToast, formatOptionLabels, lang, resolveProductName, showToast, t]
+  );
+
   const description = useMemo(() => {
     const lang = i18n.language?.startsWith("ar") ? "ar" : "en";
     if (lang === "ar") {
@@ -316,7 +392,7 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
       );
       if (!added) return;
     } catch (error: any) {
-      apiErrorToast(error, "cart.updateError");
+      showCartErrorMessage(error, { product, options: selectedOptions });
     } finally {
       setAddingCart(false);
     }
@@ -348,7 +424,7 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
       );
       if (!added) return;
     } catch (error: any) {
-      apiErrorToast(error, "cart.updateError");
+      showCartErrorMessage(error, { product: p });
     }
   };
 

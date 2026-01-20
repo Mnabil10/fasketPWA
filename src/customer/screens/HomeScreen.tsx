@@ -31,7 +31,7 @@ import { goToCart, goToCategory, goToHome, goToOrders, goToProduct } from "../na
 import type { Product, ProviderSummary } from "../../types/api";
 import { trackAddToCart, trackPromoClick } from "../../lib/analytics";
 import { openExternalUrl } from "../../lib/fasketLinks";
-import { mapApiErrorToMessage } from "../../utils/mapApiErrorToMessage";
+import { extractApiError, mapApiErrorToMessage } from "../../utils/mapApiErrorToMessage";
 import { FASKET_GRADIENTS } from "../../styles/designSystem";
 import type { CachedResult } from "../../lib/offlineCache";
 import { getLocalizedString, isFeatureEnabled } from "../utils/mobileAppConfig";
@@ -152,6 +152,30 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
       }, { nextProviderLabel: providerLabel });
       if (!added) return;
     } catch (error: any) {
+      const { code } = extractApiError(error);
+      const productName = lang === "ar"
+        ? product.nameAr || product.name || t("product.title", "Product")
+        : product.name || product.nameAr || t("product.title", "Product");
+      if (code === "CART_PRODUCT_OUT_OF_STOCK") {
+        showToast({
+          type: "error",
+          message: t("errors.cartProductOutOfStockNamed", {
+            product: productName,
+            defaultValue: `${productName} is out of stock right now.`,
+          }),
+        });
+        return;
+      }
+      if (code === "CART_PRODUCT_UNAVAILABLE") {
+        showToast({
+          type: "error",
+          message: t("errors.cartProductUnavailableNamed", {
+            product: productName,
+            defaultValue: `${productName} is currently unavailable.`,
+          }),
+        });
+        return;
+      }
       apiErrorToast(error, "products.error");
     }
   };

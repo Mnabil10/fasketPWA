@@ -14,7 +14,7 @@ import { NetworkBanner } from "../components";
 import { goToHome } from "../navigation/navigation";
 import type { CartPreviewItem } from "../types";
 import type { ApiCart } from "../../services/cart";
-import { mapApiErrorToMessage } from "../../utils/mapApiErrorToMessage";
+import { extractApiError, mapApiErrorToMessage } from "../../utils/mapApiErrorToMessage";
 import { extractNoticeMessage } from "../../utils/extractNoticeMessage";
 
 interface CartScreenProps {
@@ -137,12 +137,64 @@ export function CartScreen({ appState, updateAppState }: CartScreenProps) {
     ? mapApiErrorToMessage(cartError, "cart.loadError")
     : t("cart.loadError", "We couldn't load your cart. Please try again.");
 
-  async function withFeedback<T>(itemId: string, action: "inc" | "dec" | "remove", fn: () => Promise<T>) {
-    setPendingItemId(itemId);
+  const formatOptionLabels = useMemo(() => {
+    return (options?: CartPreviewItem["options"]) => {
+      if (!options?.length) return [];
+      return options
+        .map((opt) => {
+          const optionName = lang === "ar" ? opt.nameAr || opt.name : opt.name || opt.nameAr;
+          const groupName = lang === "ar" ? opt.groupNameAr || opt.groupName : opt.groupName || opt.groupNameAr;
+          const safeOption = optionName || "";
+          const safeGroup = groupName || "";
+          const name = safeGroup ? `${safeGroup}: ${safeOption}` : safeOption;
+          const qtyLabel = opt.qty > 1 ? ` x${opt.qty}` : "";
+          return `${name}${qtyLabel}`.trim();
+        })
+        .filter(Boolean);
+    };
+  }, [lang]);
+
+  async function withFeedback<T>(item: DisplayCartItem, action: "inc" | "dec" | "remove", fn: () => Promise<T>) {
+    setPendingItemId(item.id);
     setPendingAction(action);
     try {
       await fn();
     } catch (error: any) {
+      const { code } = extractApiError(error);
+      if (code === "CART_OPTIONS_INVALID") {
+        const optionLabels = formatOptionLabels(item.options);
+        if (optionLabels.length) {
+          const joined = optionLabels.join(lang === "ar" ? "، " : ", ");
+          showToast({
+            type: "error",
+            message: t("errors.cartOptionsInvalidNamed", {
+              options: joined,
+              defaultValue: `These options are no longer available: ${joined}.`,
+            }),
+          });
+          return;
+        }
+      }
+      if (code === "CART_PRODUCT_OUT_OF_STOCK") {
+        showToast({
+          type: "error",
+          message: t("errors.cartProductOutOfStockNamed", {
+            product: item.name,
+            defaultValue: `${item.name} is out of stock right now.`,
+          }),
+        });
+        return;
+      }
+      if (code === "CART_PRODUCT_UNAVAILABLE") {
+        showToast({
+          type: "error",
+          message: t("errors.cartProductUnavailableNamed", {
+            product: item.name,
+            defaultValue: `${item.name} is currently unavailable.`,
+          }),
+        });
+        return;
+      }
       apiErrorToast(error, "cart.updateError");
     } finally {
       setPendingItemId(null);
@@ -151,7 +203,7 @@ export function CartScreen({ appState, updateAppState }: CartScreenProps) {
   }
 
   const onInc = (item: DisplayCartItem) =>
-    withFeedback(item.id, "inc", () =>
+    withFeedback(item, "inc", () =>
       cart.updateQuantity({
         itemId: item.id,
         productId: item.productId,
@@ -161,7 +213,7 @@ export function CartScreen({ appState, updateAppState }: CartScreenProps) {
 
   const onDec = (item: DisplayCartItem) => {
     if (item.qty <= 1) return;
-    return withFeedback(item.id, "dec", () =>
+    return withFeedback(item, "dec", () =>
       cart.updateQuantity({
         itemId: item.id,
         productId: item.productId,
@@ -171,7 +223,7 @@ export function CartScreen({ appState, updateAppState }: CartScreenProps) {
   };
 
   const onRemove = (item: DisplayCartItem) =>
-    withFeedback(item.id, "remove", () =>
+    withFeedback(item, "remove", () =>
       cart.removeItem({
         itemId: item.id,
         productId: item.productId,

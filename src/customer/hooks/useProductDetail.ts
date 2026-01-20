@@ -21,7 +21,7 @@ export function useProductDetail<TData = CachedResult<Product>>(
   params: UseProductDetailParams,
   options?: UseProductDetailOptions<TData>
 ) {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const lang = i18n.language?.startsWith("ar") ? "ar" : "en";
   const idOrSlug = params.idOrSlug ?? null;
   const enabled = params.enabled ?? true;
@@ -30,7 +30,7 @@ export function useProductDetail<TData = CachedResult<Product>>(
     queryKey: ["product", { lang, idOrSlug }],
     queryFn: () => {
       if (!idOrSlug) {
-        throw new Error("Product id is required when fetching details");
+        throw new Error(t("errors.productIdRequired", "Product ID is required."));
       }
       return getProduct(idOrSlug, lang);
     },

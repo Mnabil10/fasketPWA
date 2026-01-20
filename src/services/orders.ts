@@ -379,6 +379,7 @@ function normalizeOrderReceipt(payload: any): OrderReceipt {
         }
       : null,
     items,
+    hasWeightBasedItems: node.hasWeightBasedItems ?? false,
     couponDiscountCents: node.couponDiscountCents ?? node.discountCents ?? 0,
     loyaltyDiscountCents: node.loyaltyDiscountCents ?? 0,
     loyaltyPointsEarned: node.loyaltyPointsEarned ?? 0,

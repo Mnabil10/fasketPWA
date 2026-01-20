@@ -638,6 +638,7 @@ export type OrderReceipt = {
     lineTotalCents: number;
     options?: ProductOptionSelection[];
   }>;
+  hasWeightBasedItems?: boolean;
   subtotalCents: number;
   shippingFeeCents: number;
   couponDiscountCents: number;

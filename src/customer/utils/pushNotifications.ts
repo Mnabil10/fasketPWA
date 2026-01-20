@@ -1,4 +1,6 @@
+import { App } from "@capacitor/app";
 import { Capacitor } from "@capacitor/core";
+import { LocalNotifications, type LocalNotificationSchema } from "@capacitor/local-notifications";
 import { PushNotifications, type PushNotificationSchema, type Token } from "@capacitor/push-notifications";
 import i18n from "../../i18n";
 import { registerDevice, type RegisterDevicePayload } from "../../services/notifications";
@@ -15,6 +17,7 @@ export type NotificationPayload = {
   priority?: string;
   sound?: string;
   vibrate?: string | boolean;
+  data?: Record<string, unknown>;
 };
 
 type NotificationListener = (payload: NotificationPayload) => void;
@@ -22,6 +25,12 @@ type NotificationListener = (payload: NotificationPayload) => void;
 let cachedToken: string | null = null;
 let initializing: Promise<string | null> | null = null;
 const listeners = new Set<NotificationListener>();
+const LOCAL_NOTIFICATION_CHANNEL_ID = "fasket_notifications";
+const MAX_NOTIFICATION_ID = 2147483647;
+let localNotificationSeed = Math.floor(Date.now() % MAX_NOTIFICATION_ID);
+let localNotificationsReady = false;
+let localNotificationsInitializing: Promise<boolean> | null = null;
+let localNotificationListenerBound = false;
 
 const isNative = () => {
   const platform = Capacitor.getPlatform?.() ?? "web";
@@ -38,23 +47,157 @@ function notifyListeners(payload: NotificationPayload) {
   });
 }
 
+function nextLocalNotificationId() {
+  localNotificationSeed = (localNotificationSeed + 1) % MAX_NOTIFICATION_ID;
+  return localNotificationSeed || 1;
+}
+
+function normalizeData(data?: unknown): Record<string, unknown> | undefined {
+  if (!data || typeof data !== "object") return undefined;
+  return data as Record<string, unknown>;
+}
+
+function mapNotificationData(data: Record<string, unknown> | undefined, base: NotificationPayload): NotificationPayload {
+  if (!data) return base;
+  const type = typeof data.type === "string" ? data.type : typeof data.eventType === "string" ? data.eventType : undefined;
+  const orderId =
+    typeof data.orderId === "string"
+      ? data.orderId
+      : typeof data.order_id === "string"
+        ? data.order_id
+        : undefined;
+  const pointsRaw = data.points;
+  const points = typeof pointsRaw === "number" ? pointsRaw : Number(pointsRaw) || undefined;
+  const title = typeof data.title === "string" ? data.title : undefined;
+  const body = typeof data.body === "string" ? data.body : undefined;
+  const route = typeof data.route === "string" ? data.route : undefined;
+  const priority = typeof data.priority === "string" ? data.priority : undefined;
+  const sound = typeof data.sound === "string" ? data.sound : undefined;
+  const vibrate = typeof data.vibrate === "string" || typeof data.vibrate === "boolean" ? data.vibrate : undefined;
+  return {
+    ...base,
+    type: type ?? base.type,
+    orderId: orderId ?? base.orderId,
+    points: points ?? base.points,
+    title: base.title ?? title,
+    body: base.body ?? body,
+    route: route ?? base.route,
+    priority: priority ?? base.priority,
+    sound: sound ?? base.sound,
+    vibrate: vibrate ?? base.vibrate,
+    data,
+  };
+}
+
 function mapNotification(notification: PushNotificationSchema | NotificationPayload): NotificationPayload {
   if (!notification) return {};
   if ("data" in notification && notification.data) {
-    const { type, orderId, points, route, priority, sound, vibrate } = notification.data;
-    return {
-      type: type ?? notification.data?.eventType,
-      orderId: orderId ?? notification.data?.order_id,
-      points: typeof points === "number" ? points : Number(points) || undefined,
-      title: notification.title ?? notification.data?.title,
-      body: notification.body ?? notification.data?.body,
-      route: route ?? notification.data?.route,
-      priority: priority ?? notification.data?.priority,
-      sound: sound ?? notification.data?.sound,
-      vibrate: vibrate ?? notification.data?.vibrate,
-    };
+    const data = normalizeData(notification.data);
+    return mapNotificationData(data, {
+      title: notification.title,
+      body: notification.body,
+      data,
+    });
   }
   return notification as NotificationPayload;
+}
+
+function mapLocalNotification(notification: LocalNotificationSchema): NotificationPayload {
+  const data = normalizeData(notification.extra);
+  return mapNotificationData(data, {
+    title: notification.title,
+    body: notification.body,
+    data,
+  });
+}
+
+function buildNotificationExtra(payload: NotificationPayload): Record<string, unknown> {
+  const extra = { ...(payload.data ?? {}) } as Record<string, unknown>;
+  if (payload.type !== undefined && extra.type === undefined) extra.type = payload.type;
+  if (payload.orderId !== undefined && extra.orderId === undefined && extra.order_id === undefined) {
+    extra.orderId = payload.orderId;
+  }
+  if (payload.points !== undefined && extra.points === undefined) extra.points = payload.points;
+  if (payload.route !== undefined && extra.route === undefined) extra.route = payload.route;
+  if (payload.priority !== undefined && extra.priority === undefined) extra.priority = payload.priority;
+  if (payload.sound !== undefined && extra.sound === undefined) extra.sound = payload.sound;
+  if (payload.vibrate !== undefined && extra.vibrate === undefined) extra.vibrate = payload.vibrate;
+  if (payload.title !== undefined && extra.title === undefined) extra.title = payload.title;
+  if (payload.body !== undefined && extra.body === undefined) extra.body = payload.body;
+  return extra;
+}
+
+async function ensureLocalNotificationsReady(): Promise<boolean> {
+  if (!isNative()) return false;
+  if (localNotificationsReady) return true;
+  if (localNotificationsInitializing) return localNotificationsInitializing;
+  localNotificationsInitializing = (async () => {
+    try {
+      const permission = await LocalNotifications.checkPermissions();
+      if (permission.display !== "granted") {
+        const requested = await LocalNotifications.requestPermissions();
+        if (requested.display !== "granted") {
+          return false;
+        }
+      }
+      if (Capacitor.getPlatform?.() === "android") {
+        await LocalNotifications.createChannel({
+          id: LOCAL_NOTIFICATION_CHANNEL_ID,
+          name: "Fasket",
+          importance: 4,
+          vibration: true,
+        });
+      }
+      if (!localNotificationListenerBound) {
+        localNotificationListenerBound = true;
+        void LocalNotifications.addListener("localNotificationActionPerformed", ({ notification }) => {
+          notifyListeners(mapLocalNotification(notification));
+        });
+      }
+      localNotificationsReady = true;
+      return true;
+    } catch (error) {
+      console.warn("[push] local notifications init failed", error);
+      return false;
+    } finally {
+      localNotificationsInitializing = null;
+    }
+  })();
+  return localNotificationsInitializing;
+}
+
+async function isAppActive(): Promise<boolean> {
+  if (!isNative() || !App?.getState) return false;
+  try {
+    const state = await App.getState();
+    return state.isActive;
+  } catch {
+    return true;
+  }
+}
+
+async function showLocalNotification(payload: NotificationPayload): Promise<void> {
+  if (!isNative()) return;
+  const active = await isAppActive();
+  if (!active) return;
+  const ready = await ensureLocalNotificationsReady();
+  if (!ready) return;
+  const title = payload.title ?? i18n.t("notifications.title", "Notification");
+  const body = payload.body ?? i18n.t("notifications.orderUpdated", "Your order was updated");
+  const notification: LocalNotificationSchema = {
+    id: nextLocalNotificationId(),
+    title,
+    body,
+    extra: buildNotificationExtra(payload),
+  };
+  if (Capacitor.getPlatform?.() === "android") {
+    notification.channelId = LOCAL_NOTIFICATION_CHANNEL_ID;
+  }
+  try {
+    await LocalNotifications.schedule({ notifications: [notification] });
+  } catch (error) {
+    console.warn("[push] local notification schedule failed", error);
+  }
 }
 
 export async function initializePushNotifications(): Promise<string | null> {
@@ -76,6 +219,7 @@ export async function initializePushNotifications(): Promise<string | null> {
           resolve(null);
           return;
         }
+        void ensureLocalNotificationsReady();
 
         PushNotifications.addListener("registration", (token: Token) => {
           cachedToken = token.value;
@@ -88,7 +232,9 @@ export async function initializePushNotifications(): Promise<string | null> {
         });
 
         PushNotifications.addListener("pushNotificationReceived", (notification) => {
-          notifyListeners(mapNotification(notification));
+          const payload = mapNotification(notification);
+          notifyListeners(payload);
+          void showLocalNotification(payload);
         });
 
         PushNotifications.addListener("pushNotificationActionPerformed", ({ notification }) => {

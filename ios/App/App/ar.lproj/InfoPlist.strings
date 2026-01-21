@@ -1,0 +1,5 @@
+"CFBundleDisplayName"="فاسكت";
+"NSLocationWhenInUseUsageDescription" = "نحتاج للوصول إلى موقعك لعرض المنتجات المتاحة ومناطق التوصيل القريبة منك.";
+"NSCameraUsageDescription" = "نحتاج إلى الوصول للكاميرا للسماح لك بالتقاط صور للملف الشخصي أو مسح الأكواد.";
+"NSPhotoLibraryUsageDescription" = "نحتاج للوصول لمكتبة الصور للسماح لك برفع صور للملف الشخصي.";
+"NSPhotoLibraryAddUsageDescription" = "نحتاج للوصول لمكتبة الصور لحفظ الصور.";

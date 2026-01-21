@@ -301,14 +301,14 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
   const highlightPills =
     heroConfig.pills && heroConfig.pills.length > 0
       ? heroConfig.pills.map((pill) => ({
-          icon: resolvePillIcon(pill.icon),
-          label: getLocalizedString(pill.label, lang, ""),
-        }))
+        icon: resolvePillIcon(pill.icon),
+        label: getLocalizedString(pill.label, lang, ""),
+      }))
       : [
-          { icon: Clock, label: t("home.deliveryEta", "30-45 min delivery") },
-          { icon: Truck, label: t("home.coveragePromise", "We cover all of Badr City") },
-          { icon: Star, label: t("home.qualityPromise", "Handpicked quality products") },
-        ];
+        { icon: Clock, label: t("home.deliveryEta", "30-45 min delivery") },
+        { icon: Truck, label: t("home.coveragePromise", "We cover all of Badr City") },
+        { icon: Star, label: t("home.qualityPromise", "Handpicked quality products") },
+      ];
   const loyaltyWidgetEnabled = Boolean(appState.user && isFeatureEnabled(mobileConfig, "loyalty", true));
   const topCategories = (categoriesQuery.data?.data ?? []).slice(0, categoriesLimit);
 
@@ -422,9 +422,8 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
                 <button
                   key={provider.id}
                   onClick={() => handleProviderSelect(provider)}
-                  className={`rounded-2xl border p-3 text-left shadow-card transition-transform duration-200 hover:-translate-y-0.5 ${
-                    isSelected ? "border-primary ring-2 ring-primary/20" : "border-border"
-                  }`}
+                  className={`rounded-2xl border p-3 text-left shadow-card transition-transform duration-200 hover:-translate-y-0.5 ${isSelected ? "border-primary ring-2 ring-primary/20" : "border-border"
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-xl bg-white shadow-inner flex items-center justify-center overflow-hidden">
@@ -628,9 +627,10 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
               )}
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" className="p-2 rounded-full">
+              {/* TODO: Show notification icon when ready */}
+              {/* <Button variant="ghost" size="sm" className="p-2 rounded-full">
                 <Bell className="w-5 h-5" />
-              </Button>
+              </Button> */}
               <Button
                 variant="ghost"
                 size="sm"
@@ -649,9 +649,8 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
 
           <form className="relative" onSubmit={handleSearchSubmit}>
             <Search
-              className={`absolute top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 ${
-                i18n.dir() === "rtl" ? "right-4" : "left-4"
-              }`}
+              className={`absolute top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 ${i18n.dir() === "rtl" ? "right-4" : "left-4"
+                }`}
             />
             <Input
               placeholder={searchPlaceholder}

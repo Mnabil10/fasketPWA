@@ -6,6 +6,7 @@ const KEYS = {
   refreshToken: "fasket.refreshToken",
   language: "fasket.language",
   userProfile: "fasket.userProfile",
+  hasSeenOnboarding: "fasket.hasSeenOnboarding",
 };
 
 const isBrowser = () => typeof window !== "undefined";
@@ -70,5 +71,7 @@ export const secureStorage = {
   setUserProfile: (value: string | null) => write(KEYS.userProfile, value),
   getLanguage: () => read(KEYS.language),
   setLanguage: (lang: string | null) => write(KEYS.language, lang),
+  getHasSeenOnboarding: () => read(KEYS.hasSeenOnboarding).then((v) => v === "true"),
+  setHasSeenOnboarding: (value: boolean) => write(KEYS.hasSeenOnboarding, value ? "true" : "false"),
   clearTokens: () => Promise.all([write(KEYS.accessToken, null), write(KEYS.refreshToken, null)]).then(() => undefined),
 };

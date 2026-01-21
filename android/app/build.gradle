@@ -41,7 +41,7 @@ android {
         }
     }
     defaultConfig {
-        // Set Android app version here
+        // todo: Set Android app version here
         versionCode 1 // Build number
         versionName "0.1.0" // App Version
         applicationId "fasket.user"

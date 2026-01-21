@@ -200,13 +200,13 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
       toggle: false,
       action: () => updateAppState({ currentScreen: "about" }),
     },
-    {
-      key: "website",
-      icon: Globe,
-      label: t("profile.support.website"),
-      toggle: false,
-      action: () => openExternalUrl(supportConfig.websiteUrl),
-    },
+    // {
+    //   key: "website",
+    //   icon: Globe,
+    //   label: t("profile.support.website"),
+    //   toggle: false,
+    //   action: () => openExternalUrl(supportConfig.websiteUrl),
+    // },
     {
       key: "rate",
       icon: Star,
@@ -216,20 +216,20 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
       subtitle: supportConfig.playStoreUrl ? undefined : t("profile.support.rateSoon"),
       disabled: !supportConfig.playStoreUrl,
     },
-    {
-      key: "whatsapp",
-      icon: MessageCircle,
-      label: t("profile.support.whatsapp"),
-      toggle: false,
-      action: () => openWhatsapp(whatsappMessage, supportConfig.whatsappNumber),
-    },
-    {
-      key: "help",
-      icon: Phone,
-      label: t("profile.support.help", "Help & self-service"),
-      toggle: false,
-      action: () => updateAppState({ currentScreen: "help" }),
-    },
+    // {
+    //   key: "whatsapp",
+    //   icon: MessageCircle,
+    //   label: t("profile.support.whatsapp"),
+    //   toggle: false,
+    //   action: () => openWhatsapp(whatsappMessage, supportConfig.whatsappNumber),
+    // },
+    // {
+    //   key: "help",
+    //   icon: Phone,
+    //   label: t("profile.support.help", "Help & self-service"),
+    //   toggle: false,
+    //   action: () => updateAppState({ currentScreen: "help" }),
+    // },
     {
       key: "privacy",
       icon: FileText,
@@ -244,13 +244,13 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
       toggle: false,
       action: () => updateAppState({ currentScreen: "terms" }),
     },
-    {
-      key: "email",
-      icon: Mail,
-      label: t("profile.support.email"),
-      toggle: false,
-      action: () => openExternalUrl(buildSupportMailto(t("profile.support.emailSubject"), supportConfig.supportEmail)),
-    },
+    // {
+    //   key: "email",
+    //   icon: Mail,
+    //   label: t("profile.support.email"),
+    //   toggle: false,
+    //   action: () => openExternalUrl(buildSupportMailto(t("profile.support.emailSubject"), supportConfig.supportEmail)),
+    // },
     {
       key: "share",
       icon: Share2,
@@ -258,13 +258,13 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
       toggle: false,
       action: share,
     },
-    {
-      key: "call",
-      icon: Phone,
-      label: t("profile.support.phone"),
-      toggle: false,
-      action: () => openExternalUrl(`tel:${supportConfig.supportPhone}`),
-    },
+    // {
+    //   key: "call",
+    //   icon: Phone,
+    //   label: t("profile.support.phone"),
+    //   toggle: false,
+    //   action: () => openExternalUrl(`tel:${supportConfig.supportPhone}`),
+    // },
   ];
 
   const handleLanguageChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -480,8 +480,8 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
                 </div>
                 <div className="flex items-center space-x-2">
                   {item.badge && (
-                    <Badge 
-                      variant={item.badge.variant} 
+                    <Badge
+                      variant={item.badge.variant}
                       className="text-xs"
                     >
                       {item.badge.label}
@@ -557,40 +557,40 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
                 </div>
               </div>
             ))}
+          </div>
         </div>
-      </div>
 
-      <div className="mx-4 mt-6">
-        <h3 className="font-poppins text-lg text-gray-900 mb-3 px-1" style={{ fontWeight: 600 }}>
-          {t("profile.support.title")}
-        </h3>
-        <div className="space-y-2">
-          {supportActions.map((item) => (
-            <Button
-              key={item.key}
-              variant="ghost"
-              onClick={item.action}
-              disabled={item.disabled}
-              className="w-full justify-between bg-white rounded-xl p-4 h-auto shadow-sm hover:bg-gray-50 disabled:opacity-60"
-            >
-              <div className="flex items-center text-left">
-                <item.icon className="w-5 h-5 mr-3 text-gray-600" />
-                <div className="text-left">
-                  <span className="block">{item.label}</span>
-                  {item.subtitle && <p className="text-xs text-gray-500">{item.subtitle}</p>}
+        <div className="mx-4 mt-6">
+          <h3 className="font-poppins text-lg text-gray-900 mb-3 px-1" style={{ fontWeight: 600 }}>
+            {t("profile.support.title")}
+          </h3>
+          <div className="space-y-2">
+            {supportActions.map((item) => (
+              <Button
+                key={item.key}
+                variant="ghost"
+                onClick={item.action}
+                disabled={item.disabled}
+                className="w-full justify-between bg-white rounded-xl p-4 h-auto shadow-sm hover:bg-gray-50 disabled:opacity-60"
+              >
+                <div className="flex items-center text-left">
+                  <item.icon className="w-5 h-5 mr-3 text-gray-600" />
+                  <div className="text-left">
+                    <span className="block">{item.label}</span>
+                    {item.subtitle && <p className="text-xs text-gray-500">{item.subtitle}</p>}
+                  </div>
                 </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-gray-400" />
-            </Button>
-          ))}
+                <ChevronRight className="w-4 h-4 text-gray-400" />
+              </Button>
+            ))}
+          </div>
         </div>
-      </div>
 
-      <div className="mx-4 mt-6 bg-white rounded-xl p-4 shadow-sm">
-        <div className="text-center">
-          <p className="text-sm text-gray-500 mb-1">
-            {t("common.appName")} {t("profile.appVersion")}
-          </p>
+        <div className="mx-4 mt-6 bg-white rounded-xl p-4 shadow-sm">
+          <div className="text-center">
+            <p className="text-sm text-gray-500 mb-1">
+              {t("common.appName")} {t("profile.appVersion")}
+            </p>
             <p className="text-sm font-medium text-gray-900">v{APP_VERSION}</p>
           </div>
         </div>

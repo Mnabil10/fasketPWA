@@ -115,7 +115,7 @@ export function useCart(options?: UseCartOptions): UseCartResult {
   const userId = options?.userId ?? null;
   const addressId = options?.addressId ?? null;
   const isAuthenticated = Boolean(userId);
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const lang = i18n.language?.startsWith("ar") ? "ar" : "en";
   const queryClient = useQueryClient();
   const { isOffline } = useNetworkStatus();
@@ -291,7 +291,7 @@ export function useCart(options?: UseCartOptions): UseCartResult {
   const updateMutation = useMutation({
     mutationFn: ({ itemId, qty }: UpdatePayload) => {
       if (!itemId) {
-        throw new Error("Missing cart item id");
+        throw new Error(t("errors.cartItemMissing", "We couldn't find this cart item. Please try again."));
       }
       return updateItemQty(itemId, qty, { addressId });
     },
@@ -322,7 +322,7 @@ export function useCart(options?: UseCartOptions): UseCartResult {
   const removeMutation = useMutation({
     mutationFn: ({ itemId }: RemovePayload) => {
       if (!itemId) {
-        throw new Error("Missing cart item id");
+        throw new Error(t("errors.cartItemMissing", "We couldn't find this cart item. Please try again."));
         }
       return removeItem(itemId, { addressId });
     },
@@ -359,7 +359,7 @@ export function useCart(options?: UseCartOptions): UseCartResult {
 
   async function addProduct(product: Product, qty = 1, options?: ProductOptionSelection[]) {
     if (!product?.id) {
-      throw new Error("Product must include an id");
+      throw new Error(t("errors.cartProductMissing", "We couldn't add this product. Please try again."));
     }
     const branchId = product.branchId ?? null;
     if (!isAuthenticated) {
@@ -367,7 +367,9 @@ export function useCart(options?: UseCartOptions): UseCartResult {
       return;
     }
     if (isOffline) {
-      throw new Error("You are offline. Cannot add items to the cart.");
+      throw new Error(
+        t("errors.cartOfflineAdd", "You're offline. Connect to the internet to add items to the cart.")
+      );
     }
     await addMutation.mutateAsync({ productId: product.id, qty, product, branchId, options });
   }
@@ -376,16 +378,16 @@ export function useCart(options?: UseCartOptions): UseCartResult {
     const { itemId, productId, qty } = payload;
     if (!isAuthenticated) {
       if (!itemId) {
-        throw new Error("Missing cart item id");
+        throw new Error(t("errors.cartItemMissing", "We couldn't find this cart item. Please try again."));
       }
       setLocalQty(itemId, qty);
       return;
     }
     if (!itemId) {
-      throw new Error("Missing cart item id");
+      throw new Error(t("errors.cartItemMissing", "We couldn't find this cart item. Please try again."));
     }
     if (isOffline) {
-      throw new Error("You are offline. Cannot update the cart.");
+      throw new Error(t("errors.cartOfflineUpdate", "You're offline. Connect to update your cart."));
     }
     await updateMutation.mutateAsync({ itemId, productId, qty });
   }
@@ -394,30 +396,32 @@ export function useCart(options?: UseCartOptions): UseCartResult {
     const { itemId, productId } = payload;
     if (!isAuthenticated) {
       if (!itemId) {
-        throw new Error("Missing cart item id");
+        throw new Error(t("errors.cartItemMissing", "We couldn't find this cart item. Please try again."));
       }
       removeLocal(itemId);
       return;
     }
     if (!itemId) {
-      throw new Error("Missing cart item id");
+      throw new Error(t("errors.cartItemMissing", "We couldn't find this cart item. Please try again."));
     }
     if (isOffline) {
-      throw new Error("You are offline. Cannot update the cart.");
+      throw new Error(t("errors.cartOfflineUpdate", "You're offline. Connect to update your cart."));
     }
     await removeMutation.mutateAsync({ itemId, productId });
   }
 
   async function applyCoupon(code: string) {
     if (!isAuthenticated) {
-      throw new Error("You need to sign in to apply a coupon.");
+      throw new Error(t("errors.couponLoginRequired", "Please sign in to apply a coupon."));
     }
     const trimmed = code.trim();
     if (!trimmed) {
-      throw new Error("Coupon code is required.");
+      throw new Error(t("errors.couponCodeRequired", "Please enter a coupon code."));
     }
     if (isOffline) {
-      throw new Error("You are offline. Cannot apply a coupon.");
+      throw new Error(
+        t("errors.cartOfflineApplyCoupon", "You're offline. Connect to apply a coupon.")
+      );
     }
     await couponMutation.mutateAsync({ code: trimmed });
   }
@@ -428,7 +432,9 @@ export function useCart(options?: UseCartOptions): UseCartResult {
       return;
     }
     if (isOffline) {
-      throw new Error("You are offline. Cannot clear the cart.");
+      throw new Error(
+        t("errors.cartOfflineClear", "You're offline. Connect to clear the cart.")
+      );
     }
     await clearServerCart({ addressId: addressId ?? undefined });
     queryClient.invalidateQueries({ queryKey: ["cart"] });

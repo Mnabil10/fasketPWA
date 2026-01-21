@@ -34,6 +34,18 @@
     "cartProviderMismatch": "Your cart has items from another provider.",
     "cartBranchMismatch": "Your cart has items from another branch.",
     "cartOptionsInvalid": "Selected options are not available.",
+    "cartOptionsInvalidNamed": "These options are no longer available: {{options}}. Please update your selections.",
+    "cartProductUnavailableNamed": "{{product}} is currently unavailable.",
+    "cartProductOutOfStockNamed": "{{product}} is out of stock right now.",
+    "cartItemMissing": "We couldn't find this cart item. Please try again.",
+    "cartProductMissing": "We couldn't add this product. Please try again.",
+    "productIdRequired": "Product ID is required.",
+    "cartOfflineAdd": "You're offline. Connect to the internet to add items to the cart.",
+    "cartOfflineUpdate": "You're offline. Connect to update your cart.",
+    "cartOfflineApplyCoupon": "You're offline. Connect to apply a coupon.",
+    "cartOfflineClear": "You're offline. Connect to clear the cart.",
+    "couponLoginRequired": "Please sign in to apply a coupon.",
+    "couponCodeRequired": "Please enter a coupon code.",
     "checkoutAddressRequired": "Select an address so we can calculate shipping.",
     "deliveryWindowRequired": "Please select a delivery time slot.",
     "deliveryWindowInvalid": "Selected delivery time is not available.",
@@ -50,6 +62,8 @@
     "otpTooManyAttempts": "Too many attempts. Please try again later.",
     "otpLocked": "Too many attempts. Please try again later.",
     "orderNotFound": "We couldn't find this order.",
+    "orderIdRequired": "Order ID is required.",
+    "orderGroupIdRequired": "Order group ID is required.",
     "orderInvalidState": "This order can't be updated right now.",
     "orderCancelNotAllowed": "This order can't be canceled after preparation starts.",
     "couponInvalid": "This coupon code isn't valid.",
@@ -66,7 +80,8 @@
   },
   "offline": {
     "banner": "You are offline - showing cached data if available.",
-    "message": "You are offline. Changes will be synced when you reconnect."
+    "message": "You are offline. Changes will be synced when you reconnect.",
+    "staleWarning": "You're viewing cached data. Some details may be outdated."
   },
   "splash": {
     "title": "Fasket",

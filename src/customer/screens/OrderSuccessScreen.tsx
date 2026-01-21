@@ -16,6 +16,7 @@ import { openExternalUrl } from "../../lib/fasketLinks";
 import { resolveSupportConfig } from "../utils/mobileAppConfig";
 import { useNotificationPreferences } from "../stores/notificationPreferences";
 import { resolveQuickAddProduct } from "../utils/productOptions";
+import { extractApiError } from "../../utils/mapApiErrorToMessage";
 
 interface OrderSuccessScreenProps {
   appState: AppState;
@@ -218,6 +219,30 @@ export function OrderSuccessScreen({ appState, updateAppState }: OrderSuccessScr
       }, { nextProviderLabel: providerLabel });
       if (!added) return;
     } catch (error: any) {
+      const { code } = extractApiError(error);
+      const productName = lang === "ar"
+        ? product.nameAr || product.name || t("product.title", "Product")
+        : product.name || product.nameAr || t("product.title", "Product");
+      if (code === "CART_PRODUCT_OUT_OF_STOCK") {
+        showToast({
+          type: "error",
+          message: t("errors.cartProductOutOfStockNamed", {
+            product: productName,
+            defaultValue: `${productName} is out of stock right now.`,
+          }),
+        });
+        return;
+      }
+      if (code === "CART_PRODUCT_UNAVAILABLE") {
+        showToast({
+          type: "error",
+          message: t("errors.cartProductUnavailableNamed", {
+            product: productName,
+            defaultValue: `${productName} is currently unavailable.`,
+          }),
+        });
+        return;
+      }
       apiErrorToast(error, "cart.updateError");
     }
   };

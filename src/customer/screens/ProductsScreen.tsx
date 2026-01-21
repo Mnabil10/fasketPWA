@@ -13,7 +13,7 @@ import { ProductCard, ProductCardSkeleton, NetworkBanner, RetryBlock, EmptyState
 import { goToCategory, goToProduct } from "../navigation/navigation";
 import type { Product } from "../../types/api";
 import { trackAddToCart } from "../../lib/analytics";
-import { mapApiErrorToMessage } from "../../utils/mapApiErrorToMessage";
+import { extractApiError, mapApiErrorToMessage } from "../../utils/mapApiErrorToMessage";
 import { resolveQuickAddProduct } from "../utils/productOptions";
 
 interface ProductsScreenProps {
@@ -123,6 +123,30 @@ export function ProductsScreen({ appState, updateAppState }: ProductsScreenProps
       }, { nextProviderLabel: providerLabel });
       if (!added) return;
     } catch (err: any) {
+      const { code } = extractApiError(err);
+      const productName = lang === "ar"
+        ? product.nameAr || product.name || t("product.title", "Product")
+        : product.name || product.nameAr || t("product.title", "Product");
+      if (code === "CART_PRODUCT_OUT_OF_STOCK") {
+        showToast({
+          type: "error",
+          message: t("errors.cartProductOutOfStockNamed", {
+            product: productName,
+            defaultValue: `${productName} is out of stock right now.`,
+          }),
+        });
+        return;
+      }
+      if (code === "CART_PRODUCT_UNAVAILABLE") {
+        showToast({
+          type: "error",
+          message: t("errors.cartProductUnavailableNamed", {
+            product: productName,
+            defaultValue: `${productName} is currently unavailable.`,
+          }),
+        });
+        return;
+      }
       apiErrorToast(err, "products.error");
     }
   };

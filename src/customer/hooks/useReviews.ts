@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { createReview, getOrderReview, updateReview } from "../../services/reviews";
 import { useNetworkStatus } from "./useNetworkStatus";
 import { getSessionTokens } from "../../store/session";
@@ -9,6 +10,7 @@ type UseOrderReviewOptions = {
 };
 
 export function useOrderReview(orderId?: string | null, options?: UseOrderReviewOptions) {
+  const { t } = useTranslation();
   const { isOffline } = useNetworkStatus();
   const { accessToken } = getSessionTokens();
   const isAuthenticated = Boolean(accessToken);
@@ -18,7 +20,7 @@ export function useOrderReview(orderId?: string | null, options?: UseOrderReview
     queryKey: ["order-review", orderId || "unknown"],
     queryFn: () => {
       if (!orderId) {
-        throw new Error("Order id is required");
+        throw new Error(t("errors.orderIdRequired", "Order ID is required."));
       }
       return getOrderReview(orderId);
     },
@@ -30,12 +32,13 @@ export function useOrderReview(orderId?: string | null, options?: UseOrderReview
 }
 
 export function useSaveReview(orderId?: string | null) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (payload: { reviewId?: string | null; rating: number; comment?: string | null }) => {
       if (!orderId) {
-        throw new Error("Order id is required");
+        throw new Error(t("errors.orderIdRequired", "Order ID is required."));
       }
       if (payload.reviewId) {
         return updateReview(payload.reviewId, { rating: payload.rating, comment: payload.comment });

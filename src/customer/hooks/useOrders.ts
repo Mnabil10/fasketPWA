@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient, type UseQueryOptions } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import {
   cancelOrderGroup,
   getDriverLocation,
@@ -110,6 +111,7 @@ export function useOrderDetail<TData = OrderDetail>(
   orderId?: string | null,
   options?: UseOrderDetailOptions<TData>
 ) {
+  const { t } = useTranslation();
   const { isOffline } = useNetworkStatus();
   const { accessToken } = getSessionTokens();
   const isAuthenticated = Boolean(accessToken);
@@ -118,7 +120,7 @@ export function useOrderDetail<TData = OrderDetail>(
     queryKey: ["order", orderId || "unknown"],
     queryFn: () => {
       if (!orderId) {
-        throw new Error("Order id is required");
+        throw new Error(t("errors.orderIdRequired", "Order ID is required."));
       }
       return getOrderById(orderId);
     },
@@ -135,6 +137,7 @@ export function useOrderGroupDetail<TData = OrderGroupDetail>(
   orderGroupId?: string | null,
   options?: UseOrderGroupDetailOptions<TData>
 ) {
+  const { t } = useTranslation();
   const { isOffline } = useNetworkStatus();
   const { accessToken } = getSessionTokens();
   const isAuthenticated = Boolean(accessToken);
@@ -143,7 +146,7 @@ export function useOrderGroupDetail<TData = OrderGroupDetail>(
     queryKey: ["order-group", orderGroupId || "unknown"],
     queryFn: () => {
       if (!orderGroupId) {
-        throw new Error("Order group id is required");
+        throw new Error(t("errors.orderGroupIdRequired", "Order group ID is required."));
       }
       return getOrderGroupById(orderGroupId);
     },
@@ -160,6 +163,7 @@ export function useOrderTimeline<TData = OrderTimelineEntry[]>(
   orderId?: string | null,
   options?: UseOrderTimelineOptions<TData>
 ) {
+  const { t } = useTranslation();
   const { isOffline } = useNetworkStatus();
   const { accessToken } = getSessionTokens();
   const isAuthenticated = Boolean(accessToken);
@@ -168,7 +172,7 @@ export function useOrderTimeline<TData = OrderTimelineEntry[]>(
     queryKey: ["order-timeline", orderId || "unknown"],
     queryFn: () => {
       if (!orderId) {
-        throw new Error("Order id is required");
+        throw new Error(t("errors.orderIdRequired", "Order ID is required."));
       }
       return getOrderTimeline(orderId);
     },
@@ -185,6 +189,7 @@ export function useOrderDriverLocation<TData = DriverLocation | null>(
   orderId?: string | null,
   options?: UseOrderDriverLocationOptions<TData>
 ) {
+  const { t } = useTranslation();
   const { isOffline } = useNetworkStatus();
   const { accessToken } = getSessionTokens();
   const isAuthenticated = Boolean(accessToken);
@@ -193,7 +198,7 @@ export function useOrderDriverLocation<TData = DriverLocation | null>(
     queryKey: ["order-driver-location", orderId || "unknown"],
     queryFn: () => {
       if (!orderId) {
-        throw new Error("Order id is required");
+        throw new Error(t("errors.orderIdRequired", "Order ID is required."));
       }
       return getDriverLocation(orderId);
     },

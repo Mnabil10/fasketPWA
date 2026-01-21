@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "../../ui/button";
 import { Badge } from "../../ui/badge";
@@ -21,9 +21,7 @@ import {
   Scale,
   MessageCircle,
   ExternalLink,
-  Mail,
   Share2,
-  Phone,
   type LucideIcon,
 } from "lucide-react";
 import { MobileNav } from "../MobileNav";
@@ -33,8 +31,6 @@ import { supportedLanguages } from "../../i18n";
 import { fmtEGP, fromCents } from "../../lib/money";
 import { useToast } from "../providers/ToastProvider";
 import { useNetworkStatus, useProfile, useApiErrorToast } from "../hooks";
-import { Input } from "../../ui/input";
-import { Label } from "../../ui/label";
 import { NetworkBanner } from "../components";
 import { goToOrders } from "../navigation/navigation";
 import { useNotificationPreferences } from "../stores/notificationPreferences";
@@ -45,7 +41,6 @@ import { resolveSupportConfig } from "../utils/mobileAppConfig";
 import { logout as logoutApi } from "../../services/auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocalCartStore } from "../stores/localCart";
-import { normalizeEgyptPhone, sanitizeEgyptPhoneInput, isValidEgyptPhone } from "../../utils/phone";
 import { FASKET_CONFIG } from "../../config/fasketConfig";
 
 interface ProfileScreenProps {
@@ -65,13 +60,6 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
   const notificationPreferences = useNotificationPreferences((state) => state.preferences);
   const updatePreference = useNotificationPreferences((state) => state.updatePreference);
   const resetPreferences = useNotificationPreferences((state) => state.resetPreferences);
-  const [name, setName] = useState(profile?.name || "");
-  const [email, setEmail] = useState(profile?.email || "");
-  const [phone, setPhone] = useState(profile?.phone || "");
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [errors, setErrors] = useState<Record<string, string>>({});
   const normalizedLanguage = i18n.language?.startsWith("ar") ? "ar" : "en";
   const supportConfig = resolveSupportConfig(appState.settings?.mobileApp ?? null, normalizedLanguage);
   const share = useShareFasket(supportConfig.webAppUrl);
@@ -80,13 +68,6 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
     "Hi, I'd like to ask about an order from Fasket."
   );
 
-  useEffect(() => {
-    if (profile) {
-      setName(profile.name || "");
-      setEmail(profile.email || "");
-      setPhone(profile.phone || "");
-    }
-  }, [profile?.name, profile?.email, profile?.phone]);
 
   const activeLanguage = supportedLanguages.find((lang) => lang.code === normalizedLanguage) ?? supportedLanguages[0];
   const displayName = profile?.name?.trim() || t("profile.guest");
@@ -131,6 +112,20 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
       badge: null,
       iconBg: "bg-green-600",
     },
+    {
+      icon: User,
+      label: t("profile.editProfile"),
+      action: () => updateAppState({ currentScreen: "edit-profile" }),
+      badge: null,
+      iconBg: "bg-orange-500",
+    },
+    {
+      icon: Lock,
+      label: t("profile.changePassword"),
+      action: () => updateAppState({ currentScreen: "change-password" }),
+      badge: null,
+      iconBg: "bg-purple-600",
+    },
   ];
 
   type SettingsToggleItem = {
@@ -141,6 +136,8 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
     value: boolean;
     onChange: (checked: boolean) => void;
     subtitle?: string;
+    disabled?: boolean;
+    iconBg?: string;
   };
 
   type SettingsActionItem = {
@@ -151,6 +148,7 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
     action?: () => void;
     subtitle?: string;
     disabled?: boolean;
+    iconBg?: string;
   };
 
   type SettingsMenuItem = SettingsToggleItem | SettingsActionItem;
@@ -282,52 +280,6 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
     i18n.changeLanguage(event.target.value);
   };
 
-  const validateProfile = () => {
-    const next: Record<string, string> = {};
-    if (!name.trim()) next.name = t("profile.validation.name");
-    if (!phone.trim()) {
-      next.phone = t("profile.validation.phone");
-    } else if (!isValidEgyptPhone(phone)) {
-      next.phone = t("profile.validation.phoneInvalid", "Enter a valid phone number.");
-    }
-    setErrors(next);
-    return Object.keys(next).length === 0;
-  };
-
-  const handleSaveProfile = async () => {
-    if (!validateProfile()) return;
-    try {
-      const normalizedPhone = normalizeEgyptPhone(phone);
-      if (!normalizedPhone) {
-        setErrors((prev) => ({ ...prev, phone: t("profile.validation.phoneInvalid", "Enter a valid phone number.") }));
-        return;
-      }
-      const updated = await profileQuery.updateProfile({ name, email, phone: normalizedPhone });
-      updateAppState({ user: updated });
-      showToast({ type: "success", message: t("profile.saved") });
-    } catch (error: any) {
-      apiErrorToast(error, "profile.errorSave");
-    }
-  };
-
-  const handleChangePassword = async () => {
-    const next: Record<string, string> = {};
-    if (!currentPassword) next.currentPassword = t("profile.validation.currentPassword");
-    if (!newPassword) next.newPassword = t("profile.validation.newPassword");
-    if (newPassword !== confirmPassword) next.confirmPassword = t("profile.validation.confirmPassword");
-    setErrors(next);
-    if (Object.keys(next).length) return;
-
-    try {
-      await profileQuery.changePassword({ currentPassword, newPassword });
-      showToast({ type: "success", message: t("profile.passwordChanged") });
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-    } catch (error: any) {
-      apiErrorToast(error, "profile.errorPassword");
-    }
-  };
 
   const handleLogout = async () => {
     try {
@@ -421,57 +373,6 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
           </div>
         </div>
 
-        <div className="mx-4 mt-4 bg-white rounded-xl p-4 shadow-sm space-y-3">
-          <h3 className="font-poppins text-lg text-gray-900" style={{ fontWeight: 600 }}>
-            {t("profile.editProfile")}
-          </h3>
-          <div className="grid grid-cols-1 gap-3">
-            <div>
-              <Label>{t("auth.fullName")}</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} disabled={isOffline} />
-              {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
-            </div>
-            <div>
-              <Label>{t("auth.email")}</Label>
-              <Input value={email} onChange={(e) => setEmail(e.target.value)} disabled={isOffline} />
-            </div>
-            <div>
-              <Label>{t("auth.phone")}</Label>
-              <Input value={phone} onChange={(e) => setPhone(sanitizeEgyptPhoneInput(e.target.value))} disabled={isOffline} />
-              {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}
-            </div>
-          </div>
-          <Button onClick={handleSaveProfile} disabled={profileQuery.updating || isOffline} className="rounded-xl">
-            {profileQuery.updating ? t("common.loading") : t("profile.saveProfile")}
-          </Button>
-        </div>
-
-        <div className="mx-4 mt-4 bg-white rounded-xl p-4 shadow-sm space-y-3">
-          <h3 className="font-poppins text-lg text-gray-900 flex items-center gap-2" style={{ fontWeight: 600 }}>
-            <Lock className="w-4 h-4" />
-            {t("profile.changePassword")}
-          </h3>
-          <div className="grid grid-cols-1 gap-3">
-            <div>
-              <Label>{t("profile.currentPassword")}</Label>
-              <Input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} disabled={isOffline} />
-              {errors.currentPassword && <p className="text-xs text-red-500 mt-1">{errors.currentPassword}</p>}
-            </div>
-            <div>
-              <Label>{t("profile.newPassword")}</Label>
-              <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} disabled={isOffline} />
-              {errors.newPassword && <p className="text-xs text-red-500 mt-1">{errors.newPassword}</p>}
-            </div>
-            <div>
-              <Label>{t("profile.confirmPassword")}</Label>
-              <Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} disabled={isOffline} />
-              {errors.confirmPassword && <p className="text-xs text-red-500 mt-1">{errors.confirmPassword}</p>}
-            </div>
-          </div>
-          <Button onClick={handleChangePassword} disabled={profileQuery.changingPassword || isOffline} className="rounded-xl">
-            {profileQuery.changingPassword ? t("common.loading") : t("profile.savePassword")}
-          </Button>
-        </div>
 
         <div className="mx-4 mt-6">
           <h3 className="font-poppins text-lg font-semibold text-gray-900 mb-3 px-1">
@@ -560,11 +461,13 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
                     )}
                   </div>
                 </div>
-                <Switch
-                  checked={item.value}
-                  onCheckedChange={item.onChange}
-                  disabled={isOffline}
-                />
+                {item.toggle && (
+                  <Switch
+                    checked={item.value}
+                    onCheckedChange={item.onChange}
+                    disabled={isOffline}
+                  />
+                )}
               </div>
             ))}
           </div>

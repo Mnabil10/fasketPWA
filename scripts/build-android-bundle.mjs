@@ -10,12 +10,15 @@ const isWindows = process.platform === "win32";
 const androidDir = join(process.cwd(), "android");
 const gradleCommand = isWindows ? "gradlew.bat" : "./gradlew";
 
+// Set CAPACITOR_BUILD=true to ensure the correct base path (./) is used in vite.config.ts
+const env = { ...process.env, CAPACITOR_BUILD: "true" };
+
 function run(command, args, cwd) {
   const result = spawnSync(command, args, {
     cwd,
     stdio: "inherit",
     shell: isWindows,
-    env: process.env,
+    env: env,
   });
 
   if (result.status !== 0) {

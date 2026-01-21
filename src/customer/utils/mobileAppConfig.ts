@@ -34,13 +34,13 @@ export function resolveSupportConfig(
     serviceArea: getLocalizedString(support.serviceArea, lang, FASKET_CONFIG.serviceArea),
     cityCoverage: getLocalizedString(support.cityCoverage, lang, FASKET_CONFIG.cityCoverage),
     workingHours: getLocalizedString(support.workingHours, lang, FASKET_CONFIG.workingHours),
-    websiteUrl: support.websiteUrl ?? FASKET_CONFIG.websiteUrl,
-    webAppUrl: support.webAppUrl ?? FASKET_CONFIG.webAppUrl,
-    supportEmail: support.email ?? FASKET_CONFIG.supportEmail,
-    supportPhone: support.phone ?? FASKET_CONFIG.supportPhone,
-    whatsappNumber: support.whatsapp ?? FASKET_CONFIG.whatsappNumber,
-    playStoreUrl: support.playStoreUrl ?? FASKET_CONFIG.playStoreUrl,
-    appStoreUrl: support.appStoreUrl ?? FASKET_CONFIG.appStoreUrl,
+    websiteUrl: support.websiteUrl || FASKET_CONFIG.websiteUrl,
+    webAppUrl: support.webAppUrl || FASKET_CONFIG.webAppUrl,
+    supportEmail: support.email || FASKET_CONFIG.supportEmail,
+    supportPhone: support.phone || FASKET_CONFIG.supportPhone,
+    whatsappNumber: support.whatsapp || FASKET_CONFIG.whatsappNumber,
+    playStoreUrl: support.playStoreUrl || FASKET_CONFIG.playStoreUrl,
+    appStoreUrl: support.appStoreUrl || FASKET_CONFIG.appStoreUrl,
   };
 }
 

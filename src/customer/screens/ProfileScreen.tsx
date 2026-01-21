@@ -46,6 +46,7 @@ import { logout as logoutApi } from "../../services/auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocalCartStore } from "../stores/localCart";
 import { normalizeEgyptPhone, sanitizeEgyptPhoneInput, isValidEgyptPhone } from "../../utils/phone";
+import { FASKET_CONFIG } from "../../config/fasketConfig";
 
 interface ProfileScreenProps {
   appState: AppState;
@@ -207,6 +208,7 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
       label: t("profile.support.about"),
       toggle: false,
       action: () => updateAppState({ currentScreen: "about" }),
+      iconBg: "bg-gray-500",
     },
     // {
     //   key: "website",
@@ -223,20 +225,25 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
       action: () => openExternalUrl(supportConfig.playStoreUrl),
       subtitle: supportConfig.playStoreUrl ? undefined : t("profile.support.rateSoon"),
       disabled: !supportConfig.playStoreUrl,
+      iconBg: "bg-yellow-500",
+    },
+    {
+      key: "whatsapp",
+      icon: MessageCircle,
+      label: t("profile.support.whatsapp"),
+      toggle: false,
+      action: () => openWhatsapp(whatsappMessage, supportConfig.whatsappNumber),
+      iconBg: "bg-green-500",
+      disabled: !supportConfig.whatsappNumber,
     },
     // {
-    //   key: "whatsapp",
-    //   icon: MessageCircle,
-    //   label: t("profile.support.whatsapp"),
-    //   toggle: false,
-    //   action: () => openWhatsapp(whatsappMessage, supportConfig.whatsappNumber),
-    // },
-    // {
-    //   key: "help",
+    //   key: "call",
     //   icon: Phone,
-    //   label: t("profile.support.help", "Help & self-service"),
+    //   label: t("profile.support.phone"),
     //   toggle: false,
-    //   action: () => updateAppState({ currentScreen: "help" }),
+    //   action: () => openExternalUrl(`tel:${supportConfig.supportPhone}`),
+    //   iconBg: "bg-blue-600",
+    //   disabled: !supportConfig.supportPhone,
     // },
     {
       key: "privacy",
@@ -244,6 +251,7 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
       label: normalizedLanguage === "ar" ? "سياسة الخصوصية" : t("profile.support.privacy", "Privacy Policy"),
       toggle: false,
       action: () => updateAppState({ currentScreen: "privacy" }),
+      iconBg: "bg-gray-400",
     },
     {
       key: "terms",
@@ -251,6 +259,7 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
       label: normalizedLanguage === "ar" ? "شروط الاستخدام" : t("profile.support.terms", "Terms of Use"),
       toggle: false,
       action: () => updateAppState({ currentScreen: "terms" }),
+      iconBg: "bg-gray-400",
     },
     // {
     //   key: "email",
@@ -265,14 +274,8 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
       label: t("profile.support.share"),
       toggle: false,
       action: share,
+      iconBg: "bg-indigo-500",
     },
-    // {
-    //   key: "call",
-    //   icon: Phone,
-    //   label: t("profile.support.phone"),
-    //   toggle: false,
-    //   action: () => openExternalUrl(`tel:${supportConfig.supportPhone}`),
-    // },
   ];
 
   const handleLanguageChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -584,7 +587,8 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
               >
                 <div className="flex items-center gap-3">
                   <div className={cn(
-                    "w-8 h-8 rounded-lg flex items-center justify-center text-white bg-gray-400"
+                    "w-8 h-8 rounded-lg flex items-center justify-center text-white",
+                    (item as any).iconBg || "bg-gray-400"
                   )}>
                     <item.icon className="w-5 h-5" />
                   </div>

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "../../ui/button";
 import { Badge } from "../../ui/badge";
 import { Switch } from "../../ui/switch";
+import { cn } from "../../ui/utils";
 import {
   ArrowLeft,
   User,
@@ -111,6 +112,7 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
       badge: profile?.addressesCount
         ? { label: String(profile.addressesCount), variant: "secondary" as const }
         : null,
+      iconBg: "bg-blue-500",
     },
     {
       icon: Package,
@@ -119,12 +121,14 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
       badge: profile?.ordersCount
         ? { label: String(profile.ordersCount), variant: "secondary" as const }
         : null,
+      iconBg: "bg-indigo-500",
     },
     {
       icon: CreditCard,
       label: t("profile.menu.payments", "Payment Methods"),
       action: () => updateAppState({ currentScreen: "payment-methods" }),
       badge: null,
+      iconBg: "bg-green-600",
     },
   ];
 
@@ -159,6 +163,7 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
       value: notificationPreferences.orderUpdates,
       onChange: (checked) => updatePreference("orderUpdates", checked),
       subtitle: t("profile.settings.orderUpdatesHint"),
+      iconBg: "bg-red-500",
     },
     {
       key: "whatsapp-order-updates",
@@ -171,6 +176,7 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
         "profile.settings.whatsappOrderUpdatesHint",
         "Get order status updates on WhatsApp."
       ),
+      iconBg: "bg-green-500",
     },
     {
       key: "loyalty-updates",
@@ -180,6 +186,7 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
       value: notificationPreferences.loyalty,
       onChange: (checked) => updatePreference("loyalty", checked),
       subtitle: t("profile.settings.loyaltyUpdatesHint"),
+      iconBg: "bg-orange-500",
     },
     {
       key: "marketing",
@@ -189,6 +196,7 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
       value: notificationPreferences.marketing,
       onChange: (checked) => updatePreference("marketing", checked),
       subtitle: t("profile.settings.marketingHint"),
+      iconBg: "bg-blue-500",
     },
   ];
 
@@ -463,125 +471,130 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
         </div>
 
         <div className="mx-4 mt-6">
-          <h3 className="font-poppins text-lg text-gray-900 mb-3 px-1" style={{ fontWeight: 600 }}>
+          <h3 className="font-poppins text-lg font-semibold text-gray-900 mb-3 px-1">
             {t("profile.sectionAccount")}
           </h3>
-          <div className="space-y-2">
-            {mainMenuItems.map((item) => (
-              <Button
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            {mainMenuItems.map((item, index) => (
+              <button
                 key={item.label}
-                variant="ghost"
                 onClick={item.action}
-                className="w-full justify-between bg-white rounded-xl p-4 h-auto shadow-sm hover:bg-gray-50"
+                className={cn(
+                  "w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors",
+                  index !== mainMenuItems.length - 1 && "border-b border-gray-50"
+                )}
               >
-                <div className="flex items-center">
-                  <item.icon className="w-5 h-5 mr-3 text-gray-600" />
-                  <span className="text-left">{item.label}</span>
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    "w-8 h-8 rounded-lg flex items-center justify-center text-white",
+                    (item as any).iconBg || "bg-gray-400"
+                  )}>
+                    <item.icon className="w-5 h-5" />
+                  </div>
+                  <span className="text-sm font-medium text-gray-900">{item.label}</span>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-2">
                   {item.badge && (
-                    <Badge
-                      variant={item.badge.variant}
-                      className="text-xs"
-                    >
+                    <Badge variant={item.badge.variant} className="text-[10px] h-5 px-1.5">
                       {item.badge.label}
                     </Badge>
                   )}
-                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                  <ChevronRight className="w-4 h-4 text-gray-300 rtl:rotate-180" />
                 </div>
-              </Button>
+              </button>
             ))}
 
-            <div className="bg-white rounded-xl p-4 shadow-sm">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center">
-                  <Globe className="w-5 h-5 mr-3 text-gray-600" />
-                  <div>
-                    <span className="text-left">{t("profile.settings.language")}</span>
-                    <p className="text-sm text-gray-500">{activeLanguage.native}</p>
-                  </div>
+            <div className="p-4 flex items-center justify-between border-t border-gray-50">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white bg-teal-500">
+                  <Globe className="w-5 h-5" />
                 </div>
-                <select
-                  value={normalizedLanguage}
-                  onChange={handleLanguageChange}
-                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white"
-                  aria-label={t("profile.settings.language")}
-                >
-                  {supportedLanguages.map((lang) => (
-                    <option key={lang.code} value={lang.code}>
-                      {lang.native}
-                    </option>
-                  ))}
-                </select>
+                <div>
+                  <span className="text-sm font-medium text-gray-900 block">{t("profile.settings.language")}</span>
+                  <p className="text-xs text-gray-500">{activeLanguage.native}</p>
+                </div>
               </div>
+              <select
+                value={normalizedLanguage}
+                onChange={handleLanguageChange}
+                className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white focus:ring-1 focus:ring-primary h-auto min-h-0"
+                aria-label={t("profile.settings.language")}
+              >
+                {supportedLanguages.map((lang) => (
+                  <option key={lang.code} value={lang.code}>
+                    {lang.native}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
 
         <div className="mx-4 mt-6">
-          <h3 className="font-poppins text-lg text-gray-900 mb-3 px-1" style={{ fontWeight: 600 }}>
+          <h3 className="font-poppins text-lg font-semibold text-gray-900 mb-3 px-1">
             {t("profile.sectionSettings")}
           </h3>
-          <div className="space-y-2">
-            {settingsMenuItems.map((item) => (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            {settingsMenuItems.map((item, index) => (
               <div
                 key={item.key}
-                className="bg-white rounded-xl p-4 shadow-sm"
+                className={cn(
+                  "p-4 flex items-center justify-between",
+                  index !== settingsMenuItems.length - 1 && "border-b border-gray-50"
+                )}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <item.icon className="w-5 h-5 mr-3 text-gray-600" />
-                    <div>
-                      <span className="text-left">{item.label}</span>
-                      {item.subtitle && (
-                        <p className="text-sm text-gray-500">{item.subtitle}</p>
-                      )}
-                    </div>
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    "w-8 h-8 rounded-lg flex items-center justify-center text-white",
+                    (item as any).iconBg || "bg-gray-400"
+                  )}>
+                    <item.icon className="w-5 h-5" />
                   </div>
-                  {item.toggle ? (
-                    <Switch
-                      checked={item.value}
-                      onCheckedChange={item.onChange}
-                      disabled={isOffline}
-                    />
-                  ) : (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={item.action ?? undefined}
-                      className="p-1"
-                    >
-                      <ChevronRight className="w-4 h-4 text-gray-400" />
-                    </Button>
-                  )}
+                  <div>
+                    <span className="text-sm font-medium text-gray-900 block">{item.label}</span>
+                    {item.subtitle && (
+                      <p className="text-xs text-gray-500 leading-tight mt-0.5">{item.subtitle}</p>
+                    )}
+                  </div>
                 </div>
+                <Switch
+                  checked={item.value}
+                  onCheckedChange={item.onChange}
+                  disabled={isOffline}
+                />
               </div>
             ))}
           </div>
         </div>
 
         <div className="mx-4 mt-6">
-          <h3 className="font-poppins text-lg text-gray-900 mb-3 px-1" style={{ fontWeight: 600 }}>
+          <h3 className="font-poppins text-lg font-semibold text-gray-900 mb-3 px-1">
             {t("profile.support.title")}
           </h3>
-          <div className="space-y-2">
-            {supportActions.map((item) => (
-              <Button
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            {supportActions.map((item, index) => (
+              <button
                 key={item.key}
-                variant="ghost"
                 onClick={item.action}
                 disabled={item.disabled}
-                className="w-full justify-between bg-white rounded-xl p-4 h-auto shadow-sm hover:bg-gray-50 disabled:opacity-60"
+                className={cn(
+                  "w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors disabled:opacity-60",
+                  index !== supportActions.length - 1 && "border-b border-gray-50"
+                )}
               >
-                <div className="flex items-center text-left">
-                  <item.icon className="w-5 h-5 mr-3 text-gray-600" />
-                  <div className="text-left">
-                    <span className="block">{item.label}</span>
-                    {item.subtitle && <p className="text-xs text-gray-500">{item.subtitle}</p>}
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    "w-8 h-8 rounded-lg flex items-center justify-center text-white bg-gray-400"
+                  )}>
+                    <item.icon className="w-5 h-5" />
+                  </div>
+                  <div className="text-start">
+                    <span className="text-sm font-medium text-gray-900 block">{item.label}</span>
+                    {item.subtitle && <p className="text-xs text-gray-500 mt-0.5">{item.subtitle}</p>}
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-gray-400" />
-              </Button>
+                <ChevronRight className="w-4 h-4 text-gray-300 rtl:rotate-180" />
+              </button>
             ))}
           </div>
         </div>

@@ -27,6 +27,8 @@ import type {
   ProviderSummary,
   UserProfile,
 } from "../types/api";
+import { EditProfileScreen } from "./screens/EditProfileScreen";
+import { ChangePasswordScreen } from "./screens/ChangePasswordScreen";
 import { getMyProfile } from "../services/users.service";
 import {
   clearSessionTokens,
@@ -86,7 +88,9 @@ export type Screen =
   | "loyalty-history"
   | "about"
   | "privacy"
-  | "terms";
+  | "terms"
+  | "edit-profile"
+  | "change-password";
 
 const authRequiredScreens = new Set<Screen>([
   "orders",
@@ -96,6 +100,8 @@ const authRequiredScreens = new Set<Screen>([
   "addresses",
   "payment-methods",
   "loyalty-history",
+  "edit-profile",
+  "change-password",
 ]);
 
 export interface AppState {
@@ -868,6 +874,10 @@ export function CustomerApp() {
       case "privacy":
       case "terms":
         return <LegalHtmlScreen appState={appState} updateAppState={updateAppState} />;
+      case "edit-profile":
+        return <EditProfileScreen appState={appState} updateAppState={updateAppState} />;
+      case "change-password":
+        return <ChangePasswordScreen appState={appState} updateAppState={updateAppState} />;
       default:
         return <HomeScreen appState={appState} updateAppState={updateAppState} />;
     }

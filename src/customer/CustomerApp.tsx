@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { SplashScreen as NativeSplashScreen } from "@capacitor/splash-screen";
 import { SplashScreen } from "./screens/SplashScreen";
+
 import { OnboardingScreen } from "./screens/OnboardingScreen";
 import { AuthScreen } from "./screens/AuthScreen";
 import { HomeScreen } from "./screens/HomeScreen";
@@ -601,7 +603,9 @@ export function CustomerApp() {
       }
     }
 
-    bootstrap();
+    bootstrap().then(() => {
+      NativeSplashScreen.hide().catch(() => undefined);
+    });
     const unsubscribe = onSessionInvalid((reason) => {
       if (reason === "expired") {
         showToast({

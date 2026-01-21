@@ -6,12 +6,15 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:cap": "CAPACITOR_BUILD=true npm run build",
+    "build:pwa": "npm run build",
     "preview": "vite preview",
     "test.e2e": "cypress run",
     "test.unit": "vitest",
     "lint": "eslint",
-    "android:sync": "npx cap sync android",
-    "android:bundle": "node scripts/build-android-bundle.mjs"
+    "ios:sync": "npm run build:cap && npx cap sync ios",
+    "android:sync": "npm run build:cap && npx cap sync android",
+    "android:bundle": "npm run build:cap && node scripts/build-android-bundle.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.4",

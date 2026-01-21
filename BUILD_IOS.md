@@ -12,7 +12,7 @@ This guide explains how to build and run the Fasket iOS application.
 ### 1. Build Web Assets
 Ensure your latest changes are built:
 ```bash
-npm run build
+npm run build:cap
 ```
 
 ### 2. Sync with Capacitor

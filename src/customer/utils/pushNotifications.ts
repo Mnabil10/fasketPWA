@@ -150,7 +150,8 @@ async function ensureLocalNotificationsReady(): Promise<boolean> {
       }
       if (!localNotificationListenerBound) {
         localNotificationListenerBound = true;
-        void LocalNotifications.addListener("localNotificationActionPerformed", ({ notification }) => {
+        void LocalNotifications.addListener("localNotificationActionPerformed", (action) => {
+          const { notification } = action;
           notifyListeners(mapLocalNotification(notification));
         });
       }
@@ -179,11 +180,20 @@ async function isAppActive(): Promise<boolean> {
 async function showLocalNotification(payload: NotificationPayload): Promise<void> {
   if (!isNative()) return;
   const active = await isAppActive();
-  if (!active) return;
+  if (!active) {
+    console.debug("[push] app not active, skipping local notification");
+    return;
+  }
   const ready = await ensureLocalNotificationsReady();
-  if (!ready) return;
+  if (!ready) {
+    console.warn("[push] local notifications not ready/permitted");
+    return;
+  }
   const title = payload.title ?? i18n.t("notifications.title", "Notification");
   const body = payload.body ?? i18n.t("notifications.orderUpdated", "Your order was updated");
+
+  console.debug("[push] showing local notification", { title, body, payload });
+
   const notification: LocalNotificationSchema = {
     id: nextLocalNotificationId(),
     title,

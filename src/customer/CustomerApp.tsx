@@ -30,6 +30,7 @@ import type {
 import { EditProfileScreen } from "./screens/EditProfileScreen";
 import { ChangePasswordScreen } from "./screens/ChangePasswordScreen";
 import { getMyProfile } from "../services/users.service";
+import { secureStorage } from "../lib/secureStorage";
 import {
   clearSessionTokens,
   ensureSessionHydrated,
@@ -108,6 +109,7 @@ export interface AppState {
   bootstrapping: boolean;
   splashComplete: boolean;
   postOnboardingScreen: "auth" | "home";
+  hasSeenOnboarding: boolean;
   currentScreen: Screen;
   user: UserProfile | null;
   cart: CartPreviewItem[];
@@ -142,6 +144,7 @@ const initialState: AppState = {
   bootstrapping: true,
   splashComplete: false,
   postOnboardingScreen: "auth",
+  hasSeenOnboarding: false,
   currentScreen: "splash",
   user: null,
   cart: [],
@@ -517,6 +520,7 @@ export function CustomerApp() {
 
     async function bootstrap() {
       await ensureSessionHydrated();
+      const hasSeen = await secureStorage.getHasSeenOnboarding();
       let resolvedSettings: AppSettings | null = null;
       try {
         const settingsResult = await getAppSettings();
@@ -537,6 +541,7 @@ export function CustomerApp() {
             lastOrder: null,
             lastOrderId: null,
             bootstrapping: false,
+            hasSeenOnboarding: hasSeen,
             postOnboardingScreen: "auth",
             settings: resolvedSettings ?? prev.settings,
             settingsLoaded: true,
@@ -553,6 +558,7 @@ export function CustomerApp() {
             ...prev,
             user: profile,
             bootstrapping: false,
+            hasSeenOnboarding: hasSeen,
             postOnboardingScreen: "home",
             settings: resolvedSettings ?? prev.settings,
             settingsLoaded: true,
@@ -566,6 +572,7 @@ export function CustomerApp() {
               ...prev,
               user: cachedUser ?? prev.user,
               bootstrapping: false,
+              hasSeenOnboarding: hasSeen,
               postOnboardingScreen: cachedUser ? "home" : prev.postOnboardingScreen,
               settings: resolvedSettings ?? prev.settings,
               settingsLoaded: true,
@@ -585,6 +592,7 @@ export function CustomerApp() {
             selectedOrderId: null,
             selectedOrderSummary: null,
             bootstrapping: false,
+            hasSeenOnboarding: hasSeen,
             postOnboardingScreen: "auth",
             settings: resolvedSettings ?? prev.settings,
             settingsLoaded: true,
@@ -724,8 +732,20 @@ export function CustomerApp() {
   useEffect(() => {
     if (appState.currentScreen !== "splash") return;
     if (appState.bootstrapping || !appState.splashComplete || !appState.settingsLoaded) return;
-    updateAppState({ currentScreen: "onboarding" });
-  }, [appState.bootstrapping, appState.splashComplete, appState.settingsLoaded, appState.currentScreen, updateAppState]);
+    if (appState.hasSeenOnboarding) {
+      updateAppState({ currentScreen: appState.postOnboardingScreen });
+    } else {
+      updateAppState({ currentScreen: "onboarding" });
+    }
+  }, [
+    appState.bootstrapping,
+    appState.splashComplete,
+    appState.settingsLoaded,
+    appState.currentScreen,
+    appState.hasSeenOnboarding,
+    appState.postOnboardingScreen,
+    updateAppState,
+  ]);
 
   useEffect(() => {
     if (typeof window === "undefined" || appState.bootstrapping) return;
@@ -824,7 +844,7 @@ export function CustomerApp() {
                 if (prev.splashComplete) return {};
                 const next: Partial<AppState> = { splashComplete: true };
                 if (!prev.bootstrapping) {
-                  next.currentScreen = "onboarding";
+                  next.currentScreen = prev.hasSeenOnboarding ? prev.postOnboardingScreen : "onboarding";
                 }
                 return next;
               })
@@ -834,11 +854,13 @@ export function CustomerApp() {
       case "onboarding":
         return (
           <OnboardingScreen
-            onComplete={() =>
+            onComplete={() => {
+              void secureStorage.setHasSeenOnboarding(true);
               updateAppState((prev) => ({
+                hasSeenOnboarding: true,
                 currentScreen: prev.postOnboardingScreen,
-              }))
-            }
+              }));
+            }}
           />
         );
       case "home":

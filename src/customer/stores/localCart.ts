@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Product, ProductOptionSelection } from "../../types/api";
 import { computeOptionTotals } from "../utils/cart";
+import { clampQty, formatQtyKey, isFractional, roundQty } from "../utils/quantity";
 import type { CartPreviewItem } from "../types";
 
 export type LocalCartItem = {
@@ -44,9 +45,9 @@ function normalizeOptions(options?: ProductOptionSelection[]) {
     .map((opt) => ({
       ...opt,
       optionId: String(opt.optionId),
-      qty: Math.max(1, Math.floor(opt.qty ?? 1)),
+      qty: roundQty(clampQty(opt.qty, 1)),
     }))
-    .filter((opt) => opt.optionId);
+    .filter((opt) => opt.optionId && opt.qty > 0);
 }
 
 function buildOptionsKey(options?: ProductOptionSelection[]) {
@@ -55,7 +56,7 @@ function buildOptionsKey(options?: ProductOptionSelection[]) {
   return normalized
     .slice()
     .sort((a, b) => a.optionId.localeCompare(b.optionId))
-    .map((opt) => `${opt.optionId}:${opt.qty}`)
+    .map((opt) => `${opt.optionId}:${formatQtyKey(opt.qty, 1)}`)
     .join("|");
 }
 
@@ -73,7 +74,17 @@ export const useLocalCartStore = create<LocalCartState>()(
         const optionsKey = buildOptionsKey(normalizedOptions);
         const itemId = buildItemKey(product.id, product.branchId ?? null, optionsKey);
         const existing = items[itemId];
-        const nextQty = Math.max(1, Math.min(MAX_QTY, (existing?.quantity || 0) + qty));
+        const allowFraction =
+          product.pricingModel === "weight" ||
+          product.weightBased ||
+          product.soldByWeight ||
+          product.isWeightBased ||
+          isFractional(qty) ||
+          normalizedOptions.some((opt) => opt.groupPriceMode === "SET" || isFractional(opt.qty));
+        const rawNextQty = (existing?.quantity || 0) + qty;
+        const nextQty = allowFraction
+          ? Math.min(MAX_QTY, roundQty(Math.max(0, rawNextQty)))
+          : Math.max(1, Math.min(MAX_QTY, Math.round(rawNextQty)));
         const { addOnsTotalCents, baseOverrideCents } = computeOptionTotals(normalizedOptions);
         const basePriceCents = baseOverrideCents ?? (product.salePriceCents ?? product.priceCents);
         items[itemId] = {
@@ -113,7 +124,21 @@ export const useLocalCartStore = create<LocalCartState>()(
         const items = { ...get().items };
         const existing = items[itemId];
         if (!existing) return;
-        items[itemId] = { ...existing, quantity: Math.min(MAX_QTY, qty) };
+        const allowFraction =
+          existing.pricingModel === "weight" ||
+          existing.weightBased ||
+          existing.soldByWeight ||
+          existing.isWeightBased ||
+          isFractional(existing.quantity) ||
+          isFractional(qty);
+        const nextQty = allowFraction
+          ? Math.min(MAX_QTY, roundQty(Math.max(0, qty)))
+          : Math.max(1, Math.min(MAX_QTY, Math.round(qty)));
+        if (nextQty <= 0) {
+          get().remove(itemId);
+          return;
+        }
+        items[itemId] = { ...existing, quantity: nextQty };
         set({ items });
       },
       clear: () => set({ items: {} }),
@@ -151,7 +176,7 @@ export function mapLocalCartToPreview(items: Record<string, LocalCartItem>): Car
     name: item.name,
     image: item.image,
     price: item.priceCents / 100,
-    quantity: item.quantity,
+    quantity: roundQty(item.quantity),
     category: item.category,
     options: item.options,
     product: {
@@ -184,7 +209,7 @@ export function getLocalCartPreview() {
 export function getLocalCartTotals() {
   const items = useLocalCartStore.getState().items;
   const subtotalCents = Object.values(items).reduce((sum, item) => {
-    return sum + item.priceCents * item.quantity;
+    return sum + Math.round(item.priceCents * item.quantity);
   }, 0);
   return { subtotalCents, subtotal: subtotalCents / 100 };
 }

@@ -155,6 +155,7 @@
     "greetingGuest": "أهلًا بك في فاسكت",
     "prompt": "ما الذي تحتاجه اليوم؟",
     "searchPlaceholder": "ابحث عن فواكه طازجة أو وجبات خفيفة…",
+    "searchPlaceholderGlobal": "ابحث في كل المزودين",
     "notifications": "الإشعارات",
     "sections": {
       "categories": "تسوّق حسب التصنيف",
@@ -183,6 +184,12 @@
       "cta": "استخدم النقاط دلوقتي"
     },
     "searchProviderPlaceholder": "اختر مزودًا لبدء البحث",
+    "searchScopeLabel": "نطاق البحث",
+    "searchScope": {
+      "provider": "داخل {{provider}}",
+      "providerFallback": "داخل المزود",
+      "all": "كل المزودين"
+    },
     "selectProviderPrompt": "اختر مزودًا لتصفح المنتجات.",
     "providersTitle": "المزودون",
     "providersSubtitle": "اختر مزودًا لبدء التسوق",
@@ -192,6 +199,24 @@
     "providersEmptySubtitle": "من فضلك جرّب بعدين.",
     "providersPromptTitle": "اختر مزودًا للمتابعة",
     "providersPromptSubtitle": "لكل مزود تصنيفات ومنتجات خاصة به.",
+    "providerTypes": {
+      "title": "تسوّق حسب النوع",
+      "subtitle": "اختار نوع المتجر",
+      "restaurants": "مطاعم",
+      "supermarket": "سوبر ماركت",
+      "pharmacy": "صيدليات",
+      "other": "أخرى",
+      "emptyTitle": "مفيش مزودين هنا لسه",
+      "emptySubtitle": "جرّب نوع تاني عشان تكمل التسوق."
+    },
+    "quickPaths": {
+      "searchTitle": "بحث سريع",
+      "searchSubtitle": "هتوصل للي محتاجه في ثواني",
+      "providersTitle": "تسوّق حسب المزود",
+      "providersSubtitle": "اختار المزود المناسب",
+      "categoriesTitle": "تسوّق حسب التصنيف",
+      "categoriesSubtitle": "تصنيفات مرتبة وسهلة"
+    },
     "filters": {
       "inStock": "متوفر"
     },
@@ -206,23 +231,37 @@
     "selectTitle": "اختر مزودًا",
     "selectSubtitle": "اختر مزودًا لتصفح التصنيفات.",
     "selectAction": "عرض المزودين",
-    "error": "تعذر تحميل المزودين."
+    "error": "تعذر تحميل المزودين.",
+    "providerFallback": "المزود",
+    "taglineDefault": "منتجات طازة توصل لحد باب بيتك.",
+    "etaValue": "التوصيل المتوقع: {{value}}",
+    "etaTypical": "عادة خلال {{value}} (حسب المنطقة)",
+    "etaFallback": "موعد التوصيل هيظهر عند الدفع.",
+    "contactPolicies": "الدعم والسياسات"
   },
   "categories": {
     "title": "التصنيفات",
     "searchPlaceholder": "ابحث في التصنيفات…",
-    "filters": {
-      "all": "الكل",
-      "popular": "الأكثر شيوعًا",
-      "trending": "الرائجة"
-    },
-    "featuredTitle": "مختارات اليوم",
+      "filters": {
+        "all": "الكل",
+        "popular": "الأكثر شيوعًا",
+        "trending": "الرائجة"
+      },
+      "sections": {
+        "best": "الأكثر طلبًا",
+        "offers": "عروض اليوم",
+        "categories": "التصنيفات"
+      },
+      "bestTitle": "الأكثر طلبًا",
+      "bestEmpty": "سيظهر الأكثر طلبًا هنا قريبًا.",
+      "featuredTitle": "مختارات اليوم",
     "browseTitle": "استكشف الفئات",
     "countLabel": "{{count}} فئة",
     "emptyTitle": "مفيش فئات",
     "emptySubtitle": "جرّب البحث باستخدام كلمات أخرى.",
     "errorLoading": "فشل تحميل الفئات.",
-    "errorOffers": "فشل تحميل العروض.",
+      "errorOffers": "فشل تحميل العروض.",
+      "errorBest": "فشل تحميل الأكثر طلبًا.",
     "pullToRefresh": "اسحب للتحديث"
   },
   "products": {
@@ -249,7 +288,11 @@
     },
     "badges": {
       "inStock": "متوفر",
-      "outOfStock": "غير متوفر"
+      "outOfStock": "غير متوفر",
+      "fresh": "طازة",
+      "nextDay": "يوصل بكرة",
+      "byWeight": "بالوزن",
+      "suggestedAlt": "بديل مقترح"
     },
     "filters": {
       "inStock": "متوفر",
@@ -264,7 +307,8 @@
       "add": "أضف إلى السلة",
       "added": "تمت الإضافة إلى السلة",
       "adding": "جارٍ الإضافة...",
-      "selectOptions": "اختر الخيارات"
+      "selectOptions": "اختر الخيارات",
+      "selectWeight": "اختر الوزن"
     },
     "backToCategories": "العودة للأقسام",
     "recentSearches": "عمليات البحث الأخيرة",
@@ -319,8 +363,8 @@
     "clear": "مسح السلة",
     "conflict": {
       "title": "استبدال السلة؟",
-      "message": "سلتك حالياً من {{current}}. مينفعش تجمع منتجات من أكتر من مزوّد/فرع في سلة واحدة. لو عايز تضيف من {{next}} لازم تفضي السلة الأول.",
-      "clearAction": "تفريغ السلة والمتابعة",
+      "message": "السلة فيها منتجات من {{current}}. تحب تمسحها وتبدأ من {{next}}؟",
+      "clearAction": "استمرار",
       "clearFailed": "تعذر تفريغ السلة. من فضلك جرّب تاني."
     },
     "loadError": "تعذّر تحميل محتويات السلة. جرّب تاني.",
@@ -344,6 +388,7 @@
     "totalLabel": "الإجمالي",
     "deliveryUnavailable": "هذا العنوان خارج نطاق توصيل هذا المزود.",
     "etaLabel": "الوقت المتوقع للتسليم",
+    "availabilityNotice": "قد تتغير الكميات حسب المتاح.",
     "guestSummaryNote": "رسوم التوصيل تُحسب أثناء إتمام الطلب.",
     "deliveryEstimateLabel": "رسوم التوصيل التقديرية",
     "deliveryEstimateMissing": "أضف عنوانًا لعرض رسوم التوصيل.",
@@ -398,6 +443,19 @@
     "notes": {
       "placeholder": "اكتب ملاحظات إضافية للطلب (اختياري)"
     },
+    "substitution": {
+      "title": "تفضيل البدائل عند النفاد",
+      "subtitle": "لو صنف غير متوفر، اختار نتصرف إزاي.",
+      "options": {
+        "replace": "استبدله ببديل مشابه",
+        "contact": "اتصل بيا قبل الاستبدال",
+        "remove": "احذف الصنف"
+      },
+      "selected": "محدد",
+      "select": "اختيار",
+      "noteFormat": "تفضيل الاستبدال: {{choice}}"
+    },
+    "availabilityNotice": "قد تتغير الكميات حسب المتاح.",
     "buttons": {
       "addAddress": "+ إضافة عنوان جديد",
       "placeOrder": "إتمام الطلب • {{total}}"
@@ -536,7 +594,7 @@
     "loading": "جارٍ تحميل الطلبات...",
     "empty": "مفيش طلبات حتى دلوقتي.",
     "status": {
-      "pending": "قيد المراجعة",
+      "pending": "قيد التأكيد",
       "confirmed": "تم التأكيد",
       "preparing": "قيد التحضير",
       "out_for_delivery": "خرج للتسليم",
@@ -554,6 +612,10 @@
     "totalLabel": "{{amount}}",
     "emptyCta": "تصفّح المنتجات لعمل أول طلب",
     "startShopping": "ابدأ التسوق",
+      "reorder": "إعادة الطلب",
+      "reorderSuccess": "تمت إضافة العناصر للسلة.",
+      "reorderError": "تعذر إعادة الطلب. حاول مرة أخرى.",
+      "reorderOffline": "أنت غير متصل بالإنترنت. اتصل وحاول مرة أخرى.",
     "error": "فشل تحميل الطلبات.",
     "errorInvalidPayload": "صيغة بيانات الطلبات من الخادم مش صحيحة.",
     "providersCount": "{{count}} مزود",
@@ -614,6 +676,7 @@
   "orderSuccess": {
     "title": "تم إرسال طلبك بنجاح!",
     "subtitle": "شكرًا لاختيارك فاسكت.",
+    "pendingConfirmation": "جارٍ التأكيد من المزود. هنبلغك قريبًا.",
     "estimated": "الوقت المتوقع للتسليم",
     "scheduledLabel": "موعد توصيل مجدول",
     "address": "عنوان التوصيل",
@@ -643,6 +706,7 @@
     "noPhone": "مفيش رقم هاتف",
     "noEmail": "مفيش بريد إلكتروني",
     "editProfile": "تعديل الملف الشخصي",
+    "addAddress": "إضافة عنوان جديد",
     "stats": {
       "orders": "الطلبات",
       "points": "النقاط",
@@ -706,6 +770,11 @@
       "rate": "تقييم التطبيق",
       "rateSoon": "سأقيّم التطبيق لاحقًا",
       "whatsapp": "التواصل عبر واتساب",
+      "whatsappNumber": "رقم واتساب",
+      "whatsappMissing": "غير متاح",
+      "copy": "نسخ",
+      "copied": "تم نسخ الرقم",
+      "copyFailed": "تعذر نسخ الرقم",
       "whatsappMessage": "مرحبًا، أحتاج مساعدة بخصوص استخدام تطبيق فاسكت.",
       "email": "الإيميل للدعم",
       "emailSubject": "Fasket Support",
@@ -940,3 +1009,4 @@
     "loggedInHint": "هل لديك حساب؟ يمكنك عرض طلباتك من تبويب الطلبات."
   }
 }
+

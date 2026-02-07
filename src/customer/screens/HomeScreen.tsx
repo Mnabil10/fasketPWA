@@ -1,8 +1,24 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
-import { Search, ShoppingCart, Bell, History, Sparkles, ChevronRight, Clock, Star, Truck, Store } from "lucide-react";
+import {
+  Search,
+  ShoppingCart,
+  Bell,
+  History,
+  Sparkles,
+  ChevronRight,
+  Clock,
+  Star,
+  Truck,
+  Store,
+  Grid,
+  UtensilsCrossed,
+  ShoppingBag,
+  Pill,
+  MoreHorizontal,
+} from "lucide-react";
 import type { UseQueryResult } from "@tanstack/react-query";
 import { MobileNav } from "../MobileNav";
 import { AppState, type UpdateAppState } from "../CustomerApp";
@@ -36,6 +52,7 @@ import { FASKET_GRADIENTS } from "../../styles/designSystem";
 import type { CachedResult } from "../../lib/offlineCache";
 import { getLocalizedString, isFeatureEnabled } from "../utils/mobileAppConfig";
 import { resolveQuickAddProduct } from "../utils/productOptions";
+import { buildQuickAddMap } from "../utils/quickAdd";
 
 interface HomeScreenProps {
   appState: AppState;
@@ -60,6 +77,7 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
   const cartGuard = useCartGuard(cartHook);
   const { isOffline } = useNetworkStatus();
   const apiErrorToast = useApiErrorToast("products.error");
+  const cartErrorToast = useApiErrorToast("cart.updateError");
   const providersQuery = useProviders();
   const selectedProvider = appState.selectedProvider ?? null;
   const providerId = selectedProvider?.id ?? appState.selectedProviderId ?? null;
@@ -72,7 +90,10 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
 
   const [q, setQ] = useState("");
   const debouncedQ = useDebouncedValue(q, 250);
-  const showingSearch = providerSelected && debouncedQ.trim().length > 0;
+  const [searchScope, setSearchScope] = useState<"provider" | "all">(providerSelected ? "provider" : "all");
+  const showingSearch = debouncedQ.trim().length > 0 && (searchScope === "all" || providerSelected);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const providerSectionRef = useRef<HTMLDivElement | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const { history, addQuery, clearHistory } = useSearchHistory("home");
 
@@ -99,22 +120,90 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
     { type: "hot-offers", limit: hotLimit, providerId },
     { enabled: providerSelected }
   );
+  const searchProviderId = searchScope === "provider" ? providerId : undefined;
   const searchQuery = useProducts(
-    { search: debouncedQ || undefined, providerId },
-    { enabled: showingSearch && Boolean(debouncedQ) && providerSelected }
+    { search: debouncedQ || undefined, providerId: searchProviderId },
+    { enabled: showingSearch && Boolean(debouncedQ) }
   );
   const staleData =
     (providersQuery.data?.stale ?? false) ||
     (providerSelected && (categoriesQuery.data?.stale ?? false)) ||
     (providerSelected && (bestQuery.data?.stale ?? false)) ||
     (providerSelected && (hotQuery.data?.stale ?? false)) ||
-    (providerSelected && (searchQuery.data?.stale ?? false));
+    (showingSearch && (searchQuery.data?.stale ?? false));
 
   const promoImages = [
     "https://images.unsplash.com/photo-1705727209465-b292e4129a37?auto=format&fit=crop&w=1080&q=80",
     "https://images.unsplash.com/photo-1665521032636-e8d2f6927053?auto=format&fit=crop&w=1080&q=80",
   ];
+  type ProviderTypeKey = "restaurants" | "supermarket" | "pharmacy" | "other";
   const providers = providersQuery.data?.data ?? [];
+  const quickAddMap = useMemo(() => buildQuickAddMap(cartHook.items), [cartHook.items]);
+  const providerMap = useMemo(() => new Map(providers.map((p) => [p.id, p])), [providers]);
+  const resolveProviderName = (providerId?: string | null) => {
+    if (!providerId) return null;
+    const provider = providerMap.get(providerId);
+    if (!provider) return null;
+    return lang === "ar" ? provider.nameAr || provider.name : provider.name || provider.nameAr;
+  };
+
+  const resolveProviderType = (provider?: ProviderSummary | null): ProviderTypeKey => {
+    const raw = String(provider?.type ?? "").toLowerCase();
+    if (/restaurant|restaurants|food|meal|kitchen|dine/.test(raw)) return "restaurants";
+    if (/supermarket|grocery|market|mart/.test(raw)) return "supermarket";
+    if (/pharmacy|pharm|drug|medicine/.test(raw)) return "pharmacy";
+    return "other";
+  };
+
+  const providerTypeOptions = useMemo(
+    () => [
+      { key: "restaurants" as const, label: t("home.providerTypes.restaurants", "Restaurants"), icon: UtensilsCrossed },
+      { key: "supermarket" as const, label: t("home.providerTypes.supermarket", "Supermarket"), icon: ShoppingBag },
+      { key: "pharmacy" as const, label: t("home.providerTypes.pharmacy", "Pharmacy"), icon: Pill },
+      { key: "other" as const, label: t("home.providerTypes.other", "Other"), icon: MoreHorizontal },
+    ],
+    [t]
+  );
+
+  const providerTypeCounts = useMemo(() => {
+    const counts: Record<ProviderTypeKey, number> = {
+      restaurants: 0,
+      supermarket: 0,
+      pharmacy: 0,
+      other: 0,
+    };
+    providers.forEach((provider) => {
+      const key = resolveProviderType(provider);
+      counts[key] += 1;
+    });
+    return counts;
+  }, [providers]);
+
+  const [providerType, setProviderType] = useState<ProviderTypeKey | null>(null);
+
+  useEffect(() => {
+    if (providerType !== null) return;
+    const ordered: ProviderTypeKey[] = ["restaurants", "supermarket", "pharmacy", "other"];
+    const firstWithProviders = ordered.find((key) => providerTypeCounts[key] > 0) ?? "supermarket";
+    setProviderType(firstWithProviders);
+  }, [providerType, providerTypeCounts]);
+
+  useEffect(() => {
+    if (!providerType || !selectedProvider) return;
+    if (resolveProviderType(selectedProvider) !== providerType) {
+      updateAppState({
+        selectedProvider: null,
+        selectedProviderId: null,
+        selectedCategory: null,
+        selectedCategoryId: null,
+      });
+    }
+  }, [providerType, selectedProvider, updateAppState]);
+
+  const filteredProviders = useMemo(() => {
+    if (!providerType) return providers;
+    return providers.filter((provider) => resolveProviderType(provider) === providerType);
+  }, [providers, providerType]);
 
   const promos: PromoTile[] = useMemo(() => {
     const promoConfig = mobileConfig?.home?.promos ?? [];
@@ -177,6 +266,33 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
         return;
       }
       apiErrorToast(error, "products.error");
+    }
+  };
+
+  const handleQuickIncrease = async (product: Product) => {
+    const quick = quickAddMap.get(product.id);
+    if (!quick) {
+      await handleAddToCart(product);
+      return;
+    }
+    try {
+      await cartHook.updateQuantity({ itemId: quick.itemId, productId: product.id, qty: quick.qty + 1 });
+    } catch (error) {
+      cartErrorToast(error, "cart.updateError");
+    }
+  };
+
+  const handleQuickDecrease = async (product: Product) => {
+    const quick = quickAddMap.get(product.id);
+    if (!quick) return;
+    try {
+      if (quick.qty <= 1) {
+        await cartHook.removeItem({ itemId: quick.itemId, productId: product.id });
+        return;
+      }
+      await cartHook.updateQuantity({ itemId: quick.itemId, productId: product.id, qty: quick.qty - 1 });
+    } catch (error) {
+      cartErrorToast(error, "cart.updateError");
     }
   };
 
@@ -261,7 +377,7 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!providerSelected) {
+    if (searchScope === "provider" && !providerSelected) {
       showToast({
         type: "info",
         message: t("home.selectProviderPrompt", "Select a provider to browse products."),
@@ -276,9 +392,18 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
   const greeting = appState.user
     ? t("home.greeting", { name: appState.user?.name?.split(" ")[0] || "" })
     : t("home.greetingGuest");
-  const searchPlaceholder = providerSelected
-    ? t("home.searchPlaceholder")
-    : t("home.searchProviderPlaceholder", "Select a provider to start searching");
+  const searchPlaceholder =
+    searchScope === "all"
+      ? t("home.searchPlaceholderGlobal", "Search across providers")
+      : providerSelected
+        ? t("home.searchPlaceholder")
+        : t("home.searchProviderPlaceholder", "Select a provider to start searching");
+
+  useEffect(() => {
+    if (!providerSelected && searchScope === "provider") {
+      setSearchScope("all");
+    }
+  }, [providerSelected, searchScope]);
 
   const heroConfig = mobileConfig?.home?.hero ?? {};
   const heroPrompt = getLocalizedString(heroConfig.prompt, lang, t("home.prompt"));
@@ -315,9 +440,12 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
   const renderProductsSection = (
     title: string,
     query: UseQueryResult<CachedResult<Product[]>, Error>,
-    emptyAction?: () => void
+    emptyAction?: () => void,
+    options?: { showProviderMeta?: boolean }
   ) => {
     const products = query.data?.data ?? [];
+    const showProviderMeta = options?.showProviderMeta ?? false;
+    const sortedProducts = products;
     if (query.isError) {
       return (
         <RetryBlock
@@ -347,21 +475,39 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
         {query.isLoading ? (
           <div className="premium-grid">
             {Array.from({ length: 4 }).map((_, idx) => (
-              <ProductCardSkeleton key={idx} />
+              <ProductCardSkeleton key={idx} imageVariant="compact" />
             ))}
           </div>
-        ) : products.length > 0 ? (
+        ) : sortedProducts.length > 0 ? (
           <div className="premium-grid">
-            {products.map((p) => (
-              <ProductCard
-                key={p.id}
-                product={p}
-                adding={cartHook.addingProductId === p.id}
-                disabled={isOffline}
-                onAddToCart={handleAddToCart}
-                onPress={(product) => goToProduct(product.slug || product.id, updateAppState, { product })}
-              />
-            ))}
+            {sortedProducts.map((p) => {
+              const quick = quickAddMap.get(p.id) ?? null;
+              const providerName = showProviderMeta ? resolveProviderName(p.providerId) : null;
+              return (
+                <ProductCard
+                  key={p.id}
+                  product={p}
+                  imageVariant="compact"
+                  adding={cartHook.addingProductId === p.id}
+                  disabled={isOffline}
+                  onAddToCart={handleAddToCart}
+                  quantity={quick?.qty ?? 0}
+                  onIncrease={() => handleQuickIncrease(p)}
+                  onDecrease={() => handleQuickDecrease(p)}
+                  metaLabel={providerName || undefined}
+                  onPress={(product) => {
+                    if (showProviderMeta && product.providerId) {
+                      const provider = providerMap.get(product.providerId);
+                      updateAppState({
+                        selectedProvider: provider ?? null,
+                        selectedProviderId: product.providerId,
+                      });
+                    }
+                    goToProduct(product.slug || product.id, updateAppState, { product });
+                  }}
+                />
+              );
+            })}
           </div>
         ) : (
           <EmptyState
@@ -388,14 +534,16 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
     }
 
     return (
-      <div className="section-card space-y-4 motion-fade">
+      <div ref={providerSectionRef} className="section-card space-y-4 motion-fade">
         <div className="flex items-center justify-between gap-2">
           <div>
             <p className="text-xs text-gray-500">
               {t("home.providersSubtitle", "Pick a provider to start shopping")}
             </p>
             <h2 className="text-xl font-semibold text-gray-900">
-              {t("home.providersTitle", "Providers")}
+              {providerType
+                ? providerTypeOptions.find((opt) => opt.key === providerType)?.label ?? t("home.providersTitle", "Providers")
+                : t("home.providersTitle", "Providers")}
             </h2>
           </div>
           {selectedProvider && (
@@ -410,9 +558,9 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
               <div key={idx} className="h-24 rounded-2xl bg-white border border-border shadow-card skeleton-soft" />
             ))}
           </div>
-        ) : providers.length > 0 ? (
+        ) : filteredProviders.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {providers.map((provider) => {
+            {filteredProviders.map((provider) => {
               const isSelected = providerId === provider.id;
               const ratingLabel =
                 provider.ratingCount && provider.ratingCount > 0
@@ -451,8 +599,8 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
           </div>
         ) : (
           <EmptyState
-            title={t("home.providersEmptyTitle", "No providers available")}
-            subtitle={t("home.providersEmptySubtitle", "Please check back soon.")}
+            title={t("home.providerTypes.emptyTitle", "No providers here yet")}
+            subtitle={t("home.providerTypes.emptySubtitle", "Try another category to keep shopping.")}
           />
         )}
       </div>
@@ -654,9 +802,10 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
             />
             <Input
               placeholder={searchPlaceholder}
-              disabled={!providerSelected}
+              disabled={searchScope === "provider" && !providerSelected}
               className={`h-12 rounded-2xl bg-white/80 border-none shadow-inner ${i18n.dir() === "rtl" ? "pr-12 text-right" : "pl-12"}`}
               value={q}
+              ref={searchInputRef}
               onFocus={() => setShowHistory(true)}
               onBlur={() => setTimeout(() => setShowHistory(false), 100)}
               onChange={(e) => setQ(e.target.value)}
@@ -689,6 +838,30 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
               </div>
             )}
           </form>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-gray-600">{t("home.searchScopeLabel", "Search scope")}</span>
+            <Button
+              type="button"
+              size="sm"
+              variant={searchScope === "provider" ? "default" : "outline"}
+              className="rounded-full px-3"
+              disabled={!providerSelected}
+              onClick={() => setSearchScope("provider")}
+            >
+              {providerSelected
+                ? t("home.searchScope.provider", { provider: providerLabel ?? t("home.providersTitle", "Provider") })
+                : t("home.searchScope.providerFallback", "Within provider")}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={searchScope === "all" ? "default" : "outline"}
+              className="rounded-full px-3"
+              onClick={() => setSearchScope("all")}
+            >
+              {t("home.searchScope.all", "All providers")}
+            </Button>
+          </div>
 
           {loyaltyWidgetEnabled && (
             <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-3">
@@ -727,18 +900,112 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
       )}
 
       <div className="flex-1 overflow-y-auto space-y-5">
+        <div className="section-card grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {[
+            {
+              key: "search",
+              title: t("home.quickPaths.searchTitle", "Quick search"),
+              subtitle: t("home.quickPaths.searchSubtitle", "Find items in seconds"),
+              icon: Search,
+              action: () => {
+                searchInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                searchInputRef.current?.focus();
+              },
+            },
+            {
+              key: "providers",
+              title: t("home.quickPaths.providersTitle", "Shop by provider"),
+              subtitle: t("home.quickPaths.providersSubtitle", "Pick a trusted store"),
+              icon: Store,
+              action: () => providerSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
+            },
+            {
+              key: "categories",
+              title: t("home.quickPaths.categoriesTitle", "Shop by category"),
+              subtitle: t("home.quickPaths.categoriesSubtitle", "Browse essentials fast"),
+              icon: Grid,
+              action: () => {
+                if (!providerSelected) {
+                  showToast({
+                    type: "info",
+                    message: t("home.selectProviderPrompt", "Select a provider to browse products."),
+                  });
+                  providerSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  return;
+                }
+                updateAppState({ currentScreen: "categories" });
+              },
+            },
+          ].map((card) => (
+            <button
+              key={card.key}
+              onClick={card.action}
+              className="rounded-2xl border border-border bg-white p-4 text-left shadow-card hover:-translate-y-0.5 transition-transform duration-200"
+            >
+              <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-3">
+                <card.icon className="w-5 h-5" />
+              </div>
+              <p className="text-sm font-semibold text-gray-900">{card.title}</p>
+              <p className="text-xs text-gray-500">{card.subtitle}</p>
+            </button>
+          ))}
+        </div>
+        <div className="section-card space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-gray-500">{t("home.providerTypes.subtitle", "Choose a market type")}</p>
+              <h2 className="text-xl font-semibold text-gray-900">
+                {t("home.providerTypes.title", "Shop by type")}
+              </h2>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {providerTypeOptions.map((option) => {
+              const Icon = option.icon;
+              const isActive = providerType === option.key;
+              const count = providerTypeCounts[option.key];
+              return (
+                <button
+                  key={option.key}
+                  onClick={() => {
+                    setProviderType(option.key);
+                    providerSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }}
+                  className={`rounded-2xl border p-4 text-left shadow-card transition-transform duration-200 hover:-translate-y-0.5 ${
+                    isActive ? "border-primary ring-2 ring-primary/20 bg-primary/5" : "border-border bg-white"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <span className="text-xs text-gray-500">{count}</span>
+                  </div>
+                  <p className="mt-3 text-sm font-semibold text-gray-900">{option.label}</p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
         {renderProvidersSection()}
-        {!providerSelected ? (
+        {showingSearch ? (
+          renderProductsSection(
+            t("home.sections.searchResults"),
+            searchQuery,
+            () => updateAppState({ currentScreen: "categories" }),
+            { showProviderMeta: searchScope === "all" }
+          )
+        ) : !providerSelected ? (
           <EmptyState
             title={t("home.providersPromptTitle", "Choose a provider to continue")}
             subtitle={t("home.providersPromptSubtitle", "Providers have their own categories and products.")}
           />
-        ) : showingSearch ? (
-          renderProductsSection(t("home.sections.searchResults"), searchQuery, () =>
-            updateAppState({ currentScreen: "categories" })
-          )
         ) : (
-          sectionsToRender.map((section) => renderSection(section))
+          sectionsToRender.map((section, index) => (
+            <React.Fragment key={section.id || section.type || `section-${index}`}>
+              {renderSection(section)}
+            </React.Fragment>
+          ))
         )}
       </div>
 

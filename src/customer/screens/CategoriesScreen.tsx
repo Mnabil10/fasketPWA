@@ -1,9 +1,9 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Badge } from "../../ui/badge";
-import { ArrowLeft, Search, TrendingUp, Star, History, Sparkles } from "lucide-react";
+import { ArrowLeft, Search, TrendingUp, Star, History, Sparkles, Clock, MessageCircle, Store } from "lucide-react";
 import { MobileNav } from "../MobileNav";
 import { AppState, type UpdateAppState } from "../CustomerApp";
 import { useToast } from "../providers/ToastProvider";
@@ -15,6 +15,7 @@ import { goToCategory, goToHome, goToProduct } from "../navigation/navigation";
 import { trackAddToCart } from "../../lib/analytics";
 import { extractApiError, mapApiErrorToMessage } from "../../utils/mapApiErrorToMessage";
 import { resolveQuickAddProduct } from "../utils/productOptions";
+import { buildQuickAddMap } from "../utils/quickAdd";
 
 interface CategoriesScreenProps {
   appState: AppState;
@@ -25,6 +26,7 @@ export function CategoriesScreen({ appState, updateAppState }: CategoriesScreenP
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
   const apiErrorToast = useApiErrorToast("products.error");
+  const cartErrorToast = useApiErrorToast("cart.updateError");
   const lang = i18n.language?.startsWith("ar") ? "ar" : "en";
   const [searchQuery, setSearchQuery] = useState("");
   const [showHistory, setShowHistory] = useState(false);
@@ -39,15 +41,48 @@ export function CategoriesScreen({ appState, updateAppState }: CategoriesScreenP
       ? selectedProvider.nameAr || selectedProvider.name
       : selectedProvider.name || selectedProvider.nameAr
     : null;
+  const isRTL = i18n.dir() === "rtl";
+  const providerDisplayName = providerLabel || t("providers.providerFallback", "Provider");
+  const providerDescription = useMemo(() => {
+    const raw = lang === "ar"
+      ? (selectedProvider as any)?.descriptionAr ?? (selectedProvider as any)?.description
+      : (selectedProvider as any)?.description ?? (selectedProvider as any)?.descriptionAr;
+    return raw || t("providers.taglineDefault", "Fresh groceries delivered to your door.");
+  }, [lang, selectedProvider, t]);
+  const providerEta =
+    (selectedProvider as any)?.deliveryEtaMinutes ??
+    (selectedProvider as any)?.etaMinutes ??
+    null;
+  const etaMinutes =
+    providerEta ??
+    appState.settings?.delivery?.defaultEtaMinutes ??
+    appState.settings?.delivery?.minEtaMinutes ??
+    null;
+  const etaValueLabel = etaMinutes
+    ? `${etaMinutes} ${t("checkout.summary.minutes", "min")}`
+    : null;
+  const etaLabel = providerEta
+    ? t("providers.etaValue", { value: etaValueLabel ?? "" })
+    : etaValueLabel
+      ? t("providers.etaTypical", { value: etaValueLabel })
+      : t("providers.etaFallback", "Estimated delivery shown at checkout.");
+  const bestSectionRef = useRef<HTMLDivElement | null>(null);
+  const offersSectionRef = useRef<HTMLDivElement | null>(null);
+  const categoriesSectionRef = useRef<HTMLDivElement | null>(null);
 
   const categoriesQuery = useCategories({ providerId }, { enabled: Boolean(providerId) });
+  const bestQuery = useProducts({ type: "best-selling", limit: 6, providerId }, { enabled: Boolean(providerId) });
   const featuredQuery = useProducts({ type: "hot-offers", limit: 6, providerId }, { enabled: Boolean(providerId) });
   const categories = categoriesQuery.data?.data ?? [];
   const categoriesStale = categoriesQuery.data?.stale ?? false;
+  const bestProducts = bestQuery.data?.data ?? [];
+  const bestStale = bestQuery.data?.stale ?? false;
   const featuredProducts = featuredQuery.data?.data ?? [];
   const featuredStale = featuredQuery.data?.stale ?? false;
-  const staleData = categoriesStale || featuredStale;
+  const staleData = categoriesStale || featuredStale || bestStale;
+  const quickAddMap = useMemo(() => buildQuickAddMap(cart.items), [cart.items]);
   const featuredError = mapApiErrorToMessage(featuredQuery.error, "categories.errorOffers");
+  const bestError = mapApiErrorToMessage(bestQuery.error, "categories.errorBest");
   const categoriesErrorMessage = mapApiErrorToMessage(categoriesQuery.error, "categories.errorLoading");
 
   const filteredCategories = useMemo(() => {
@@ -104,6 +139,43 @@ export function CategoriesScreen({ appState, updateAppState }: CategoriesScreenP
     }
   };
 
+  const handleQuickIncrease = async (product: Product) => {
+    const quick = quickAddMap.get(product.id);
+    if (!quick) {
+      await handleAddProduct(product);
+      return;
+    }
+    try {
+      await cart.updateQuantity({ itemId: quick.itemId, productId: product.id, qty: quick.qty + 1 });
+    } catch (error) {
+      cartErrorToast(error, "cart.updateError");
+    }
+  };
+
+  const handleQuickDecrease = async (product: Product) => {
+    const quick = quickAddMap.get(product.id);
+    if (!quick) return;
+    try {
+      if (quick.qty <= 1) {
+        await cart.removeItem({ itemId: quick.itemId, productId: product.id });
+        return;
+      }
+      await cart.updateQuantity({ itemId: quick.itemId, productId: product.id, qty: quick.qty - 1 });
+    } catch (error) {
+      cartErrorToast(error, "cart.updateError");
+    }
+  };
+
+  const sectionTabs = [
+    { id: "best", label: t("categories.sections.best", "Most requested"), ref: bestSectionRef },
+    { id: "offers", label: t("categories.sections.offers", "Today's offers"), ref: offersSectionRef },
+    { id: "categories", label: t("categories.sections.categories", "Categories"), ref: categoriesSectionRef },
+  ];
+
+  const scrollToSection = (ref: React.RefObject<HTMLDivElement>) => {
+    ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   if (!providerId) {
     return (
       <div className="page-shell">
@@ -154,21 +226,55 @@ export function CategoriesScreen({ appState, updateAppState }: CategoriesScreenP
             <h1 className="font-poppins text-xl text-gray-900" style={{ fontWeight: 600 }}>
               {t("categories.title")}
             </h1>
-            {selectedProvider?.name && (
-              <p className="text-xs text-gray-500">{selectedProvider.name}</p>
+            {providerDisplayName && (
+              <p className="text-xs text-gray-500">{providerDisplayName}</p>
             )}
+          </div>
+        </div>
+        <div className="rounded-2xl border border-border bg-white p-4 shadow-card mb-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className={`flex items-center gap-3 flex-1 min-w-0 ${isRTL ? "flex-row-reverse text-right" : ""}`}>
+              <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
+                {selectedProvider?.logoUrl ? (
+                  <ImageWithFallback
+                    src={selectedProvider.logoUrl}
+                    alt={providerDisplayName}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <Store className="w-5 h-5 text-primary" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-lg font-semibold text-gray-900 line-clamp-1">{providerDisplayName}</p>
+                <p className="text-xs text-gray-500 line-clamp-2">{providerDescription}</p>
+                <div className={`flex items-center gap-2 text-xs text-gray-600 mt-2 ${isRTL ? "justify-end" : ""}`}>
+                  <Clock className="w-3.5 h-3.5 text-primary" />
+                  <span>{etaLabel}</span>
+                </div>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full px-3 whitespace-nowrap w-full sm:w-auto self-stretch sm:self-auto"
+              onClick={() => updateAppState({ currentScreen: "help" })}
+            >
+              <MessageCircle className={`w-4 h-4 ${isRTL ? "ml-1" : "mr-1"}`} />
+              {t("providers.contactPolicies", "Support & policies")}
+            </Button>
           </div>
         </div>
 
         <div className="relative mb-2">
-          <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 ${i18n.dir() === "rtl" ? "left-auto right-3" : ""}`} />
+          <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 ${isRTL ? "left-auto right-3" : ""}`} />
           <Input
             placeholder={t("categories.searchPlaceholder")}
             value={searchQuery}
             onFocus={() => setShowHistory(true)}
             onBlur={() => setTimeout(() => setShowHistory(false), 100)}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className={`${i18n.dir() === "rtl" ? "pr-10 text-right" : "pl-10"} h-12 rounded-xl`}
+            className={`${isRTL ? "pr-10 text-right" : "pl-10"} h-12 rounded-xl`}
           />
           {showHistory && history.length > 0 && (
             <div className="absolute z-10 mt-1 left-0 right-0 bg-white rounded-xl shadow-lg border max-h-48 overflow-auto">
@@ -218,7 +324,61 @@ export function CategoriesScreen({ appState, updateAppState }: CategoriesScreenP
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="px-4 py-4">
+        <div className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b border-gray-100">
+          <div className="flex gap-2 overflow-x-auto px-4 py-2">
+            {sectionTabs.map((tab) => (
+              <Button
+                key={tab.id}
+                size="sm"
+                variant="outline"
+                className="rounded-full px-4 whitespace-nowrap"
+                onClick={() => scrollToSection(tab.ref)}
+              >
+                {tab.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        <div ref={bestSectionRef} className="px-4 py-4 scroll-mt-24">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-poppins text-lg text-gray-900" style={{ fontWeight: 600 }}>
+              {t("categories.bestTitle", "Most requested")}
+            </h2>
+            {bestQuery.isLoading && <span className="text-xs text-gray-500">{t("common.loading")}</span>}
+          </div>
+          {bestQuery.isError && (
+            <RetryBlock message={bestError} onRetry={() => bestQuery.refetch()} />
+          )}
+          {bestQuery.isLoading ? (
+            <div className="premium-grid">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <ProductCardSkeleton key={i} imageVariant="compact" />
+              ))}
+            </div>
+          ) : bestProducts.length > 0 ? (
+            <div className="premium-grid">
+              {bestProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  imageVariant="compact"
+                  adding={cart.addingProductId === product.id}
+                  disabled={cart.isOffline}
+                  onAddToCart={handleAddProduct}
+                  quantity={quickAddMap.get(product.id)?.qty ?? 0}
+                  onIncrease={() => handleQuickIncrease(product)}
+                  onDecrease={() => handleQuickDecrease(product)}
+                  onPress={() => goToProduct(product.slug || product.id, updateAppState, { product })}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-gray-500">{t("categories.bestEmpty", "Best sellers will appear here.")}</p>
+          )}
+        </div>
+
+        <div ref={offersSectionRef} className="px-4 py-4 scroll-mt-24">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-poppins text-lg text-gray-900" style={{ fontWeight: 600 }}>
               {t("categories.featuredTitle")}
@@ -231,7 +391,7 @@ export function CategoriesScreen({ appState, updateAppState }: CategoriesScreenP
           {featuredQuery.isLoading ? (
             <div className="premium-grid">
               {Array.from({ length: 2 }).map((_, i) => (
-                <ProductCardSkeleton key={i} />
+                <ProductCardSkeleton key={i} imageVariant="compact" />
               ))}
             </div>
           ) : (
@@ -241,9 +401,13 @@ export function CategoriesScreen({ appState, updateAppState }: CategoriesScreenP
                   <ProductCard
                     key={product.id}
                     product={product}
+                    imageVariant="compact"
                     adding={cart.addingProductId === product.id}
                     disabled={cart.isOffline}
                     onAddToCart={handleAddProduct}
+                    quantity={quickAddMap.get(product.id)?.qty ?? 0}
+                    onIncrease={() => handleQuickIncrease(product)}
+                    onDecrease={() => handleQuickDecrease(product)}
                     onPress={() => goToProduct(product.slug || product.id, updateAppState, { product })}
                   />
                 ))}
@@ -252,7 +416,7 @@ export function CategoriesScreen({ appState, updateAppState }: CategoriesScreenP
           )}
         </div>
 
-        <div className="px-4 py-4">
+        <div ref={categoriesSectionRef} className="px-4 py-4 scroll-mt-24">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-poppins text-lg text-gray-900" style={{ fontWeight: 600 }}>
               {t("categories.browseTitle")}
@@ -265,7 +429,7 @@ export function CategoriesScreen({ appState, updateAppState }: CategoriesScreenP
           </div>
 
           {categoriesQuery.isError && (
-          <RetryBlock message={categoriesErrorMessage} onRetry={() => categoriesQuery.refetch()} />
+            <RetryBlock message={categoriesErrorMessage} onRetry={() => categoriesQuery.refetch()} />
           )}
 
           {categoriesQuery.isLoading ? (

@@ -24,6 +24,7 @@ import { extractNoticeMessage } from "../../utils/extractNoticeMessage";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { isFeatureEnabled } from "../utils/mobileAppConfig";
 import { isValidEgyptPhone, normalizeEgyptPhone, sanitizeEgyptPhoneInput } from "../../utils/phone";
+import { calcLineTotal, formatOptionQtyLabel, formatQty } from "../utils/quantity";
 
 interface CheckoutScreenProps {
   appState: AppState;
@@ -79,6 +80,7 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
   const guestQuoteRef = useRef(0);
 
   const [deliveryNotes, setDeliveryNotes] = useState("");
+  const [substitutionPreference, setSubstitutionPreference] = useState<"replace" | "contact" | "remove">("replace");
   const [saving, setSaving] = useState(false);
   const [couponInput, setCouponInput] = useState("");
   const [couponFeedback, setCouponFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
@@ -122,8 +124,8 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
   const subtotal = fromCents(subtotalCents);
   const shippingFee = fromCents(shippingFeeCents);
   const serviceFee = fromCents(serviceFeeCents);
-  const shippingDisplayedCents = shippingFeeCents + serviceFeeCents;
-  const shippingDisplayed = fromCents(shippingDisplayedCents);
+  const shippingDisplayed = fromCents(shippingFeeCents);
+  const serviceFeeDisplayed = fromCents(serviceFeeCents);
   const couponDiscount = fromCents(discountCents);
   const loyaltyDiscount = fromCents(loyaltyDiscountCents);
   const cartId = serverCart?.cartId ?? null;
@@ -296,7 +298,7 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
     ? t("checkout.summary.etaValue", { value: `${estimatedDeliveryMinutes} ${t("checkout.summary.minutes", "min")}` })
     : t("checkout.summary.etaValue", { value: "30-45 min" });
   const deliveryFeeLabel =
-    shippingDisplayedCents > 0 ? fmtEGP(shippingDisplayed) : t("checkout.summary.freeDelivery", "Free");
+    shippingFeeCents > 0 ? fmtEGP(shippingDisplayed) : t("checkout.summary.freeDelivery", "Free");
   const deliveryFeeEstimate =
     isGuest
       ? guestQuoteLoading
@@ -307,6 +309,25 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
       : selectedAddressId
         ? deliveryFeeLabel
         : t("checkout.deliveryEstimate.pending", "Select an address to see delivery fee");
+  const substitutionLabel = t(`checkout.substitution.options.${substitutionPreference}`, {
+    defaultValue:
+      substitutionPreference === "replace"
+        ? "Replace with similar items"
+        : substitutionPreference === "contact"
+          ? "Call me before replacing"
+          : "Remove item",
+  });
+  const substitutionCode =
+    substitutionPreference === "replace"
+      ? "replace"
+      : substitutionPreference === "contact"
+        ? "call_me"
+        : "remove_item";
+  const orderNote = useMemo(() => {
+    const trimmed = deliveryNotes.trim();
+    const preferenceNote = `[SUBSTITUTION_PREF]=${substitutionCode}`;
+    return [trimmed, preferenceNote].filter(Boolean).join("\n").trim();
+  }, [deliveryNotes, substitutionCode]);
   const couponNotice = !isGuest ? serverCart?.couponNotice : null;
   const couponNoticeText = extractNoticeMessage(couponNotice);
   const loyaltyNotices = useMemo(() => {
@@ -556,7 +577,7 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
     savingRef.current = true;
     setSaving(true);
     try {
-      const note = deliveryNotes.trim();
+      const note = orderNote;
       const addressPayload: { fullAddress: string; notes?: string } = {
         fullAddress,
         notes: guestAddressNotes.trim() || undefined,
@@ -664,7 +685,7 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
     savingRef.current = true;
     setSaving(true);
     try {
-      const note = deliveryNotes.trim();
+      const note = orderNote;
       const res = await placeOrder({
         addressId: selectedAddressId,
         paymentMethod: selectedPaymentType,
@@ -861,9 +882,10 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
               const safeOption = optionName || "";
               const safeGroup = groupName || "";
               const name = safeGroup ? `${safeGroup}: ${safeOption}` : safeOption;
-              const qtyLabel = opt.qty > 1 ? ` x${opt.qty}` : "";
+              const qtyLabel = formatOptionQtyLabel(opt.qty);
               return { id: opt.optionId, label: `${name}${qtyLabel}`.trim() };
             }) ?? [];
+          const lineTotalCents = calcLineTotal(Math.round(price * 100), item.quantity);
           return (
             <div key={item.id} className="bg-white rounded-xl p-3 shadow-sm flex gap-3 border border-border">
               <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100">
@@ -876,7 +898,7 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
               <div className="flex-1">
                 <p className="font-medium text-gray-900">{item.name || item.product?.name || t("checkout.item.unknown")}</p>
                 <p className="text-sm text-gray-500">
-                  {item.quantity} x {fmtEGP(price)}
+                  {formatQty(item.quantity)} x {fmtEGP(price)}
                 </p>
                 {optionLines.length > 0 && (
                   <div className="mt-2 space-y-1 text-xs text-gray-500">
@@ -886,7 +908,7 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
                   </div>
                 )}
               </div>
-              <div className="font-semibold text-gray-900">{fmtEGP(price * item.quantity)}</div>
+              <div className="font-semibold text-gray-900">{fmtEGP(fromCents(lineTotalCents))}</div>
             </div>
           );
         })}
@@ -1407,18 +1429,54 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
           </section>
         )}
 
-        <section className="section-card space-y-3">
-          <h3 className="font-semibold text-gray-900">{t("checkout.sections.notes")}</h3>
-          <Textarea
-            placeholder={t("checkout.notes.placeholder")}
-            value={deliveryNotes}
-            onChange={(e) => setDeliveryNotes(e.target.value)}
-            className="min-h-[80px]"
-          />
-        </section>
+          <section className="section-card space-y-3">
+            <h3 className="font-semibold text-gray-900">{t("checkout.sections.notes")}</h3>
+            <Textarea
+              placeholder={t("checkout.notes.placeholder")}
+              value={deliveryNotes}
+              onChange={(e) => setDeliveryNotes(e.target.value)}
+              className="min-h-[80px]"
+            />
+          </section>
 
-        <section className="section-card space-y-3">
-          <h3 className="font-semibold text-gray-900">{t("checkout.sections.summary")}</h3>
+          <section className="section-card space-y-3">
+            <h3 className="font-semibold text-gray-900">{t("checkout.substitution.title", "Out-of-stock preference")}</h3>
+            <p className="text-xs text-gray-500">
+              {t("checkout.substitution.subtitle", "If an item is unavailable, choose what we should do.")}
+            </p>
+            <div className="grid gap-2">
+              {([
+                { id: "replace", label: t("checkout.substitution.options.replace", "Replace with similar items") },
+                { id: "contact", label: t("checkout.substitution.options.contact", "Call me before replacing") },
+                { id: "remove", label: t("checkout.substitution.options.remove", "Remove the item") },
+              ] as const).map((option) => {
+                const isSelected = substitutionPreference === option.id;
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => setSubstitutionPreference(option.id)}
+                    className={`w-full text-left rounded-xl border p-3 transition ${
+                      isSelected ? "border-primary bg-primary/5" : "border-gray-200 bg-white"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-medium text-gray-900">{option.label}</span>
+                      <span className={`text-xs ${isSelected ? "text-primary" : "text-gray-400"}`}>
+                        {isSelected ? t("checkout.substitution.selected", "Selected") : t("checkout.substitution.select", "Select")}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="bg-amber-50 text-amber-900 text-xs rounded-xl p-2 border border-amber-100">
+              {t("checkout.availabilityNotice", "Item quantities may change based on availability.")}
+            </div>
+          </section>
+
+          <section className="section-card space-y-3">
+            <h3 className="font-semibold text-gray-900">{t("checkout.sections.summary")}</h3>
           {showAddressWarning && (
             <div className="bg-amber-50 text-amber-900 text-sm rounded-xl p-2 flex items-center gap-2">
               <AlertTriangle className="w-4 h-4" />
@@ -1436,19 +1494,23 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
               {t("checkout.guest.noRewards", "Guest orders do not use coupons or loyalty rewards.")}
             </div>
           )}
-          <div className="flex items-center justify-between text-sm text-gray-600">
-            <span>{t("checkout.summary.subtotal")}</span>
-            <span className="price-text">{fmtEGP(subtotal)}</span>
-          </div>
-          <div className="flex items-center justify-between text-sm text-gray-600">
-            <span className="flex items-center gap-1">
-              <Truck className="w-4 h-4" />
-              {t("checkout.summary.delivery")}
-            </span>
-            <span className="price-text">
-              {shippingDisplayedCents > 0 ? fmtEGP(shippingDisplayed) : t("checkout.summary.freeDelivery", "Free")}
-            </span>
-          </div>
+            <div className="flex items-center justify-between text-sm text-gray-600">
+              <span>{t("checkout.summary.subtotal")}</span>
+              <span className="price-text">{fmtEGP(subtotal)}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm text-gray-600">
+              <span>{t("checkout.summary.serviceFee", "Service fee")}</span>
+              <span className="price-text">{fmtEGP(serviceFeeDisplayed)}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm text-gray-600">
+              <span className="flex items-center gap-1">
+                <Truck className="w-4 h-4" />
+                {t("checkout.summary.delivery")}
+              </span>
+              <span className="price-text">
+                {shippingFeeCents > 0 ? fmtEGP(shippingDisplayed) : t("checkout.summary.freeDelivery", "Free")}
+              </span>
+            </div>
           {cartGroups.length > 0 && (
             <div className="rounded-xl bg-gray-50 p-3 text-xs text-gray-600 space-y-2">
               <p className="font-semibold text-gray-900">

@@ -15,6 +15,7 @@ import type { Product } from "../../types/api";
 import { trackAddToCart } from "../../lib/analytics";
 import { extractApiError, mapApiErrorToMessage } from "../../utils/mapApiErrorToMessage";
 import { resolveQuickAddProduct } from "../utils/productOptions";
+import { buildQuickAddMap } from "../utils/quickAdd";
 
 interface ProductsScreenProps {
   appState: AppState;
@@ -28,6 +29,7 @@ export function ProductsScreen({ appState, updateAppState }: ProductsScreenProps
   const cartGuard = useCartGuard(cart);
   const { isOffline } = useNetworkStatus();
   const apiErrorToast = useApiErrorToast("products.error");
+  const cartErrorToast = useApiErrorToast("cart.updateError");
   const lang = i18n.language?.startsWith("ar") ? "ar" : "en";
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedQuery = useDebouncedValue(searchQuery, 250);
@@ -67,6 +69,7 @@ export function ProductsScreen({ appState, updateAppState }: ProductsScreenProps
 
   const items = productsQuery.data?.data ?? [];
   const dataStale = productsQuery.data?.stale ?? false;
+  const quickAddMap = useMemo(() => buildQuickAddMap(cart.items), [cart.items]);
 
   const filtered = useMemo(() => {
     let arr = [...items];
@@ -151,6 +154,33 @@ export function ProductsScreen({ appState, updateAppState }: ProductsScreenProps
     }
   };
 
+  const handleQuickIncrease = async (product: Product) => {
+    const quick = quickAddMap.get(product.id);
+    if (!quick) {
+      await handleAddToCart(product);
+      return;
+    }
+    try {
+      await cart.updateQuantity({ itemId: quick.itemId, productId: product.id, qty: quick.qty + 1 });
+    } catch (error) {
+      cartErrorToast(error, "cart.updateError");
+    }
+  };
+
+  const handleQuickDecrease = async (product: Product) => {
+    const quick = quickAddMap.get(product.id);
+    if (!quick) return;
+    try {
+      if (quick.qty <= 1) {
+        await cart.removeItem({ itemId: quick.itemId, productId: product.id });
+        return;
+      }
+      await cart.updateQuantity({ itemId: quick.itemId, productId: product.id, qty: quick.qty - 1 });
+    } catch (error) {
+      cartErrorToast(error, "cart.updateError");
+    }
+  };
+
   const handleClearFilters = () => {
     setInStockOnly(false);
     setOnSaleOnly(false);
@@ -207,6 +237,9 @@ export function ProductsScreen({ appState, updateAppState }: ProductsScreenProps
               adding={cart.addingProductId === product.id}
               disabled={isOffline}
               onAddToCart={handleAddToCart}
+              quantity={quickAddMap.get(product.id)?.qty ?? 0}
+              onIncrease={() => handleQuickIncrease(product)}
+              onDecrease={() => handleQuickDecrease(product)}
               onPress={(p) => goToProduct(p.slug || p.id, updateAppState, { product: p })}
             />
           ))}

@@ -12,6 +12,7 @@ import {
 } from "../../services/cart";
 import type { Product, ProductOptionSelection } from "../../types/api";
 import { computeOptionTotals, mapServerCartToUiItems } from "../utils/cart";
+import { calcLineTotal, clampQty, formatQtyKey, roundQty } from "../utils/quantity";
 import {
   getLocalCartTotals,
   mapLocalCartToPreview,
@@ -87,19 +88,21 @@ function normalizeOptions(options?: ProductOptionSelection[]) {
     .map((opt) => ({
       ...opt,
       optionId: String(opt.optionId),
-      qty: Math.max(1, Math.floor(opt.qty ?? 1)),
+      qty: roundQty(clampQty(opt.qty, 1)),
     }))
-    .filter((opt) => opt.optionId);
+    .filter((opt) => opt.optionId && opt.qty > 0);
 }
 
 function buildOptionsKey(options?: Array<{ optionId?: string; id?: string; qty?: number }> | null) {
   if (!options?.length) return NO_OPTIONS_KEY;
   return options
-    .map((opt) => ({
-      optionId: String(opt.optionId ?? opt.id ?? "").trim(),
-      qty: Math.max(1, Math.floor(opt.qty ?? 1)),
-    }))
-    .filter((opt) => opt.optionId)
+    .map((opt) => {
+      const optionId = String(opt.optionId ?? opt.id ?? "").trim();
+      const qtyValue = clampQty(opt.qty, 1);
+      if (!optionId || qtyValue <= 0) return null;
+      return { optionId, qty: formatQtyKey(qtyValue, 1) };
+    })
+    .filter((opt): opt is { optionId: string; qty: string } => Boolean(opt))
     .sort((a, b) => a.optionId.localeCompare(b.optionId))
     .map((opt) => `${opt.optionId}:${opt.qty}`)
     .join("|");
@@ -274,7 +277,7 @@ export function useCart(options?: UseCartOptions): UseCartResult {
               : undefined,
           });
         }
-        cart.subtotalCents += priceCents * variables.qty;
+        cart.subtotalCents += calcLineTotal(priceCents, variables.qty);
         return cart;
       });
     },
@@ -305,7 +308,7 @@ export function useCart(options?: UseCartOptions): UseCartResult {
         if (!item) return cart;
         const diff = variables.qty - item.qty;
         item.qty = variables.qty;
-        cart.subtotalCents += item.priceCents * diff;
+        cart.subtotalCents += calcLineTotal(item.priceCents, diff);
         return cart;
       });
     },
@@ -335,7 +338,7 @@ export function useCart(options?: UseCartOptions): UseCartResult {
           : cart.items.findIndex((it) => it.productId === variables.productId);
         if (idx === -1) return cart;
         const [removed] = cart.items.splice(idx, 1);
-        cart.subtotalCents -= removed.priceCents * removed.qty;
+        cart.subtotalCents -= calcLineTotal(removed.priceCents, removed.qty);
         return cart;
       });
     },

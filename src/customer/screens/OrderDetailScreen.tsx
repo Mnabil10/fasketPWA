@@ -37,6 +37,7 @@ import { openMapLocation, openWhatsapp } from "../../lib/fasketLinks";
 import type { OrderDetail, OrderGroupDetail, OrderGroupSummary, ProductOptionSelection } from "../../types/api";
 import { useToast } from "../providers/ToastProvider";
 import { useNotificationPreferences } from "../stores/notificationPreferences";
+import { calcLineTotal, formatOptionQtyLabel } from "../utils/quantity";
 
 interface OrderDetailScreenProps {
   appState: AppState;
@@ -267,7 +268,7 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
     const safeName = name || "";
     const safeGroup = group || "";
     const base = safeGroup ? `${safeGroup}: ${safeName}` : safeName;
-    const qtyLabel = opt.qty > 1 ? ` x${opt.qty}` : "";
+    const qtyLabel = formatOptionQtyLabel(opt.qty);
     return `${base}${qtyLabel}`;
   };
 
@@ -547,7 +548,7 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
                                   {renderOptions(item.options)}
                                 </div>
                                 <div className="font-semibold text-gray-900 price-text">
-                                  {fmtEGP(fromCents(item.priceSnapshotCents) * item.qty)}
+                                  {fmtEGP(fromCents(calcLineTotal(item.priceSnapshotCents, item.qty)))}
                                 </div>
                               </div>
                             ))}
@@ -588,7 +589,7 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
                         {renderOptions(item.options)}
                       </div>
                       <div className="font-semibold text-gray-900 price-text">
-                        {fmtEGP(fromCents(item.priceSnapshotCents) * item.qty)}
+                        {fmtEGP(fromCents(calcLineTotal(item.priceSnapshotCents, item.qty)))}
                       </div>
                     </div>
                   ))}

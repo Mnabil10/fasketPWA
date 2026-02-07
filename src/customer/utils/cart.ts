@@ -1,6 +1,7 @@
 import { fromCents } from "../../lib/money";
 import type { CartPreviewItem } from "../types";
 import type { ProductOptionSelection } from "../../types/api";
+import { calcLineTotal, clampQty, roundQty } from "./quantity";
 
 function normalizeOptionSelections(options?: Array<Record<string, any>> | null): ProductOptionSelection[] | undefined {
   if (!Array.isArray(options)) return undefined;
@@ -9,7 +10,7 @@ function normalizeOptionSelections(options?: Array<Record<string, any>> | null):
     name: opt.name ?? opt.optionNameSnapshot ?? "",
     nameAr: opt.nameAr ?? opt.optionNameArSnapshot ?? null,
     priceCents: opt.priceCents ?? opt.priceSnapshotCents ?? 0,
-    qty: opt.qty ?? 1,
+    qty: roundQty(clampQty(opt.qty, 1)),
     groupId: opt.groupId ?? undefined,
     groupName: opt.groupName ?? undefined,
     groupNameAr: opt.groupNameAr ?? null,
@@ -25,13 +26,14 @@ export function computeOptionTotals(options?: ProductOptionSelection[]) {
   let baseOverrideCents = 0;
   let hasOverride = false;
   for (const opt of options) {
-    const qty = Math.max(1, Math.floor(opt.qty ?? 1));
+    const qty = roundQty(clampQty(opt.qty, 1));
+    if (qty <= 0) continue;
     const price = opt.priceCents ?? 0;
     if (opt.groupPriceMode === "SET") {
-      baseOverrideCents += price * qty;
+      baseOverrideCents += calcLineTotal(price, qty);
       hasOverride = true;
     } else {
-      addOnsTotalCents += price * qty;
+      addOnsTotalCents += calcLineTotal(price, qty);
     }
   }
   return { addOnsTotalCents, baseOverrideCents: hasOverride ? baseOverrideCents : null };
@@ -46,7 +48,7 @@ export function mapServerCartToUiItems(server: { items: any[] } | null): CartPre
     name: it.product?.name ?? "",
     image: it.product?.imageUrl ?? undefined,
     price: fromCents(it.priceCents),
-    quantity: it.qty,
+    quantity: roundQty(it.qty ?? 0),
     category: it.product?.category?.name,
     options: normalizeOptionSelections(it.options),
     product: it.product

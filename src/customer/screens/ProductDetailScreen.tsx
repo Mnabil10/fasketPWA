@@ -14,6 +14,7 @@ import { trackAddToCart, trackViewProduct } from "../../lib/analytics";
 import { goToCart, goToCategory, goToHome, goToProduct } from "../navigation/navigation";
 import { extractApiError, mapApiErrorToMessage } from "../../utils/mapApiErrorToMessage";
 import { resolveQuickAddProduct } from "../utils/productOptions";
+import { calcLineTotal, clampQty, formatOptionQtyLabel } from "../utils/quantity";
 
 interface ProductDetailScreenProps {
   appState: AppState;
@@ -100,13 +101,14 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
     let baseOverrideCents = 0;
     let hasOverride = false;
     for (const opt of selectedOptions) {
-      const qty = Math.max(1, Math.floor(opt.qty ?? 1));
+      const qty = clampQty(opt.qty, 1);
+      if (qty <= 0) continue;
       const price = opt.priceCents ?? 0;
       if (opt.groupPriceMode === "SET") {
-        baseOverrideCents += price * qty;
+        baseOverrideCents += calcLineTotal(price, qty);
         hasOverride = true;
       } else {
-        addOnsTotalCents += price * qty;
+        addOnsTotalCents += calcLineTotal(price, qty);
       }
     }
     return {
@@ -210,7 +212,7 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
           const optionName = lang === "ar" ? opt.nameAr || opt.name : opt.name || opt.nameAr || "";
           const groupName = lang === "ar" ? opt.groupNameAr || opt.groupName : opt.groupName || opt.groupNameAr || "";
           const label = groupName ? `${groupName}: ${optionName}` : optionName;
-          const qtyLabel = opt.qty && opt.qty > 1 ? ` x${opt.qty}` : "";
+          const qtyLabel = formatOptionQtyLabel(opt.qty);
           return `${label}${qtyLabel}`.trim();
         })
         .filter(Boolean);
@@ -295,7 +297,7 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
     const group = optionGroups.find((entry) => entry.id === groupId);
     if (!group) return;
     const maxPerOption = group.options?.find((opt) => opt.id === optionId)?.maxQtyPerOption ?? MAX_OPTION_QTY;
-    const desiredQty = Math.max(0, Math.min(maxPerOption, Math.floor(nextQty)));
+    const desiredQty = Math.max(0, Math.min(maxPerOption, nextQty));
     setOptionQuantities((prev) => {
       const next = { ...prev };
       const groupOptions = group.options ?? [];
@@ -371,6 +373,13 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
       showToast({ type: "error", message: t("product.stock.out") });
       return;
     }
+    if (isWeightProduct && showSelectPrice) {
+      showToast({
+        type: "info",
+        message: t("products.weight_select_price", "Select a weight to set the price"),
+      });
+      return;
+    }
     const clampedQty = Math.min(quantity, available);
     if (clampedQty !== quantity) {
       setQuantity(clampedQty);
@@ -435,7 +444,7 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
       return (
         <div className="premium-grid">
           {Array.from({ length: 4 }).map((_, i) => (
-            <ProductCardSkeleton key={i} />
+            <ProductCardSkeleton key={i} imageVariant="compact" />
           ))}
         </div>
       );
@@ -447,6 +456,7 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
           <ProductCard
             key={item.id}
             product={item}
+            imageVariant="compact"
             adding={cart.addingProductId === item.id}
             onAddToCart={addSuggestedToCart}
             onPress={(next) => goToProduct(next.slug || next.id, updateAppState, { product: next })}
@@ -484,8 +494,8 @@ export function ProductDetailScreen({ appState, updateAppState }: ProductDetailS
       <div className="page-shell">
         <NetworkBanner stale={productStale} />
         <div className="p-4 space-y-3">
-          <ProductCardSkeleton />
-          <ProductCardSkeleton />
+          <ProductCardSkeleton imageVariant="compact" />
+          <ProductCardSkeleton imageVariant="compact" />
         </div>
       </div>
     );

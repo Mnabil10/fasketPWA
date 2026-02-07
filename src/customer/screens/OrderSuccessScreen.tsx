@@ -16,6 +16,7 @@ import { openExternalUrl } from "../../lib/fasketLinks";
 import { resolveSupportConfig } from "../utils/mobileAppConfig";
 import { useNotificationPreferences } from "../stores/notificationPreferences";
 import { resolveQuickAddProduct } from "../utils/productOptions";
+import { calcLineTotal, formatOptionQtyLabel, formatQty } from "../utils/quantity";
 import { extractApiError } from "../../utils/mapApiErrorToMessage";
 
 interface OrderSuccessScreenProps {
@@ -102,6 +103,10 @@ export function OrderSuccessScreen({ appState, updateAppState }: OrderSuccessScr
     }
     return t("orderSuccess.etaFallback");
   }, [order, detailOrder?.deliveryEstimateMinutes, t]);
+  const statusKey = (detailOrder?.status ?? groupOrder?.status ?? "PENDING").toUpperCase();
+  const statusLabel = t(`orders.status.${statusKey.toLowerCase()}`, {
+    defaultValue: statusKey,
+  });
 
   const scheduledLabel = useMemo(() => {
     if (!detailOrder) return null;
@@ -135,7 +140,8 @@ export function OrderSuccessScreen({ appState, updateAppState }: OrderSuccessScr
     const safeName = name || "";
     const safeGroup = group || "";
     const base = safeGroup ? `${safeGroup}: ${safeName}` : safeName;
-    return opt.qty > 1 ? `${base} x${opt.qty}` : base;
+    const qtyLabel = formatOptionQtyLabel(opt.qty);
+    return `${base}${qtyLabel}`;
   };
 
   const renderOptions = (options?: ProductOptionSelection[]) => {
@@ -263,14 +269,19 @@ export function OrderSuccessScreen({ appState, updateAppState }: OrderSuccessScr
         <p className="text-gray-600 text-center text-sm sm:text-base px-2">{t("orderSuccess.subtitle")}</p>
 
         <div className="bg-white rounded-2xl shadow-sm w-full max-w-2xl p-4 sm:p-5 space-y-3 sm:space-y-4">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm text-gray-500">{t("orderSuccess.total")}</p>
-              <p className="font-semibold text-2xl sm:text-3xl text-gray-900">{totalDisplay}</p>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm text-gray-500">{t("orderSuccess.total")}</p>
+                <p className="font-semibold text-2xl sm:text-3xl text-gray-900">{totalDisplay}</p>
+              </div>
+              <Badge variant="secondary">{statusLabel}</Badge>
             </div>
-            <Badge variant="secondary">{t("orders.status.delivered")}</Badge>
-          </div>
-          {isGroup && (
+            {statusKey === "PENDING" && (
+              <div className="bg-amber-50 text-amber-900 text-xs rounded-xl p-2 border border-amber-100">
+                {t("orderSuccess.pendingConfirmation", "Awaiting provider confirmation. We'll notify you shortly.")}
+              </div>
+            )}
+            {isGroup && (
             <div className="text-sm text-gray-700">
               {t("orderSuccess.groupNotice", {
                 count: groupOrder?.orders.length ?? groupOrder?.providers?.length ?? 0,
@@ -351,13 +362,13 @@ export function OrderSuccessScreen({ appState, updateAppState }: OrderSuccessScr
           <div className="bg-white rounded-2xl shadow-sm w-full max-w-2xl p-4 sm:p-5 space-y-3">
             <h3 className="font-semibold text-gray-900">{t("checkout.sections.items", "Items")}</h3>
             {detailOrder.items.map((item) => {
-              const lineTotal = fromCents(item.priceSnapshotCents * item.qty);
+              const lineTotal = fromCents(calcLineTotal(item.priceSnapshotCents, item.qty));
               return (
                 <div key={item.id} className="border-b last:border-b-0 pb-3 last:pb-0">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-gray-900 break-words">{item.productNameSnapshot}</p>
-                      <p className="text-xs text-gray-500">x{item.qty}</p>
+                      <p className="text-xs text-gray-500">x{formatQty(item.qty)}</p>
                       {renderOptions(item.options)}
                     </div>
                     <span className="text-sm font-semibold text-gray-900">{fmtEGP(lineTotal)}</span>
@@ -398,7 +409,7 @@ export function OrderSuccessScreen({ appState, updateAppState }: OrderSuccessScr
           {bestQuery.isLoading && recommendations.length === 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {Array.from({ length: 4 }).map((_, idx) => (
-                <ProductCardSkeleton key={idx} />
+                <ProductCardSkeleton key={idx} imageVariant="compact" />
               ))}
             </div>
           ) : recommendations.length > 0 ? (
@@ -407,6 +418,7 @@ export function OrderSuccessScreen({ appState, updateAppState }: OrderSuccessScr
                 <ProductCard
                   key={product.id}
                   product={product}
+                  imageVariant="compact"
                   adding={cart.addingProductId === product.id}
                   onAddToCart={handleAddRecommendation}
                   onPress={(p) => goToProduct(p.slug || p.id, updateAppState, { product: p })}

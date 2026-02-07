@@ -14,18 +14,18 @@ export function OrderProgress({ status, className }: OrderProgressProps) {
   const key = normalizeStatus(status);
   const isFailed = key === "DELIVERY_FAILED" || key === "FAILED";
   const isCanceled = key === "CANCELED" || key === "CANCELLED";
-  const activeIndex =
-    isFailed || isCanceled
-      ? -1
-      : key === "OUT_FOR_DELIVERY" || key === "DELIVERING"
-        ? 1
-        : key === "DELIVERED" || key === "COMPLETED"
-          ? 2
-          : 0;
+  const activeIndex = (() => {
+    if (isFailed || isCanceled) return -1;
+    if (["DELIVERED", "COMPLETED"].includes(key)) return 3;
+    if (["OUT_FOR_DELIVERY", "DELIVERING", "SHIPPED"].includes(key)) return 2;
+    if (["PREPARING"].includes(key)) return 1;
+    return 0;
+  })();
 
   const steps = [
+    { label: t("orders.status.pending", "Pending confirmation") },
     { label: t("orders.status.preparing", "Preparing") },
-    { label: t("orders.status.out_for_delivery", "On the way") },
+    { label: t("orders.status.out_for_delivery", "Out for delivery") },
     { label: t("orders.status.delivered", "Delivered") },
   ];
 

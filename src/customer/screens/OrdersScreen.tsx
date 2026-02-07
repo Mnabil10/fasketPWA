@@ -6,12 +6,15 @@ import { MobileNav } from "../MobileNav";
 import { AppState, type UpdateAppState } from "../CustomerApp";
 import { Badge } from "../../ui/badge";
 import dayjs from "dayjs";
-import { NetworkBanner, RetryBlock, SkeletonList, EmptyState } from "../components";
+import { NetworkBanner, RetryBlock, SkeletonList, EmptyState, OrderProgress } from "../components";
 import { useOrderGroups, useNetworkStatus, useApiErrorToast } from "../hooks";
 import { goToHome } from "../navigation/navigation";
 import { fmtEGP, fromCents } from "../../lib/money";
 import { mapApiErrorToMessage } from "../../utils/mapApiErrorToMessage";
 import type { OrderGroupSummary } from "../../types/api";
+import { reorderOrder } from "../../services/orders";
+import { useToast } from "../providers/ToastProvider";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface OrdersScreenProps {
   appState: AppState;
@@ -49,9 +52,11 @@ function StatusPill({ statusKey, label }: { statusKey: string; label: string }) 
 
 export function OrdersScreen({ appState, updateAppState }: OrdersScreenProps) {
   const { t } = useTranslation();
+  const { showToast } = useToast();
   const { isOffline } = useNetworkStatus();
   const ordersQuery = useOrderGroups();
   const apiErrorToast = useApiErrorToast("orders.error");
+  const queryClient = useQueryClient();
   const rawItems = ordersQuery.data;
   const hasInvalidShape = !ordersQuery.isLoading && !ordersQuery.isError && rawItems !== undefined && !Array.isArray(rawItems);
   const items = useMemo(() => (Array.isArray(rawItems) ? (rawItems as OrderGroupSummary[]) : []), [rawItems]);
@@ -75,6 +80,25 @@ export function OrdersScreen({ appState, updateAppState }: OrdersScreenProps) {
 
   const handleError = (error: unknown) => {
     apiErrorToast(error, "orders.error");
+  };
+
+  const handleReorder = async (orderId: string | null) => {
+    if (!orderId) return;
+    if (isOffline) {
+      showToast({
+        type: "error",
+        message: t("orders.reorderOffline", "You are offline. Please reconnect to reorder."),
+      });
+      return;
+    }
+    try {
+      await reorderOrder(orderId);
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
+      showToast({ type: "success", message: t("orders.reorderSuccess", "Items added to your cart.") });
+      updateAppState({ currentScreen: "cart" });
+    } catch (error) {
+      apiErrorToast(error, "orders.reorderError");
+    }
   };
 
   return (
@@ -144,12 +168,37 @@ export function OrdersScreen({ appState, updateAppState }: OrdersScreenProps) {
               .map(([key, count]) => `${t(`orders.status.${key.toLowerCase()}`)} x${count}`)
               .join(" | ");
             const providersCount = (o.providers?.length ?? o.orders?.length ?? 0);
+            const providerList =
+              o.providers && o.providers.length
+                ? o.providers.map((p) => ({
+                  id: p.orderId || p.providerId || `${o.orderGroupId}-${p.status}`,
+                  name: p.providerName || p.providerNameAr || t("orders.providerFallback", "Provider"),
+                  status: p.status,
+                  orderId: p.orderId ?? null,
+                }))
+                : (o.orders ?? []).map((order) => ({
+                  id: order.id,
+                  name: order.providerName || order.providerNameAr || t("orders.providerFallback", "Provider"),
+                  status: order.status,
+                  orderId: order.id,
+                }));
+            const singleOrderId =
+              providerList.length === 1 ? providerList[0]?.orderId ?? null : null;
             return (
-              <button
+              <div
                 key={o.orderGroupId}
-                onClick={() => openDetail(o.orderGroupId)}
-                disabled={isOffline}
-                className="w-full text-left section-card hover:-translate-y-0.5 transition disabled:opacity-70"
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  if (isOffline) return;
+                  openDetail(o.orderGroupId);
+                }}
+                onKeyDown={(e) => {
+                  if (isOffline) return;
+                  if (e.key === "Enter" || e.key === " ") openDetail(o.orderGroupId);
+                }}
+                aria-disabled={isOffline}
+                className={`w-full text-left section-card hover:-translate-y-0.5 transition ${isOffline ? "opacity-70" : ""}`}
               >
                 <div className="flex justify-between items-center">
                   <div className="font-medium text-gray-900">#{o.orderGroupId}</div>
@@ -162,10 +211,40 @@ export function OrdersScreen({ appState, updateAppState }: OrdersScreenProps) {
                   {t("orders.providersCount", { count: providersCount, defaultValue: `${providersCount} providers` })}
                   {statusSummary ? ` | ${statusSummary}` : ""}
                 </div>
+                <OrderProgress status={statusKey} className="mt-3" />
+                {providersCount > 1 && providerList.length > 0 && (
+                  <div className="mt-3 rounded-xl bg-gray-50 p-3 text-xs text-gray-600 space-y-2">
+                    <p className="font-semibold text-gray-900">
+                      {t("orders.groupProviders", { count: providersCount, defaultValue: `This order contains ${providersCount} providers` })}
+                    </p>
+                    {providerList.map((provider) => (
+                      <div key={provider.id} className="flex items-center justify-between">
+                        <span className="text-gray-700">{provider.name}</span>
+                        <span className="font-medium text-gray-900">
+                          {t(`orders.status.${String(provider.status || "pending").toLowerCase()}`)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div className="mt-2 font-poppins text-primary price-text" style={{ fontWeight: 600 }}>
                   {fmtEGP(fromCents(o.totalCents))}
                 </div>
-              </button>
+                {singleOrderId && (
+                  <div className="mt-3 flex items-center justify-end">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleReorder(singleOrderId);
+                      }}
+                    >
+                      {t("orders.reorder", "Reorder")}
+                    </Button>
+                  </div>
+                )}
+              </div>
             );
           })}
       </div>

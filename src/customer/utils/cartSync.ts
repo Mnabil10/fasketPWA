@@ -4,15 +4,18 @@ import { mapServerCartToUiItems } from "./cart";
 import { useLocalCartStore, getLocalCartPreview } from "../stores/localCart";
 import { getActiveLang } from "../../lib/i18nParam";
 import type { ProductOptionSelection } from "../../types/api";
+import { formatQtyKey, roundQty } from "./quantity";
 
 function buildOptionsKey(options?: Array<{ optionId?: string; id?: string; qty?: number }> | null) {
   if (!options?.length) return "no-options";
   return options
-    .map((opt) => ({
-      optionId: String(opt.optionId ?? opt.id ?? "").trim(),
-      qty: Math.max(1, Math.floor(opt.qty ?? 1)),
-    }))
-    .filter((opt) => opt.optionId)
+    .map((opt) => {
+      const optionId = String(opt.optionId ?? opt.id ?? "").trim();
+      const qtyValue = typeof opt.qty === "number" ? opt.qty : 1;
+      if (!optionId || qtyValue <= 0) return null;
+      return { optionId, qty: formatQtyKey(qtyValue, 1) };
+    })
+    .filter((opt): opt is { optionId: string; qty: string } => Boolean(opt))
     .sort((a, b) => a.optionId.localeCompare(b.optionId))
     .map((opt) => `${opt.optionId}:${opt.qty}`)
     .join("|");
@@ -24,7 +27,7 @@ function buildItemKey(productId: string, branchId: string | null | undefined, op
 
 function mapOptionSelections(options?: ProductOptionSelection[]) {
   if (!options?.length) return undefined;
-  return options.map((opt) => ({ optionId: opt.optionId, qty: opt.qty }));
+  return options.map((opt) => ({ optionId: opt.optionId, qty: roundQty(opt.qty ?? 1) }));
 }
 
 export async function fetchServerCartPreview(
@@ -54,7 +57,7 @@ export async function mergeLocalCartIntoServer(lang?: "ar" | "en") {
     const key = buildItemKey(item.productId, item.branchId ?? null, item.optionsKey || "no-options");
     const serverItem = serverByKey.get(key);
     if (serverItem) {
-      await updateItemQty(serverItem.id, serverItem.qty + item.quantity);
+      await updateItemQty(serverItem.id, roundQty(serverItem.qty + item.quantity));
     } else {
       await addItem({
         productId: item.productId,

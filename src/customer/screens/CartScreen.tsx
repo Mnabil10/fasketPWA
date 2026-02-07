@@ -16,6 +16,7 @@ import type { CartPreviewItem } from "../types";
 import type { ApiCart } from "../../services/cart";
 import { extractApiError, mapApiErrorToMessage } from "../../utils/mapApiErrorToMessage";
 import { extractNoticeMessage } from "../../utils/extractNoticeMessage";
+import { calcLineTotal, formatOptionQtyLabel, formatQty } from "../utils/quantity";
 
 interface CartScreenProps {
   appState: AppState;
@@ -93,8 +94,10 @@ export function CartScreen({ appState, updateAppState }: CartScreenProps) {
   const showEmptyState = !loading && displayItems.length === 0 && !cartError;
   const cartGroups = cart.rawCart?.groups ?? [];
   const subtotalDisplay = fmtEGP(cart.subtotal);
-  const shippingDisplayedCents = cart.shippingFeeCents + cart.serviceFeeCents;
-  const shippingDisplay = fmtEGP(fromCents(shippingDisplayedCents));
+  const shippingDisplay = cart.shippingFeeCents > 0
+    ? fmtEGP(fromCents(cart.shippingFeeCents))
+    : t("checkout.summary.freeDelivery", "Free");
+  const serviceFeeDisplay = fmtEGP(fromCents(cart.serviceFeeCents));
   const couponDisplay = cart.discountCents ? fmtEGP(fromCents(cart.discountCents)) : null;
   const loyaltyDisplay = cart.loyaltyDiscountCents ? fmtEGP(fromCents(cart.loyaltyDiscountCents)) : null;
   const totalCents = Math.max(
@@ -147,7 +150,7 @@ export function CartScreen({ appState, updateAppState }: CartScreenProps) {
           const safeOption = optionName || "";
           const safeGroup = groupName || "";
           const name = safeGroup ? `${safeGroup}: ${safeOption}` : safeOption;
-          const qtyLabel = opt.qty > 1 ? ` x${opt.qty}` : "";
+          const qtyLabel = formatOptionQtyLabel(opt.qty);
           return `${name}${qtyLabel}`.trim();
         })
         .filter(Boolean);
@@ -265,7 +268,7 @@ export function CartScreen({ appState, updateAppState }: CartScreenProps) {
     pendingItemId === item.id || cart.updatingItemId === item.id || cart.removingItemId === item.id;
 
   const renderItem = (item: DisplayCartItem) => {
-    const totalLabel = fmtEGP(fromCents(item.unitPriceCents * item.qty));
+    const totalLabel = fmtEGP(fromCents(calcLineTotal(item.unitPriceCents, item.qty)));
     const unitLabel = fmtEGP(fromCents(item.unitPriceCents));
     const disabled = disabledBecausePending(item);
     const optionLines =
@@ -275,7 +278,7 @@ export function CartScreen({ appState, updateAppState }: CartScreenProps) {
         const safeOption = optionName || "";
         const safeGroup = groupName || "";
         const name = safeGroup ? `${safeGroup}: ${safeOption}` : safeOption;
-        const qtyLabel = opt.qty > 1 ? ` x${opt.qty}` : "";
+        const qtyLabel = formatOptionQtyLabel(opt.qty);
         return { id: opt.optionId, label: `${name}${qtyLabel}`.trim() };
       }) ?? [];
 
@@ -324,7 +327,7 @@ export function CartScreen({ appState, updateAppState }: CartScreenProps) {
               >
                 <Minus className="w-4 h-4" />
               </button>
-              <span className="px-3 font-semibold min-w-[40px] text-center">{item.qty}</span>
+              <span className="px-3 font-semibold min-w-[40px] text-center">{formatQty(item.qty)}</span>
               <button
                 className="px-3 py-1 text-gray-600 disabled:text-gray-300"
                 onClick={() => onInc(item)}
@@ -495,6 +498,10 @@ export function CartScreen({ appState, updateAppState }: CartScreenProps) {
           <span className="font-medium text-gray-900 price-text">{subtotalDisplay}</span>
         </div>
         <div className="flex items-center justify-between text-gray-600 text-sm">
+          <span>{t("cart.serviceFeeLabel", "Service fee")}</span>
+          <span className="font-medium text-gray-900 price-text">{serviceFeeDisplay}</span>
+        </div>
+        <div className="flex items-center justify-between text-gray-600 text-sm">
           <span>{t("cart.shippingLabel")}</span>
           <span className="font-medium text-gray-900 price-text">{shippingDisplay}</span>
         </div>
@@ -516,6 +523,9 @@ export function CartScreen({ appState, updateAppState }: CartScreenProps) {
           <span className="text-primary price-text">{totalDisplay}</span>
         </div>
         <p className="text-xs text-gray-500">{etaLabel}</p>
+        <div className="bg-amber-50 text-amber-900 text-xs rounded-xl p-2 border border-amber-100">
+          {t("cart.availabilityNotice", "Item quantities may change based on availability.")}
+        </div>
         {couponNoticeText && (
           <div className="bg-amber-50 text-amber-900 text-xs rounded-xl p-2 border border-amber-100">
             {couponNoticeText}

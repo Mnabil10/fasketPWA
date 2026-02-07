@@ -52,10 +52,8 @@ export function MobileNav({ appState, updateAppState }: MobileNavProps) {
   const defaultTabs = useMemo(
     () => [
       { id: "home", icon: Home, label: t("nav.home"), screen: "home" as const },
-      { id: "categories", icon: Grid3x3, label: t("nav.categories"), screen: "categories" as const },
-      { id: "cart", icon: ShoppingCart, label: t("nav.cart"), screen: "cart" as const },
-      { id: "help", icon: LifeBuoy, label: t("nav.help"), screen: "help" as const },
       { id: "orders", icon: Package, label: t("nav.orders"), screen: "orders" as const, requiresAuth: true },
+      { id: "cart", icon: ShoppingCart, label: t("nav.cart"), screen: "cart" as const },
       { id: "profile", icon: User, label: t("nav.profile"), screen: "profile" as const, requiresAuth: true },
     ],
     [t]
@@ -90,7 +88,9 @@ export function MobileNav({ appState, updateAppState }: MobileNavProps) {
           order: index,
         }));
 
-    const filtered = mapped.filter((item) => item.enabled);
+    const filtered = mapped.filter(
+      (item) => item.enabled && item.screen !== "categories" && item.screen !== "help" && item.id !== "categories" && item.id !== "help"
+    );
     const visible = filtered.filter((item) => (item.requiresAuth ? Boolean(appState.user) : true));
     return visible.sort((a, b) => a.order - b.order);
   }, [mobileConfig, lang, defaultTabs, appState.user]);

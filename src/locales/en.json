@@ -155,7 +155,14 @@
     "greetingGuest": "Welcome to Fasket",
     "prompt": "What do you need today'",
     "searchPlaceholder": "Search fresh fruits, snacks, and essentials",
+    "searchPlaceholderGlobal": "Search across providers",
     "searchProviderPlaceholder": "Select a provider to start searching",
+    "searchScopeLabel": "Search scope",
+    "searchScope": {
+      "provider": "Within {{provider}}",
+      "providerFallback": "Within provider",
+      "all": "All providers"
+    },
     "subtitlePremium": "Your premium online supermarket in Badr City.",
     "deliveryEta": "30-45 min delivery",
     "coveragePromise": "We cover all of Badr City",
@@ -170,6 +177,24 @@
     "providersEmptySubtitle": "Please check back soon.",
     "providersPromptTitle": "Choose a provider to continue",
     "providersPromptSubtitle": "Providers have their own categories and products.",
+    "providerTypes": {
+      "title": "Shop by type",
+      "subtitle": "Choose a market type",
+      "restaurants": "Restaurants",
+      "supermarket": "Supermarket",
+      "pharmacy": "Pharmacy",
+      "other": "Other",
+      "emptyTitle": "No providers here yet",
+      "emptySubtitle": "Try another category to keep shopping."
+    },
+    "quickPaths": {
+      "searchTitle": "Quick search",
+      "searchSubtitle": "Find items in seconds",
+      "providersTitle": "Shop by provider",
+      "providersSubtitle": "Pick a trusted store",
+      "categoriesTitle": "Shop by category",
+      "categoriesSubtitle": "Browse essentials fast"
+    },
     "sections": {
       "categories": "Shop by category",
       "bestSelling": "Popular this week",
@@ -206,7 +231,13 @@
     "selectTitle": "Choose a provider",
     "selectSubtitle": "Select a provider to browse categories.",
     "selectAction": "Browse providers",
-    "error": "Failed to load providers."
+    "error": "Failed to load providers.",
+    "providerFallback": "Provider",
+    "taglineDefault": "Fresh groceries delivered to your door.",
+    "etaValue": "Expected delivery: {{value}}",
+    "etaTypical": "Usually within {{value}} (varies by area)",
+    "etaFallback": "ETA shown at checkout",
+    "contactPolicies": "Support & policies"
   },
   "categories": {
     "title": "Categories",
@@ -217,13 +248,21 @@
       "popular": "Popular",
       "trending": "Trending"
     },
+    "sections": {
+      "best": "Most requested",
+      "offers": "Today's offers",
+      "categories": "Categories"
+    },
+    "bestTitle": "Most requested",
+    "bestEmpty": "Best sellers will appear here.",
     "featuredTitle": "Featured today",
     "browseTitle": "Browse categories",
     "countLabel": "{{count}} categories",
     "emptyTitle": "No categories found",
     "emptySubtitle": "Try searching with different keywords.",
     "errorLoading": "Failed to load categories.",
-    "errorOffers": "Failed to load featured offers."
+    "errorOffers": "Failed to load featured offers.",
+    "errorBest": "Failed to load best sellers."
   },
   "products": {
     "title": "Products",
@@ -248,10 +287,14 @@
       "grid": "Grid",
       "list": "List"
     },
-    "badges": {
-      "inStock": "In stock",
-      "outOfStock": "Out of stock"
-    },
+      "badges": {
+        "inStock": "In stock",
+      "outOfStock": "Out of stock",
+      "fresh": "Fresh",
+      "nextDay": "Next day",
+      "byWeight": "By weight",
+      "suggestedAlt": "Suggested alternative"
+      },
     "filters": {
       "inStock": "In stock",
       "onSale": "On sale"
@@ -261,12 +304,13 @@
     "loading": "Loading products...",
     "error": "Failed to load products.",
     "itemsCount": "{{count}} items",
-    "buttons": {
-      "add": "Add to cart",
-      "added": "Added to cart",
-      "adding": "Adding...",
-      "selectOptions": "Select options"
-    },
+      "buttons": {
+        "add": "Add to cart",
+        "added": "Added to cart",
+        "adding": "Adding...",
+        "selectOptions": "Select options",
+        "selectWeight": "Select weight"
+      },
     "backToCategories": "Back to categories",
     "recentSearches": "Recent searches",
     "clearHistory": "Clear",
@@ -323,12 +367,12 @@
     "checkoutGuest": "Checkout as guest",
     "loading": "Loading your cart...",
     "clear": "Clear cart",
-    "conflict": {
-      "title": "Replace cart?",
-      "message": "Your cart is currently from {{current}}. Clear it to add items from {{next}}.",
-      "clearAction": "Clear cart",
-      "clearFailed": "Unable to clear the cart. Please try again."
-    },
+      "conflict": {
+        "title": "Replace cart?",
+        "message": "Your cart has items from {{current}}. Clear it to start shopping from {{next}}.",
+        "clearAction": "Continue",
+        "clearFailed": "Unable to clear the cart. Please try again."
+      },
     "loadError": "We couldn't load your cart. Please try again.",
     "imageUnavailable": "Image unavailable",
     "localSummaryNote": "These items are saved on this device only.",
@@ -347,6 +391,7 @@
     "shippingLabel": "Delivery fee",
     "serviceFeeLabel": "Service fee",
     "etaLabel": "Estimated delivery time",
+    "availabilityNotice": "Item quantities may change based on availability.",
     "summaryEtaFallback": "Delivery time will be confirmed at checkout.",
     "totalLabel": "Total",
     "deliveryUnavailable": "This address is outside this provider's delivery area."
@@ -421,13 +466,26 @@
       "placeOrder": "Place order",
       "placing": "Placing your order..."
     },
-    "notes": {
-      "placeholder": "Add extra notes for your order (optional)"
-    },
-    "buttons": {
-      "addAddress": "+ Add new",
-      "placeOrder": "Place Order ({{total}})"
-    },
+      "notes": {
+        "placeholder": "Add extra notes for your order (optional)"
+      },
+      "substitution": {
+        "title": "Out-of-stock preference",
+        "subtitle": "If an item is unavailable, choose what we should do.",
+        "options": {
+          "replace": "Replace with similar items",
+          "contact": "Call me before replacing",
+          "remove": "Remove the item"
+        },
+        "selected": "Selected",
+        "select": "Select",
+        "noteFormat": "Substitution preference: {{choice}}"
+      },
+      "availabilityNotice": "Item quantities may change based on availability.",
+      "buttons": {
+        "addAddress": "+ Add new",
+        "placeOrder": "Place Order ({{total}})"
+      },
     "notesPlaceholder": "Leave delivery instructions (optional)",
     "paymentMethods": {
       "cod": "Cash on delivery",
@@ -536,7 +594,7 @@
     "loading": "Loading orders...",
     "empty": "You have no orders yet.",
     "status": {
-      "pending": "Pending",
+      "pending": "Pending confirmation",
       "confirmed": "Confirmed",
       "preparing": "Preparing",
       "out_for_delivery": "Out for delivery",
@@ -552,9 +610,13 @@
     "count": "{{count}} orders",
     "dateFormat": "DD MMM YYYY HH:mm",
     "totalLabel": "{{amount}}",
-    "emptyCta": "Browse products to place your first order.",
-    "startShopping": "Start shopping",
-    "error": "Failed to load orders.",
+      "emptyCta": "Browse products to place your first order.",
+      "startShopping": "Start shopping",
+      "reorder": "Reorder",
+      "reorderSuccess": "Items added to your cart.",
+      "reorderError": "Unable to reorder. Please try again.",
+      "reorderOffline": "You are offline. Please reconnect to reorder.",
+      "error": "Failed to load orders.",
     "errorInvalidPayload": "The orders data from the server is not in the expected format.",
     "providersCount": "{{count}} providers",
     "providerFallback": "Provider",
@@ -614,6 +676,7 @@
   "orderSuccess": {
     "title": "Order placed successfully!",
     "subtitle": "Thank you for choosing Fasket.",
+    "pendingConfirmation": "Awaiting provider confirmation. We'll notify you shortly.",
     "estimated": "Estimated delivery",
     "scheduledLabel": "Scheduled delivery",
     "address": "Delivery address",
@@ -681,6 +744,7 @@
     "noPhone": "No phone number",
     "noEmail": "No email",
     "editProfile": "Edit Profile",
+    "addAddress": "Add new address",
     "stats": {
       "orders": "Orders",
       "points": "Points",
@@ -720,6 +784,11 @@
       "rate": "Rate the app",
       "rateSoon": "App store link coming soon",
       "whatsapp": "Contact via WhatsApp",
+      "whatsappNumber": "WhatsApp number",
+      "whatsappMissing": "Unavailable",
+      "copy": "Copy",
+      "copied": "Number copied",
+      "copyFailed": "Couldn't copy number",
       "whatsappMessage": "Hi, I'd like to ask about an order from Fasket.",
       "email": "Support email",
       "emailSubject": "Fasket Support",

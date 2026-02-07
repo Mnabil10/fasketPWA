@@ -1,15 +1,14 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Button } from "../../ui/button";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "../../ui/alert-dialog";
+  BottomSheet,
+  BottomSheetContent,
+  BottomSheetDescription,
+  BottomSheetFooter,
+  BottomSheetHeader,
+  BottomSheetTitle,
+} from "../../ui/bottom-sheet";
 import { useToast } from "../providers/ToastProvider";
 import type { Product, ProductOptionSelection } from "../../types/api";
 import type { UseCartResult } from "./useCart";
@@ -97,22 +96,22 @@ export function useCartGuard(cart: UseCartResult) {
   });
 
   const dialog = (
-    <AlertDialog open={open} onOpenChange={(next) => !next && reset()}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{t("cart.conflict.title", "Replace cart?")}</AlertDialogTitle>
-          <AlertDialogDescription>
-            {conflictMessage}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>{t("common.cancel", "Cancel")}</AlertDialogCancel>
-          <AlertDialogAction onClick={handleConfirm} className="bg-red-600 hover:bg-red-700">
-            {t("cart.conflict.clearAction", "Clear cart")}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <BottomSheet open={open} onOpenChange={(next) => !next && reset()}>
+      <BottomSheetContent>
+        <BottomSheetHeader>
+          <BottomSheetTitle>{t("cart.conflict.title", "Replace cart?")}</BottomSheetTitle>
+          <BottomSheetDescription>{conflictMessage}</BottomSheetDescription>
+        </BottomSheetHeader>
+        <BottomSheetFooter>
+          <Button variant="outline" onClick={reset}>
+            {t("common.cancel", "Cancel")}
+          </Button>
+          <Button onClick={handleConfirm} className="bg-primary hover:bg-primary/90 text-white">
+            {t("cart.conflict.clearAction", "Continue")}
+          </Button>
+        </BottomSheetFooter>
+      </BottomSheetContent>
+    </BottomSheet>
   );
 
   return { requestAdd, dialog };

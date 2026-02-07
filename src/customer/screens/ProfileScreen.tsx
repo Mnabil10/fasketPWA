@@ -20,8 +20,10 @@ import {
   FileText,
   Scale,
   MessageCircle,
+  LifeBuoy,
   ExternalLink,
   Share2,
+  Copy,
   type LucideIcon,
 } from "lucide-react";
 import { MobileNav } from "../MobileNav";
@@ -201,6 +203,14 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
 
   const supportActions: SettingsActionItem[] = [
     {
+      key: "help",
+      icon: LifeBuoy,
+      label: t("profile.settings.help", "Help & Support"),
+      toggle: false,
+      action: () => updateAppState({ currentScreen: "help" }),
+      iconBg: "bg-sky-500",
+    },
+    {
       key: "about",
       icon: ExternalLink,
       label: t("profile.support.about"),
@@ -278,6 +288,17 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
 
   const handleLanguageChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     i18n.changeLanguage(event.target.value);
+  };
+
+  const handleCopyWhatsapp = async () => {
+    const number = (supportConfig.whatsappNumber || "").trim();
+    if (!number || typeof navigator === "undefined" || !navigator.clipboard?.writeText) return;
+    try {
+      await navigator.clipboard.writeText(number);
+      showToast({ type: "success", message: t("profile.support.copied", "Number copied") });
+    } catch {
+      showToast({ type: "error", message: t("profile.support.copyFailed", "Couldn't copy number") });
+    }
   };
 
 
@@ -371,6 +392,12 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
               </div>
             ))}
           </div>
+          <Button
+            onClick={() => updateAppState({ currentScreen: "addresses" })}
+            className="mt-4 w-full rounded-xl"
+          >
+            {t("profile.addAddress", "Add new address")}
+          </Button>
         </div>
 
 
@@ -478,6 +505,24 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
             {t("profile.support.title")}
           </h3>
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="p-4 flex items-center justify-between border-b border-gray-50">
+              <div>
+                <p className="text-xs text-gray-500">{t("profile.support.whatsappNumber", "WhatsApp number")}</p>
+                <p className="text-sm font-semibold text-gray-900">
+                  {supportConfig.whatsappNumber || t("profile.support.whatsappMissing", "Unavailable")}
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="rounded-full"
+                onClick={handleCopyWhatsapp}
+                disabled={!supportConfig.whatsappNumber}
+              >
+                <Copy className="w-4 h-4 mr-1" />
+                {t("profile.support.copy", "Copy")}
+              </Button>
+            </div>
             {supportActions.map((item, index) => (
               <button
                 key={item.key}

@@ -1,7 +1,7 @@
 // src/services/cart.ts
 import { request } from "../api/client";
 import { getActiveLang } from "../lib/i18nParam";
-import type { ProductOptionSelection } from "../types/api";
+import type { ProductOptionSelection, ReorderFillResult } from "../types/api";
 
 export type ApiCartItem = {
   id: string;
@@ -197,4 +197,23 @@ export const clearCart = (options?: { addressId?: string | null }) => {
   const lang = getActiveLang() ?? "en";
   const qs = buildQueryString({ lang, addressId: options?.addressId ?? undefined });
   return request<CartPayload>({ url: `/cart/clear${qs}`, method: "POST" }).then(normalizeCart);
+};
+
+export const fillFromOrder = (
+  body: { orderId: string; strategy: "SKIP_MISSING" | "REPLACE_IF_POSSIBLE"; clearExistingCart?: boolean },
+  options?: { addressId?: string | null }
+) => {
+  const lang = getActiveLang() ?? "en";
+  const qs = buildQueryString({ lang, addressId: options?.addressId ?? undefined });
+  return request<{ data?: ReorderFillResult } | ReorderFillResult>({
+    url: `/cart/fill-from-order${qs}`,
+    method: "POST",
+    data: body,
+  }).then((payload) => {
+    const result = ((payload as any)?.data ?? payload) as ReorderFillResult;
+    if (result?.cart) {
+      result.cart = normalizeCart(result.cart as any);
+    }
+    return result;
+  });
 };

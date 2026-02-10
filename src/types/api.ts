@@ -44,6 +44,45 @@ export type DeliveryConfig = {
 
 export type LocalizedString = string | { en?: string; ar?: string };
 
+export type GrowthPackConfig = {
+  cacheTtlSeconds?: number;
+  smartCta?: {
+    enabled?: boolean;
+    rules?: Array<{
+      id: string;
+      days: string[];
+      timeRange: { from: string; to: string };
+      title: LocalizedString;
+      subtitle?: LocalizedString;
+      action: {
+        type: "OPEN_VENDOR" | "OPEN_HOME_SECTIONS";
+        vendorId?: string;
+        mode?: "INSTANT" | "PREORDER";
+      };
+    }>;
+    fallback?: {
+      title: LocalizedString;
+      subtitle?: LocalizedString;
+      action: {
+        type: "OPEN_VENDOR" | "OPEN_HOME_SECTIONS";
+        vendorId?: string;
+        mode?: "INSTANT" | "PREORDER";
+      };
+    };
+  };
+  smartHome?: {
+    showReorder?: boolean;
+    showFrequentlyBought?: boolean;
+    reorderOrdersCount?: number;
+    frequentlyBoughtCount?: number;
+  };
+  reorder?: {
+    mode?: "FILL_CART";
+    showChangesSummary?: boolean;
+    allowAutoReplace?: boolean;
+  };
+};
+
 export type MobileAppConfig = {
   branding?: {
     appName?: LocalizedString;
@@ -123,6 +162,7 @@ export type MobileAppConfig = {
     coupons?: boolean;
     loyalty?: boolean;
   };
+  growthPack?: GrowthPackConfig;
 };
 
 export type AppSettings = {
@@ -196,6 +236,9 @@ export type ProviderSummary = {
   ratingAvg?: number | null;
   ratingCount?: number | null;
   type?: string | null;
+  supportsInstant?: boolean;
+  supportsPreorder?: boolean;
+  nextSlot?: string | null;
 };
 
 export type ProductOptionGroupType = "SINGLE" | "MULTI";
@@ -509,6 +552,42 @@ export type OrderSummary = {
   driver?: DeliveryDriver | null;
 };
 
+export type LastOrderSummary = {
+  id: string;
+  code?: string | null;
+  createdAt: string;
+  totalCents: number;
+  status: string;
+  providerId?: string | null;
+  providerName?: string | null;
+  providerNameAr?: string | null;
+  itemsCount?: number;
+};
+
+export type FirstOrderWizardOption = {
+  id: string;
+  label: LocalizedString;
+  action: {
+    type: "OPEN_VENDOR" | "OPEN_HOME_SECTIONS";
+    vendorId?: string;
+    mode?: "INSTANT" | "PREORDER";
+  };
+};
+
+export type FirstOrderWizardStep = {
+  id: string;
+  title: LocalizedString;
+  subtitle?: LocalizedString;
+  options?: FirstOrderWizardOption[];
+};
+
+export type FirstOrderWizardResponse = {
+  show: boolean;
+  once: boolean;
+  steps: FirstOrderWizardStep[];
+  incentive?: Record<string, unknown> | null;
+};
+
 export type WalletProvider = "VODAFONE_CASH" | "ORANGE_MONEY" | "ETISALAT_CASH";
 export type PaymentMethodType = "COD" | "CARD" | "WALLET";
 
@@ -594,6 +673,52 @@ export type OrderDetail = {
     options?: ProductOptionSelection[];
   }>;
   recommendedProducts?: Product[];
+};
+
+export type ReorderPreviewItem = {
+  productId: string;
+  name: string;
+  qty: number;
+  originalPriceCents: number;
+  currentPriceCents: number;
+};
+
+export type ReorderMissingItem = {
+  productId: string;
+  name: string;
+  qty: number;
+  reason: string;
+};
+
+export type ReorderPriceChange = {
+  productId: string;
+  name: string;
+  qty: number;
+  oldPriceCents: number;
+  newPriceCents: number;
+};
+
+export type ReorderReplacement = {
+  productId: string;
+  replacementId: string;
+  replacementName: string;
+};
+
+export type ReorderPreview = {
+  vendorId?: string | null;
+  itemsAvailable: ReorderPreviewItem[];
+  itemsMissing: ReorderMissingItem[];
+  itemsPriceChanged: ReorderPriceChange[];
+  suggestedReplacements?: ReorderReplacement[];
+};
+
+export type ReorderFillResult = {
+  cart: Cart;
+  changes: {
+    skipped: ReorderMissingItem[];
+    replaced: Array<{ fromProductId: string; toProductId: string; name: string }>;
+    priceChanged: ReorderPriceChange[];
+  };
 };
 
 export type OrderReceipt = {

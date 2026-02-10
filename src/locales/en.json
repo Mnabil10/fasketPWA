@@ -195,6 +195,25 @@
       "categoriesTitle": "Shop by category",
       "categoriesSubtitle": "Browse essentials fast"
     },
+    "smartCta": {
+      "kicker": "Just for you",
+      "cta": "Start order"
+    },
+    "reorder": {
+      "title": "Reorder",
+      "subtitle": "Quick repeat",
+      "viewAll": "View all",
+      "itemsCount": "{{count}} items"
+    },
+    "frequently": {
+      "title": "Frequently bought",
+      "subtitle": "Picked for you",
+      "cta": "Shop more"
+    },
+    "wizard": {
+      "title": "Start your first order",
+      "skip": "Skip"
+    },
     "sections": {
       "categories": "Shop by category",
       "bestSelling": "Popular this week",
@@ -237,7 +256,11 @@
     "etaValue": "Expected delivery: {{value}}",
     "etaTypical": "Usually within {{value}} (varies by area)",
     "etaFallback": "ETA shown at checkout",
-    "contactPolicies": "Support & policies"
+    "contactPolicies": "Support & policies",
+    "badges": {
+      "instant": "Fast delivery today",
+      "preorder": "Delivery tomorrow morning"
+    }
   },
   "categories": {
     "title": "Categories",
@@ -440,10 +463,10 @@
     },
     "deliveryWindow": {
       "title": "Delivery time",
-      "asap": "ASAP",
-      "asapDesc": "Deliver as soon as possible.",
-      "schedule": "Schedule",
-      "scheduleDesc": "Pick a delivery slot.",
+      "asap": "Instant (today)",
+      "asapDesc": "Deliver today as soon as possible.",
+      "schedule": "Pre-order",
+      "scheduleDesc": "Reserve a delivery slot.",
       "select": "Select a time slot",
       "loading": "Loading slots...",
       "noSlots": "No delivery slots available right now.",
@@ -613,9 +636,20 @@
       "emptyCta": "Browse products to place your first order.",
       "startShopping": "Start shopping",
       "reorder": "Reorder",
+      "reorderLoading": "Reordering...",
+      "reorderEmpty": "We couldn't find available items to reorder.",
       "reorderSuccess": "Items added to your cart.",
       "reorderError": "Unable to reorder. Please try again.",
       "reorderOffline": "You are offline. Please reconnect to reorder.",
+      "reorderConflictTitle": "Replace cart?",
+      "reorderConflict": "Your cart is currently from {{current}}. Clear it to reorder from {{next}}.",
+      "reorderConflictConfirm": "Clear cart & continue",
+      "reorderSummaryTitle": "Reorder changes",
+      "reorderSummaryMissing": "Unavailable items",
+      "reorderSummaryReplaced": "Replaced items",
+      "reorderSummaryReplacedLabel": "Replacement",
+      "reorderSummaryPrice": "Price updates",
+      "reorderSummaryCta": "View cart",
       "error": "Failed to load orders.",
     "errorInvalidPayload": "The orders data from the server is not in the expected format.",
     "providersCount": "{{count}} providers",

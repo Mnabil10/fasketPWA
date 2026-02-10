@@ -18,6 +18,7 @@ export type CachedResult<T> = {
 
 export type CacheOptions = {
   ttlMs?: number;
+  ttlMsResolver?: (data: unknown) => number | null | undefined;
   version?: string;
   lang?: string;
   allowStaleOnFailure?: boolean;
@@ -52,6 +53,17 @@ function readCacheEntry<T>(key: string, opts?: CacheOptions): CacheEntry<T> | nu
   }
 }
 
+function resolveTtlMs(data: unknown, opts?: CacheOptions) {
+  const resolved = opts?.ttlMsResolver ? opts.ttlMsResolver(data) : undefined;
+  if (typeof resolved === "number" && Number.isFinite(resolved) && resolved > 0) {
+    return resolved;
+  }
+  if (typeof opts?.ttlMs === "number" && Number.isFinite(opts.ttlMs) && opts.ttlMs > 0) {
+    return opts.ttlMs;
+  }
+  return DEFAULT_TTL_MS;
+}
+
 function writeCacheEntry<T>(key: string, data: T, opts?: CacheOptions) {
   const storage = getStorage();
   if (!storage) return;
@@ -59,7 +71,7 @@ function writeCacheEntry<T>(key: string, data: T, opts?: CacheOptions) {
     const entry: CacheEntry<T> = {
       data,
       timestamp: Date.now(),
-      ttl: opts?.ttlMs ?? DEFAULT_TTL_MS,
+      ttl: resolveTtlMs(data, opts),
       version: opts?.version,
       lang: opts?.lang,
     };
@@ -93,7 +105,7 @@ export async function withOfflineCache<T>(
   opts?: CacheOptions
 ): Promise<CachedResult<T>> {
   const entry = readCacheEntry<T>(key, opts);
-  const ttl = opts?.ttlMs ?? entry?.ttl ?? DEFAULT_TTL_MS;
+  const ttl = entry?.ttl ?? opts?.ttlMs ?? DEFAULT_TTL_MS;
   const expired = entry ? Date.now() - entry.timestamp > ttl : false;
 
   try {

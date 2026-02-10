@@ -119,6 +119,7 @@ export interface AppState {
   selectedCategoryId: string | null;
   selectedProvider: ProviderSummary | null;
   selectedProviderId: string | null;
+  preferredDeliveryMode: "ASAP" | "SCHEDULED" | null;
   selectedProduct: Partial<Product> | null;
   selectedOrderId: string | null;
   selectedOrderSummary: OrderSummary | null;
@@ -154,6 +155,7 @@ const initialState: AppState = {
   selectedCategoryId: null,
   selectedProvider: null,
   selectedProviderId: null,
+  preferredDeliveryMode: null,
   selectedProduct: null,
   selectedOrderId: null,
   selectedOrderSummary: null,

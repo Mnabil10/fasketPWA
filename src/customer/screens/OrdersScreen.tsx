@@ -7,14 +7,11 @@ import { AppState, type UpdateAppState } from "../CustomerApp";
 import { Badge } from "../../ui/badge";
 import dayjs from "dayjs";
 import { NetworkBanner, RetryBlock, SkeletonList, EmptyState, OrderProgress } from "../components";
-import { useOrderGroups, useNetworkStatus, useApiErrorToast } from "../hooks";
+import { useOrderGroups, useNetworkStatus, useApiErrorToast, useReorderFlow } from "../hooks";
 import { goToHome } from "../navigation/navigation";
 import { fmtEGP, fromCents } from "../../lib/money";
 import { mapApiErrorToMessage } from "../../utils/mapApiErrorToMessage";
 import type { OrderGroupSummary } from "../../types/api";
-import { reorderOrder } from "../../services/orders";
-import { useToast } from "../providers/ToastProvider";
-import { useQueryClient } from "@tanstack/react-query";
 
 interface OrdersScreenProps {
   appState: AppState;
@@ -52,11 +49,18 @@ function StatusPill({ statusKey, label }: { statusKey: string; label: string }) 
 
 export function OrdersScreen({ appState, updateAppState }: OrdersScreenProps) {
   const { t } = useTranslation();
-  const { showToast } = useToast();
   const { isOffline } = useNetworkStatus();
   const ordersQuery = useOrderGroups();
   const apiErrorToast = useApiErrorToast("orders.error");
-  const queryClient = useQueryClient();
+  const reorderConfig = appState.settings?.mobileApp?.growthPack?.reorder ?? {};
+  const allowAutoReplace = reorderConfig.allowAutoReplace ?? false;
+  const showChangesSummary = reorderConfig.showChangesSummary ?? true;
+  const { reorder, reorderLoadingId, dialogs } = useReorderFlow({
+    userId: appState.user?.id,
+    allowAutoReplace,
+    showChangesSummary,
+    onNavigateToCart: () => updateAppState({ currentScreen: "cart" }),
+  });
   const rawItems = ordersQuery.data;
   const hasInvalidShape = !ordersQuery.isLoading && !ordersQuery.isError && rawItems !== undefined && !Array.isArray(rawItems);
   const items = useMemo(() => (Array.isArray(rawItems) ? (rawItems as OrderGroupSummary[]) : []), [rawItems]);
@@ -80,25 +84,6 @@ export function OrdersScreen({ appState, updateAppState }: OrdersScreenProps) {
 
   const handleError = (error: unknown) => {
     apiErrorToast(error, "orders.error");
-  };
-
-  const handleReorder = async (orderId: string | null) => {
-    if (!orderId) return;
-    if (isOffline) {
-      showToast({
-        type: "error",
-        message: t("orders.reorderOffline", "You are offline. Please reconnect to reorder."),
-      });
-      return;
-    }
-    try {
-      await reorderOrder(orderId);
-      queryClient.invalidateQueries({ queryKey: ["cart"] });
-      showToast({ type: "success", message: t("orders.reorderSuccess", "Items added to your cart.") });
-      updateAppState({ currentScreen: "cart" });
-    } catch (error) {
-      apiErrorToast(error, "orders.reorderError");
-    }
   };
 
   return (
@@ -175,15 +160,19 @@ export function OrdersScreen({ appState, updateAppState }: OrdersScreenProps) {
                   name: p.providerName || p.providerNameAr || t("orders.providerFallback", "Provider"),
                   status: p.status,
                   orderId: p.orderId ?? null,
+                  providerId: p.providerId ?? null,
                 }))
                 : (o.orders ?? []).map((order) => ({
                   id: order.id,
                   name: order.providerName || order.providerNameAr || t("orders.providerFallback", "Provider"),
                   status: order.status,
                   orderId: order.id,
+                  providerId: order.providerId ?? null,
                 }));
             const singleOrderId =
               providerList.length === 1 ? providerList[0]?.orderId ?? null : null;
+            const singleOrderVendorId =
+              providerList.length === 1 ? providerList[0]?.providerId ?? null : null;
             return (
               <div
                 key={o.orderGroupId}
@@ -237,10 +226,13 @@ export function OrdersScreen({ appState, updateAppState }: OrdersScreenProps) {
                       variant="outline"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleReorder(singleOrderId);
+                        reorder(singleOrderId, singleOrderVendorId);
                       }}
+                      disabled={reorderLoadingId === singleOrderId}
                     >
-                      {t("orders.reorder", "Reorder")}
+                      {reorderLoadingId === singleOrderId
+                        ? t("orders.reorderLoading", "Reordering...")
+                        : t("orders.reorder", "Reorder")}
                     </Button>
                   </div>
                 )}
@@ -250,6 +242,7 @@ export function OrdersScreen({ appState, updateAppState }: OrdersScreenProps) {
       </div>
 
       <MobileNav appState={appState} updateAppState={updateAppState} />
+      {dialogs}
     </div>
   );
 }

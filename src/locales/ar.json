@@ -217,6 +217,25 @@
       "categoriesTitle": "تسوّق حسب التصنيف",
       "categoriesSubtitle": "تصنيفات مرتبة وسهلة"
     },
+    "smartCta": {
+      "kicker": "خصيصًا لك",
+      "cta": "ابدأ الطلب"
+    },
+    "reorder": {
+      "title": "إعادة الطلب",
+      "subtitle": "تكرار سريع",
+      "viewAll": "عرض الكل",
+      "itemsCount": "{{count}} عنصر"
+    },
+    "frequently": {
+      "title": "الأكثر شراءً",
+      "subtitle": "مختارة لك",
+      "cta": "تسوق المزيد"
+    },
+    "wizard": {
+      "title": "ابدأ أول طلب لك",
+      "skip": "تخطي"
+    },
     "filters": {
       "inStock": "متوفر"
     },
@@ -237,7 +256,11 @@
     "etaValue": "التوصيل المتوقع: {{value}}",
     "etaTypical": "عادة خلال {{value}} (حسب المنطقة)",
     "etaFallback": "موعد التوصيل هيظهر عند الدفع.",
-    "contactPolicies": "الدعم والسياسات"
+    "contactPolicies": "الدعم والسياسات",
+    "badges": {
+      "instant": "توصيل سريع اليوم",
+      "preorder": "توصيل بكرة صباحًا"
+    }
   },
   "categories": {
     "title": "التصنيفات",
@@ -545,10 +568,10 @@
     },
     "deliveryWindow": {
       "title": "وقت التوصيل",
-      "asap": "في أسرع وقت",
-      "asapDesc": "توصيل في أسرع وقت ممكن.",
-      "schedule": "جدولة",
-      "scheduleDesc": "اختر موعداً للتوصيل.",
+      "asap": "توصيل سريع اليوم",
+      "asapDesc": "توصيل اليوم بأسرع وقت.",
+      "schedule": "حجز مسبق",
+      "scheduleDesc": "احجز ميعاد توصيل.",
       "select": "اختر موعداً للتوصيل",
       "loading": "جاري تحميل المواعيد...",
       "noSlots": "مفيش مواعيد توصيل متاحة دلوقتي.",
@@ -612,10 +635,21 @@
     "totalLabel": "{{amount}}",
     "emptyCta": "تصفّح المنتجات لعمل أول طلب",
     "startShopping": "ابدأ التسوق",
-      "reorder": "إعادة الطلب",
-      "reorderSuccess": "تمت إضافة العناصر للسلة.",
-      "reorderError": "تعذر إعادة الطلب. حاول مرة أخرى.",
-      "reorderOffline": "أنت غير متصل بالإنترنت. اتصل وحاول مرة أخرى.",
+    "reorder": "إعادة الطلب",
+    "reorderLoading": "جارٍ إعادة الطلب...",
+    "reorderEmpty": "مفيش عناصر متاحة لإعادة الطلب.",
+    "reorderConflictTitle": "تبديل السلة؟",
+    "reorderConflict": "سلتك الحالية من {{current}}. تفرّغها علشان تعيد الطلب من {{next}}؟",
+    "reorderConflictConfirm": "افرغ السلة وكمل",
+    "reorderSummaryTitle": "تغييرات إعادة الطلب",
+    "reorderSummaryMissing": "عناصر غير متاحة",
+    "reorderSummaryReplaced": "عناصر تم استبدالها",
+    "reorderSummaryReplacedLabel": "البديل",
+    "reorderSummaryPrice": "تحديثات الأسعار",
+    "reorderSummaryCta": "عرض السلة",
+    "reorderSuccess": "تمت إضافة العناصر للسلة.",
+    "reorderError": "تعذر إعادة الطلب. حاول مرة أخرى.",
+    "reorderOffline": "أنت غير متصل بالإنترنت. اتصل وحاول مرة أخرى.",
     "error": "فشل تحميل الطلبات.",
     "errorInvalidPayload": "صيغة بيانات الطلبات من الخادم مش صحيحة.",
     "providersCount": "{{count}} مزود",
@@ -1009,4 +1043,5 @@
     "loggedInHint": "هل لديك حساب؟ يمكنك عرض طلباتك من تبويب الطلبات."
   }
 }
+
 

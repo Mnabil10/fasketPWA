@@ -70,6 +70,56 @@ function isNetworkError(error: unknown) {
   return false;
 }
 
+const JWT_EXP_SKEW_SECONDS = 60;
+
+function getJwtExpirySeconds(token: string): number | null {
+  const parts = token.split(".");
+  if (parts.length < 2) return null;
+  if (typeof atob !== "function") return null;
+  try {
+    const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
+    const payload = JSON.parse(atob(padded));
+    const exp = typeof payload?.exp === "number" ? payload.exp : Number(payload?.exp);
+    return Number.isFinite(exp) ? exp : null;
+  } catch {
+    return null;
+  }
+}
+
+function isTokenExpired(token: string | null, skewSeconds = JWT_EXP_SKEW_SECONDS): boolean | null {
+  if (!token) return null;
+  const exp = getJwtExpirySeconds(token);
+  if (!exp) return null;
+  return exp * 1000 <= Date.now() + skewSeconds * 1000;
+}
+
+async function resolveSessionTokens(forceRefresh: boolean) {
+  await ensureSessionHydrated();
+  let { accessToken, refreshToken } = getSessionTokens();
+  const tokenExpired = isTokenExpired(accessToken);
+  const shouldRefresh = Boolean(refreshToken) && (forceRefresh || !accessToken || tokenExpired === true);
+
+  if (shouldRefresh && refreshToken) {
+    const refreshed = await refreshTokens();
+    if (refreshed.status === "ok" && refreshed.token) {
+      accessToken = refreshed.token;
+    } else if (refreshed.status === "invalid" || refreshed.status === "missing") {
+      if (!accessToken || tokenExpired === true) {
+        await clearSessionTokens("expired");
+        accessToken = null;
+        refreshToken = null;
+      }
+    }
+  } else if (tokenExpired === true && !refreshToken) {
+    await clearSessionTokens("expired");
+    accessToken = null;
+    refreshToken = null;
+  }
+
+  return { accessToken, refreshToken, tokenExpired };
+}
+
 export type Screen =
   | "splash"
   | "onboarding"
@@ -200,6 +250,36 @@ export function CustomerApp() {
       ...(typeof updates === "function" ? updates(prev) : updates),
     }));
   }, []);
+
+  const runSessionResume = useCallback(
+    async (forceRefresh: boolean, isCancelled?: () => boolean) => {
+      if (isOffline) return;
+      if (reconnectingRef.current) return;
+      reconnectingRef.current = true;
+
+      try {
+        const { accessToken } = await resolveSessionTokens(forceRefresh);
+        if (!accessToken) return;
+
+        const profile = await getMyProfile();
+        updateUser(profile);
+        if (isCancelled?.()) return;
+        updateAppState((prev) => ({
+          ...prev,
+          user: profile,
+          postOnboardingScreen: "home",
+          currentScreen: prev.currentScreen === "auth" || prev.currentScreen === "register" ? "home" : prev.currentScreen,
+        }));
+      } catch (error) {
+        if (!isNetworkError(error)) {
+          await clearSessionTokens("expired");
+        }
+      } finally {
+        reconnectingRef.current = false;
+      }
+    },
+    [isOffline, updateAppState]
+  );
 
   const handleTouchStart = useCallback((event: React.TouchEvent<HTMLDivElement>) => {
     if (event.touches.length !== 1) return;
@@ -448,6 +528,27 @@ export function CustomerApp() {
   }, [handleAppUrlOpen]);
 
   useEffect(() => {
+    if (!CapacitorApp?.addListener) return;
+    let cancelled = false;
+    let listener: { remove: () => void } | undefined;
+    const sub = CapacitorApp.addListener("appStateChange", ({ isActive }) => {
+      if (!isActive) return;
+      runSessionResume(true, () => cancelled).catch(() => undefined);
+    });
+    if ("then" in sub && typeof sub.then === "function") {
+      sub.then((ls) => {
+        listener = ls;
+      });
+    } else {
+      listener = sub as unknown as { remove: () => void };
+    }
+    return () => {
+      cancelled = true;
+      listener?.remove?.();
+    };
+  }, [runSessionResume]);
+
+  useEffect(() => {
     const unsubscribe = subscribeToNotifications((payload) => {
       const isTap = payload.origin === "tap";
       const data = payload.data as Record<string, unknown> | undefined;
@@ -551,7 +652,6 @@ export function CustomerApp() {
     let cancelled = false;
 
     async function bootstrap() {
-      await ensureSessionHydrated();
       const hasSeen = await secureStorage.getHasSeenOnboarding();
       let resolvedSettings: AppSettings | null = null;
       try {
@@ -560,7 +660,7 @@ export function CustomerApp() {
       } catch {
         resolvedSettings = null;
       }
-      const { accessToken } = getSessionTokens();
+      const { accessToken } = await resolveSessionTokens(false);
       if (!accessToken) {
         if (!cancelled) {
           setAppState((prev) => ({
@@ -666,51 +766,13 @@ export function CustomerApp() {
 
   useEffect(() => {
     if (isOffline) return;
-    if (reconnectingRef.current) return;
-    reconnectingRef.current = true;
     let cancelled = false;
-
-    const resumeSession = async () => {
-      await ensureSessionHydrated();
-      const { accessToken, refreshToken } = getSessionTokens();
-      if (!accessToken && !refreshToken) return;
-
-      const refreshed = await refreshTokens();
-      if (refreshed.status === "invalid") {
-        await clearSessionTokens("expired");
-        return;
-      }
-      if (refreshed.status === "missing" && !accessToken) return;
-      if (refreshed.status === "error") return;
-
-      try {
-        const profile = await getMyProfile();
-        updateUser(profile);
-        if (!cancelled) {
-          updateAppState((prev) => ({
-            ...prev,
-            user: profile,
-            postOnboardingScreen: "home",
-            currentScreen: prev.currentScreen === "auth" || prev.currentScreen === "register" ? "home" : prev.currentScreen,
-          }));
-        }
-      } catch (error) {
-        if (!isNetworkError(error)) {
-          await clearSessionTokens("expired");
-        }
-      }
-    };
-
-    resumeSession()
-      .catch(() => undefined)
-      .finally(() => {
-        reconnectingRef.current = false;
-      });
+    runSessionResume(true, () => cancelled).catch(() => undefined);
 
     return () => {
       cancelled = true;
     };
-  }, [isOffline, updateAppState]);
+  }, [isOffline, runSessionResume]);
 
   useEffect(() => {
     const unsubscribe = useLocalCartStore.subscribe(() => {

@@ -5,7 +5,14 @@ import axios, {
   type AxiosRequestConfig,
   type InternalAxiosRequestConfig,
 } from "axios";
-import { clearSessionTokens, ensureSessionHydrated, getAccessToken, getLanguage, refreshTokens } from "../store/session";
+import {
+  clearSessionTokens,
+  ensureSessionHydrated,
+  getAccessToken,
+  getLanguage,
+  getSessionTokens,
+  refreshTokens,
+} from "../store/session";
 
 declare module "axios" {
   export interface AxiosRequestConfig<D = any> {
@@ -70,6 +77,11 @@ function isAuthPath(url?: string) {
   );
 }
 
+function isRefreshPath(url?: string) {
+  if (!url) return false;
+  return url.startsWith("/auth/refresh") || url.startsWith("auth/refresh");
+}
+
 function normalizeErrorPayload(payload: unknown): ApiErrorPayload {
   const node = (payload as any) || {};
   const errorNode = typeof node.error === "object" ? node.error : {};
@@ -114,6 +126,18 @@ api.interceptors.request.use(async (config: WithRetryConfig) => {
   const hasLangInUrl = /[?&]lang=/.test(url);
   if (lang && method === "get" && !hasLangInParams && !hasLangInUrl) {
     config.params = { ...(params || {}), lang };
+  }
+
+  if (isRefreshPath(url)) {
+    const { refreshToken } = getSessionTokens();
+    if (refreshToken) {
+      if (!headers.has("x-refresh-token")) {
+        headers.set("x-refresh-token", refreshToken);
+      }
+      if (!headers.has("Authorization")) {
+        headers.set("Authorization", `Bearer ${refreshToken}`);
+      }
+    }
   }
 
   if (!config.skipAuth && !isAuthPath(config.url)) {

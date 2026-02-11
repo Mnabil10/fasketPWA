@@ -252,12 +252,12 @@ export function CategoriesScreen({ appState, updateAppState }: CategoriesScreenP
         <div className="rounded-2xl border border-border bg-white p-4 shadow-card mb-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className={`flex items-center gap-3 flex-1 min-w-0 ${isRTL ? "flex-row-reverse text-right" : ""}`}>
-              <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
+              <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center overflow-hidden flex-shrink-0 p-1">
                 {selectedProvider?.logoUrl ? (
                   <ImageWithFallback
                     src={selectedProvider.logoUrl}
                     alt={providerDisplayName}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain"
                   />
                 ) : (
                   <Store className="w-5 h-5 text-primary" />
@@ -273,7 +273,11 @@ export function CategoriesScreen({ appState, updateAppState }: CategoriesScreenP
                 {providerBadges.length > 0 && (
                   <div className={`mt-2 flex flex-wrap gap-1 ${isRTL ? "justify-end" : ""}`}>
                     {providerBadges.map((badge) => (
-                      <Badge key={badge.key} variant={badge.variant} className="text-[10px] rounded-full px-2">
+                      <Badge
+                        key={badge.key}
+                        variant={badge.variant}
+                        className="text-[10px] rounded-full px-2 py-1 leading-tight whitespace-normal break-words max-w-full overflow-visible"
+                      >
                         {badge.label}
                       </Badge>
                     ))}

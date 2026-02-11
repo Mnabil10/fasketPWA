@@ -49,7 +49,7 @@ import { listCategories } from "../services/catalog";
 import i18n from "../i18n";
 import type { CartPreviewItem } from "./types";
 import { useCart, useNetworkStatus } from "./hooks";
-import { flushAnalytics, trackAppOpen } from "../lib/analytics";
+import { flushAnalytics, trackAppOpen, trackNotificationOpened } from "../lib/analytics";
 import { getAppSettings } from "../services/settings";
 import { initPush, registerDeviceToken, subscribeToNotifications } from "../lib/notifications";
 import { playNotificationSound } from "../lib/notificationSound";
@@ -449,6 +449,34 @@ export function CustomerApp() {
 
   useEffect(() => {
     const unsubscribe = subscribeToNotifications((payload) => {
+      const isTap = payload.origin === "tap";
+      const data = payload.data as Record<string, unknown> | undefined;
+      const route =
+        payload.route ??
+        (typeof data?.url === "string" ? data.url : undefined) ??
+        (typeof data?.route === "string" ? data.route : undefined);
+      if (isTap) {
+        if (route) {
+          if (route.startsWith("http")) {
+            handleAppUrlOpen(route);
+          } else {
+            handleDeepLinkPath(route);
+          }
+        } else if (payload.orderId) {
+          updateAppState((prev) => ({
+            ...prev,
+            selectedOrderId: payload.orderId!,
+            currentScreen: "order-detail",
+          }));
+        }
+        trackNotificationOpened({
+          notificationType: payload.type ?? (typeof data?.type === "string" ? data.type : undefined),
+          orderId: payload.orderId ?? (typeof data?.orderId === "string" ? data.orderId : undefined),
+          vendorId: typeof data?.vendorId === "string" ? data.vendorId : undefined,
+          campaignId: typeof data?.campaignId === "string" ? data.campaignId : undefined,
+          url: route,
+        });
+      }
       const isCritical = payload.priority === "high" || payload.sound === "alert";
       if (isCritical || payload.sound) {
         playNotificationSound();
@@ -508,7 +536,7 @@ export function CustomerApp() {
       }
     });
     return unsubscribe;
-  }, [showToast, t, updateAppState]);
+  }, [handleAppUrlOpen, handleDeepLinkPath, showToast, t, updateAppState]);
 
   useEffect(() => {
     setAppState((prev) => {

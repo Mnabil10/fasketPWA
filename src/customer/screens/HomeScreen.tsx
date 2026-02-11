@@ -725,40 +725,45 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
                 <button
                   key={provider.id}
                   onClick={() => handleProviderSelect(provider)}
-                  className={`rounded-2xl border p-3 text-left shadow-card transition-transform duration-200 hover:-translate-y-0.5 ${isSelected ? "border-primary ring-2 ring-primary/20" : "border-border"
-                    }`}
+                  className={`rounded-2xl border p-3 shadow-card transition-transform duration-200 hover:-translate-y-0.5 ${isSelected ? "border-primary ring-2 ring-primary/20" : "border-border"} ${
+                    i18n.dir() === "rtl" ? "text-right" : "text-left"
+                  }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-white shadow-inner flex items-center justify-center overflow-hidden">
+                  <div className={`flex items-start gap-3 ${i18n.dir() === "rtl" ? "flex-row-reverse" : ""}`}>
+                    <div className="w-12 h-12 rounded-xl bg-white shadow-inner flex items-center justify-center overflow-hidden p-1">
                       {provider.logoUrl ? (
-                        <ImageWithFallback
-                          src={provider.logoUrl}
-                          alt={provider.name}
-                          className="w-full h-full object-cover"
-                        />
+                          <ImageWithFallback
+                            src={provider.logoUrl}
+                            alt={provider.name}
+                            className="w-full h-full object-contain"
+                          />
                       ) : (
                         <Store className="w-5 h-5 text-primary" />
                       )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 line-clamp-2">{provider.name}</p>
-                      <div className="flex items-center gap-1 text-xs text-gray-500">
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <p className="text-sm font-semibold text-gray-900 line-clamp-2 leading-snug">{provider.name}</p>
+                      <div className={`flex items-center gap-1 text-xs text-gray-500 ${i18n.dir() === "rtl" ? "justify-end" : ""}`}>
                         <Star className="w-3 h-3 text-amber-500" />
-                        <span>{ratingLabel}</span>
+                        <span className="line-clamp-1">{ratingLabel}</span>
                       </div>
                       {(() => {
                         const badges = resolveProviderBadges(provider);
                         if (!badges.length) return null;
-                        return (
-                          <div className="mt-2 flex flex-wrap gap-1">
-                            {badges.map((badge) => (
-                              <Badge key={badge.key} variant={badge.variant} className="text-[10px] rounded-full px-2">
-                                {badge.label}
-                              </Badge>
-                            ))}
-                          </div>
-                        );
-                      })()}
+                          return (
+                            <div className={`mt-2 flex flex-wrap gap-1 ${i18n.dir() === "rtl" ? "justify-end" : ""}`}>
+                              {badges.map((badge) => (
+                                <Badge
+                                  key={badge.key}
+                                  variant={badge.variant}
+                                  className="text-[10px] rounded-full px-2 py-1 leading-tight whitespace-normal break-words max-w-full overflow-visible"
+                                >
+                                  {badge.label}
+                                </Badge>
+                              ))}
+                            </div>
+                          );
+                        })()}
                     </div>
                   </div>
                 </button>
@@ -1349,7 +1354,10 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
           }
         }}
       >
-        <DialogContent className="max-h-[80vh] overflow-y-auto space-y-4">
+        <DialogContent
+          className="max-h-[80vh] overflow-y-auto space-y-4"
+          aria-describedby={undefined}
+        >
           <DialogHeader>
             <DialogTitle>{wizardTitle}</DialogTitle>
           </DialogHeader>

@@ -54,7 +54,7 @@ export function MobileNav({ appState, updateAppState }: MobileNavProps) {
       { id: "home", icon: Home, label: t("nav.home"), screen: "home" as const },
       { id: "orders", icon: Package, label: t("nav.orders"), screen: "orders" as const, requiresAuth: true },
       { id: "cart", icon: ShoppingCart, label: t("nav.cart"), screen: "cart" as const },
-      { id: "profile", icon: User, label: t("nav.profile"), screen: "profile" as const, requiresAuth: true },
+      { id: "profile", icon: User, label: t("nav.profile"), screen: "profile" as const, requiresAuth: false },
     ],
     [t]
   );
@@ -91,7 +91,10 @@ export function MobileNav({ appState, updateAppState }: MobileNavProps) {
     const filtered = mapped.filter(
       (item) => item.enabled && item.screen !== "categories" && item.screen !== "help" && item.id !== "categories" && item.id !== "help"
     );
-    const visible = filtered.filter((item) => (item.requiresAuth ? Boolean(appState.user) : true));
+    const visible = filtered.filter((item) => {
+      if (item.id === "profile" || item.screen === "profile") return true;
+      return item.requiresAuth ? Boolean(appState.user) : true;
+    });
     return visible.sort((a, b) => a.order - b.order);
   }, [mobileConfig, lang, defaultTabs, appState.user]);
 
@@ -162,13 +165,15 @@ export function MobileNav({ appState, updateAppState }: MobileNavProps) {
                   isActive ? "text-primary bg-primary/8 shadow-card" : "text-gray-600 hover:text-primary"
                 }`}
               >
-                <Icon className="w-5 h-5" />
+                <span className="relative inline-flex shrink-0">
+                  <Icon className="w-5 h-5" />
+                  {item.id === "cart" && appState.cart.length > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 bg-primary text-white text-[11px] rounded-full min-w-5 h-5 px-1 flex items-center justify-center shadow-card">
+                      {appState.cart.length}
+                    </span>
+                  )}
+                </span>
                 <span className="text-[11px] font-semibold leading-none">{item.label}</span>
-                {item.id === "cart" && appState.cart.length > 0 && (
-                  <div className="absolute -top-1 -right-1 bg-primary text-white text-[11px] rounded-full w-5 h-5 flex items-center justify-center shadow-card">
-                    {appState.cart.length}
-                  </div>
-                )}
               </button>
             );
           })}

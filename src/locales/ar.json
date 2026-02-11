@@ -152,7 +152,7 @@
   },
   "home": {
     "greeting": "مرحبًا {{name}}!",
-    "greetingGuest": "أهلًا بك في فاسكت",
+    "greetingGuest": "مرحباً بكم في فاسكت",
     "prompt": "ما الذي تحتاجه اليوم؟",
     "searchPlaceholder": "ابحث عن فواكه طازجة أو وجبات خفيفة…",
     "searchPlaceholderGlobal": "ابحث في كل المزودين",
@@ -239,10 +239,10 @@
     "filters": {
       "inStock": "متوفر"
     },
-    "subtitlePremium": "خدمة بقالة ذكية تغطي كل احتياجاتك اليومية.",
-    "deliveryEta": "يصل طلبك خلال 30–45 دقيقة",
-    "coveragePromise": "نغطي جميع أحياء مدينة بدر",
-    "qualityPromise": "نضمن لك أفضل جودة ممكنة",
+    "subtitlePremium": "بقالة طازجة واحتياجات أساسية بتوصلك بسرعة",
+    "deliveryEta": "أسرع توصيل خلال 30-45 دقيقة",
+    "coveragePromise": "تغطية كاملة للمدينة",
+    "qualityPromise": "منتجات ممتازة ومختارة",
     "categoryHeadline": "استكشف أحدث العروض",
     "categoryCta": "ابدأ استكشاف الفئات"
   },
@@ -265,26 +265,26 @@
   "categories": {
     "title": "التصنيفات",
     "searchPlaceholder": "ابحث في التصنيفات…",
-      "filters": {
-        "all": "الكل",
-        "popular": "الأكثر شيوعًا",
-        "trending": "الرائجة"
-      },
-      "sections": {
-        "best": "الأكثر طلبًا",
-        "offers": "عروض اليوم",
-        "categories": "التصنيفات"
-      },
-      "bestTitle": "الأكثر طلبًا",
-      "bestEmpty": "سيظهر الأكثر طلبًا هنا قريبًا.",
-      "featuredTitle": "مختارات اليوم",
+    "filters": {
+      "all": "الكل",
+      "popular": "الأكثر شيوعًا",
+      "trending": "الرائجة"
+    },
+    "sections": {
+      "best": "الأكثر طلبًا",
+      "offers": "عروض اليوم",
+      "categories": "التصنيفات"
+    },
+    "bestTitle": "الأكثر طلبًا",
+    "bestEmpty": "سيظهر الأكثر طلبًا هنا قريبًا.",
+    "featuredTitle": "مختارات اليوم",
     "browseTitle": "استكشف الفئات",
     "countLabel": "{{count}} فئة",
     "emptyTitle": "مفيش فئات",
     "emptySubtitle": "جرّب البحث باستخدام كلمات أخرى.",
     "errorLoading": "فشل تحميل الفئات.",
-      "errorOffers": "فشل تحميل العروض.",
-      "errorBest": "فشل تحميل الأكثر طلبًا.",
+    "errorOffers": "فشل تحميل العروض.",
+    "errorBest": "فشل تحميل الأكثر طلبًا.",
     "pullToRefresh": "اسحب للتحديث"
   },
   "products": {
@@ -1043,5 +1043,3 @@
     "loggedInHint": "هل لديك حساب؟ يمكنك عرض طلباتك من تبويب الطلبات."
   }
 }
-
-

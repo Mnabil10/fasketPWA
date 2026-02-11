@@ -17,6 +17,7 @@ interface AuthScreenProps {
   mode: "auth" | "register";
   onAuthSuccess: () => Promise<void> | void;
   onToggleMode: () => void;
+  onContinueAsGuest?: () => void;
   branding?: MobileAppConfig["branding"] | null;
 }
 
@@ -28,7 +29,7 @@ type FormState = {
   identifier: string;
 };
 
-export function AuthScreen({ mode, onAuthSuccess, onToggleMode, branding }: AuthScreenProps) {
+export function AuthScreen({ mode, onAuthSuccess, onToggleMode, onContinueAsGuest, branding }: AuthScreenProps) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language?.startsWith("ar") ? "ar" : "en";
   const brandName = getLocalizedString(branding?.appName, lang, t("common.appName", "Fasket"));
@@ -227,6 +228,14 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode, branding }: Auth
                 {t("auth.signUp")}
               </button>
             </div>
+            {onContinueAsGuest && (
+              <div className="pt-3 mt-3 border-t border-gray-200 space-y-2">
+                <p className="text-sm text-gray-600 text-center">{t("auth.continueAsGuestLabel")}</p>
+                <Button type="button" variant="outline" className="w-full h-11 rounded-xl" onClick={onContinueAsGuest}>
+                  {t("auth.continueAsGuest")}
+                </Button>
+              </div>
+            )}
           </form>
         )}
 
@@ -297,6 +306,14 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode, branding }: Auth
             <div className="text-center text-sm mt-2">
               <button type="button" onClick={handleModeToggle} className="text-primary">{t("auth.signIn")}</button>
             </div>
+            {onContinueAsGuest && (
+              <div className="pt-3 mt-3 border-t border-gray-200 space-y-2">
+                <p className="text-sm text-gray-600 text-center">{t("auth.continueAsGuestLabel")}</p>
+                <Button type="button" variant="outline" className="w-full h-11 rounded-xl" onClick={onContinueAsGuest}>
+                  {t("auth.continueAsGuest")}
+                </Button>
+              </div>
+            )}
           </form>
         )}
 

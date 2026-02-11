@@ -548,7 +548,7 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
           </div>
           {selectedProvider && (
             <div className="text-[11px] font-semibold text-primary bg-primary/10 px-3 py-1 rounded-full">
-              {t("home.providersSelected", "Selected")}: {selectedProvider.name}
+              {t("home.providersSelected", "Selected")}: {lang === "ar" ? selectedProvider.nameAr || selectedProvider.name : selectedProvider.name || selectedProvider.nameAr}
             </div>
           )}
         </div>
@@ -586,7 +586,9 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 line-clamp-2">{provider.name}</p>
+                      <p className="text-sm font-semibold text-gray-900 line-clamp-2">
+                        {lang === "ar" ? provider.nameAr || provider.name : provider.name || provider.nameAr}
+                      </p>
                       <div className="flex items-center gap-1 text-xs text-gray-500">
                         <Star className="w-3 h-3 text-amber-500" />
                         <span>{ratingLabel}</span>
@@ -971,9 +973,8 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
                     setProviderType(option.key);
                     providerSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
                   }}
-                  className={`rounded-2xl border p-4 text-left shadow-card transition-transform duration-200 hover:-translate-y-0.5 ${
-                    isActive ? "border-primary ring-2 ring-primary/20 bg-primary/5" : "border-border bg-white"
-                  }`}
+                  className={`rounded-2xl border p-4 text-left shadow-card transition-transform duration-200 hover:-translate-y-0.5 ${isActive ? "border-primary ring-2 ring-primary/20 bg-primary/5" : "border-border bg-white"
+                    }`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">

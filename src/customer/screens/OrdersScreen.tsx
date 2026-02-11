@@ -51,7 +51,8 @@ function StatusPill({ statusKey, label }: { statusKey: string; label: string }) 
 }
 
 export function OrdersScreen({ appState, updateAppState }: OrdersScreenProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language?.startsWith("ar") ? "ar" : "en";
   const { showToast } = useToast();
   const { isOffline } = useNetworkStatus();
   const ordersQuery = useOrderGroups();
@@ -172,13 +173,13 @@ export function OrdersScreen({ appState, updateAppState }: OrdersScreenProps) {
               o.providers && o.providers.length
                 ? o.providers.map((p) => ({
                   id: p.orderId || p.providerId || `${o.orderGroupId}-${p.status}`,
-                  name: p.providerName || p.providerNameAr || t("orders.providerFallback", "Provider"),
+                  name: lang === "ar" ? p.providerNameAr || p.providerName : p.providerName || p.providerNameAr || t("orders.providerFallback", "Provider"),
                   status: p.status,
                   orderId: p.orderId ?? null,
                 }))
                 : (o.orders ?? []).map((order) => ({
                   id: order.id,
-                  name: order.providerName || order.providerNameAr || t("orders.providerFallback", "Provider"),
+                  name: lang === "ar" ? order.providerNameAr || order.providerName : order.providerName || order.providerNameAr || t("orders.providerFallback", "Provider"),
                   status: order.status,
                   orderId: order.id,
                 }));

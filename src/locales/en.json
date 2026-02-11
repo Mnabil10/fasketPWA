@@ -1,4 +1,4 @@
-﻿{
+{
   "common": {
     "appName": "Fasket",
     "loading": "Loading...",
@@ -14,7 +14,9 @@
     "emptyStateSubtitle": "Add some products to continue shopping.",
     "errorGeneric": "Something went wrong. Please try again.",
     "retry": "Retry",
-    "back": "Back"
+    "back": "Back",
+    "cancel": "Cancel",
+    "kg": "kg"
   },
   "errors": {
     "generic": "Something went wrong. Please try again.",
@@ -104,7 +106,8 @@
         "title": "Daily offers & loyalty points",
         "subtitle": "Unlock offers every day, earn points on every order, and save more over time."
       }
-    ]
+    ],
+    "welcome": "Welcome to"
   },
   "auth": {
     "welcomeBack": "Welcome Back",
@@ -148,22 +151,25 @@
     "errorLogin": "Failed to sign in. Please check your details.",
     "errorRegister": "Failed to create your account. Please try again.",
     "sessionExpired": "Session expired, please log in again.",
-    "sessionMissing": "Signup session is missing. Please start again."
+    "sessionMissing": "Signup session is missing. Please start again.",
+    "fullNamePlaceholder": "Enter your full name",
+    "emailPlaceholder": "name@example.com",
+    "phonePlaceholder": "01x xxxx xxxx"
   },
   "home": {
-    "greeting": "Hi, {{name}}!",
+    "greeting": "Hello,",
     "greetingGuest": "Welcome to Fasket",
-    "prompt": "What do you need today'",
-    "searchPlaceholder": "Search fresh fruits, snacks, and essentials",
+    "prompt": "Start shopping today",
+    "searchPlaceholder": "Search products...",
     "searchPlaceholderGlobal": "Search across providers",
     "searchProviderPlaceholder": "Select a provider to start searching",
     "searchScopeLabel": "Search scope",
     "searchScope": {
-      "provider": "Within {{provider}}",
+      "provider": "Within provider",
       "providerFallback": "Within provider",
       "all": "All providers"
     },
-    "subtitlePremium": "Your premium online supermarket in Badr City.",
+    "subtitlePremium": "Fresh groceries and essentials delivered fast",
     "deliveryEta": "30-45 min delivery",
     "coveragePromise": "We cover all of Badr City",
     "qualityPromise": "Handpicked quality products",
@@ -199,7 +205,7 @@
       "categories": "Shop by category",
       "bestSelling": "Popular this week",
       "hotOffers": "Hot offers",
-      "searchResults": "Search results",
+      "searchResults": "Search Results",
       "curated": "Curated for you"
     },
     "categoryHeadline": "Shop by category",
@@ -207,24 +213,15 @@
     "filters": {
       "inStock": "In stock"
     },
-    "promotions": [
-      {
-        "title": "Fresh deals every day",
-        "subtitle": "Up to 30% off selected items"
-      },
-      {
-        "title": "Express delivery",
-        "subtitle": "Get your groceries in less than 30 minutes"
-      }
-    ],
+    "promotions": "Promotions",
     "promotionsCta": "Shop now",
-    "emptySearchTitle": "No products found",
-    "emptySearchSubtitle": "Try searching for another keyword.",
+    "emptySearchTitle": "No results found",
+    "emptySearchSubtitle": "Try another search term",
     "searchError": "Search failed",
     "loyaltyWidget": {
-      "title": "Your points",
-      "subtitle": "Earn points with every order and redeem them at checkout.",
-      "cta": "Redeem now"
+      "title": "Fasket Points",
+      "subtitle": "You have {{points}} points",
+      "cta": "View history"
     }
   },
   "providers": {
@@ -234,20 +231,24 @@
     "error": "Failed to load providers.",
     "providerFallback": "Provider",
     "taglineDefault": "Fresh groceries delivered to your door.",
-    "etaValue": "Expected delivery: {{value}}",
-    "etaTypical": "Usually within {{value}} (varies by area)",
+    "etaValue": "{{value}}",
+    "etaTypical": "30-45 min",
     "etaFallback": "ETA shown at checkout",
     "contactPolicies": "Support & policies"
   },
   "categories": {
     "title": "Categories",
     "searchPlaceholder": "Search categories...",
-    "pullToRefresh": "Pull to refresh categories",
     "filters": {
       "all": "All",
       "popular": "Popular",
       "trending": "Trending"
     },
+    "featuredTitle": "Featured Category",
+    "browseTitle": "Browse Categories",
+    "countLabel": "{{count}} items",
+    "emptyTitle": "No categories found",
+    "emptySubtitle": "Try another filter",
     "sections": {
       "best": "Most requested",
       "offers": "Today's offers",
@@ -255,18 +256,13 @@
     },
     "bestTitle": "Most requested",
     "bestEmpty": "Best sellers will appear here.",
-    "featuredTitle": "Featured today",
-    "browseTitle": "Browse categories",
-    "countLabel": "{{count}} categories",
-    "emptyTitle": "No categories found",
-    "emptySubtitle": "Try searching with different keywords.",
-    "errorLoading": "Failed to load categories.",
-    "errorOffers": "Failed to load featured offers.",
-    "errorBest": "Failed to load best sellers."
+    "errorOffers": "Unable to load today's offers",
+    "errorBest": "Unable to load most requested items",
+    "errorLoading": "Unable to load categories"
   },
   "products": {
     "title": "Products",
-    "searchPlaceholder": "Search products...",
+    "searchPlaceholder": "Search in products...",
     "pullToRefresh": "Pull to refresh products",
     "featuredBadge": "Featured",
     "filterButton": "Filter",
@@ -275,11 +271,11 @@
     "weight_select_price": "Select a weight to set the price",
     "sort": {
       "label": "Sort by",
-      "popularity": "Most popular",
+      "popularity": "Popularity",
       "priceLow": "Price: Low to High",
       "priceHigh": "Price: High to Low",
-      "rating": "Highest rated",
-      "name": "Name A-Z",
+      "rating": "Rating",
+      "name": "Name",
       "desc": "High to Low",
       "asc": "Low to High"
     },
@@ -287,35 +283,42 @@
       "grid": "Grid",
       "list": "List"
     },
-      "badges": {
-        "inStock": "In stock",
+    "badges": {
+      "inStock": "In stock",
       "outOfStock": "Out of stock",
       "fresh": "Fresh",
       "nextDay": "Next day",
       "byWeight": "By weight",
       "suggestedAlt": "Suggested alternative"
-      },
+    },
     "filters": {
-      "inStock": "In stock",
-      "onSale": "On sale"
+      "inStock": "In Stock",
+      "onSale": "On Sale",
+      "minPrice": "Min price",
+      "maxPrice": "Max price",
+      "clear": "Clear filters",
+      "minPricePlaceholder": "0",
+      "maxPricePlaceholder": "0"
     },
     "emptyTitle": "No products found",
-    "emptySubtitle": "Try searching with different keywords.",
+    "emptySubtitle": "Try another filter or search",
     "loading": "Loading products...",
-    "error": "Failed to load products.",
+    "error": "Failed to load products",
     "itemsCount": "{{count}} items",
-      "buttons": {
-        "add": "Add to cart",
-        "added": "Added to cart",
-        "adding": "Adding...",
-        "selectOptions": "Select options",
-        "selectWeight": "Select weight"
-      },
+    "buttons": {
+      "add": "Add to cart",
+      "added": "Added to cart",
+      "adding": "Adding...",
+      "selectOptions": "Select options",
+      "selectWeight": "Select weight"
+    },
     "backToCategories": "Back to categories",
     "recentSearches": "Recent searches",
     "clearHistory": "Clear",
     "add": "Add to cart",
-    "outOfStock": "Out of stock"
+    "outOfStock": "Out of stock",
+    "itemsCount_one": "{{count}} item",
+    "itemsCount_other": "{{count}} items"
   },
   "product": {
     "description": "Description",
@@ -366,20 +369,20 @@
     "checkout": "Proceed to Checkout",
     "checkoutGuest": "Checkout as guest",
     "loading": "Loading your cart...",
-    "clear": "Clear cart",
-      "conflict": {
-        "title": "Replace cart?",
-        "message": "Your cart has items from {{current}}. Clear it to start shopping from {{next}}.",
-        "clearAction": "Continue",
-        "clearFailed": "Unable to clear the cart. Please try again."
-      },
+    "clear": "Clear",
+    "conflict": {
+      "title": "Replace cart?",
+      "message": "Your cart has items from {{current}}. Clear it to start shopping from {{next}}.",
+      "clearAction": "Continue",
+      "clearFailed": "Unable to clear the cart. Please try again."
+    },
     "loadError": "We couldn't load your cart. Please try again.",
-    "imageUnavailable": "Image unavailable",
+    "imageUnavailable": "No image",
     "localSummaryNote": "These items are saved on this device only.",
-    "loginToCheckout": "Log in to complete your order and sync your cart.",
-    "offlineCheckout": "You are offline. Connect to the internet to place your order.",
+    "loginToCheckout": "Sign in to checkout and sync your cart.",
+    "offlineCheckout": "You are offline. Please reconnect to continue.",
     "remove": "Remove item",
-    "saveAndLogin": "Save cart & log in",
+    "saveAndLogin": "Save & login to checkout",
     "subtotalLabel": "Subtotal",
     "syncing": "Syncing your cart...",
     "updateError": "We couldn't update your cart. Please try again.",
@@ -392,9 +395,14 @@
     "serviceFeeLabel": "Service fee",
     "etaLabel": "Estimated delivery time",
     "availabilityNotice": "Item quantities may change based on availability.",
-    "summaryEtaFallback": "Delivery time will be confirmed at checkout.",
+    "summaryEtaFallback": "Standard delivery time",
     "totalLabel": "Total",
-    "deliveryUnavailable": "This address is outside this provider's delivery area."
+    "deliveryUnavailable": "This address is outside this provider's delivery area.",
+    "groupsTitle": "Delivery by branch",
+    "sections": {
+      "items": "Items"
+    },
+    "loyaltyLimit": "Up to {{value}} loyalty points can be used at checkout."
   },
   "checkout": {
     "title": "Checkout",
@@ -428,8 +436,9 @@
       "minutes": "min",
       "discount": "Discount",
       "etaUnknown": "Estimated time is not available.",
-      "freeDelivery": "Free delivery",
-      "deliveryUnavailable": "This address is outside this provider's delivery area."
+      "freeDelivery": "Free",
+      "deliveryUnavailable": "This address is outside this provider's delivery area.",
+      "byBranch": "Delivery by branch"
     },
     "deliveryEstimate": {
       "label": "Estimated delivery fee",
@@ -466,26 +475,26 @@
       "placeOrder": "Place order",
       "placing": "Placing your order..."
     },
-      "notes": {
-        "placeholder": "Add extra notes for your order (optional)"
+    "notes": {
+      "placeholder": "Add extra notes for your order (optional)"
+    },
+    "substitution": {
+      "title": "Out-of-stock preference",
+      "subtitle": "If an item is unavailable, choose what we should do.",
+      "options": {
+        "replace": "Replace with similar items",
+        "contact": "Call me before replacing",
+        "remove": "Remove the item"
       },
-      "substitution": {
-        "title": "Out-of-stock preference",
-        "subtitle": "If an item is unavailable, choose what we should do.",
-        "options": {
-          "replace": "Replace with similar items",
-          "contact": "Call me before replacing",
-          "remove": "Remove the item"
-        },
-        "selected": "Selected",
-        "select": "Select",
-        "noteFormat": "Substitution preference: {{choice}}"
-      },
-      "availabilityNotice": "Item quantities may change based on availability.",
-      "buttons": {
-        "addAddress": "+ Add new",
-        "placeOrder": "Place Order ({{total}})"
-      },
+      "selected": "Selected",
+      "select": "Select",
+      "noteFormat": "Substitution preference: {{choice}}"
+    },
+    "availabilityNotice": "Item quantities may change based on availability.",
+    "buttons": {
+      "addAddress": "+ Add new",
+      "placeOrder": "Place Order ({{total}})"
+    },
     "notesPlaceholder": "Leave delivery instructions (optional)",
     "paymentMethods": {
       "cod": "Cash on delivery",
@@ -540,7 +549,8 @@
       "noRewards": "Guest orders do not use coupons or loyalty rewards.",
       "locationUnavailable": "Location services are not available.",
       "locationSet": "Location updated.",
-      "locationError": "Unable to get your location."
+      "locationError": "Unable to get your location.",
+      "phoneInvalid": "Enter a valid phone number."
     },
     "payment": {
       "cod": "Cash on delivery",
@@ -586,7 +596,10 @@
       "pointsLabel": "Points to redeem",
       "balance": "Available balance: {{balance}}",
       "preview": "You'll save {{amount}}",
-      "summaryLabel": "Loyalty discount"
+      "summaryLabel": "Loyalty discount",
+      "maxPerOrder": "You can redeem up to {{value}} points for this order.",
+      "minRedeem": "Minimum {{value}} points to redeem.",
+      "maxDiscountPercent": "Loyalty discount capped at {{value}}% of order total."
     }
   },
   "orders": {
@@ -594,12 +607,12 @@
     "loading": "Loading orders...",
     "empty": "You have no orders yet.",
     "status": {
-      "pending": "Pending confirmation",
+      "pending": "Pending",
       "confirmed": "Confirmed",
       "preparing": "Preparing",
       "out_for_delivery": "Out for delivery",
-      "delivering": "Out for delivery",
-      "delivery_failed": "Delivery failed",
+      "delivering": "Delivering",
+      "delivery_failed": "Delivery Failed",
       "completed": "Completed",
       "processing": "Processing",
       "shipped": "Shipped",
@@ -610,14 +623,14 @@
     "count": "{{count}} orders",
     "dateFormat": "DD MMM YYYY HH:mm",
     "totalLabel": "{{amount}}",
-      "emptyCta": "Browse products to place your first order.",
-      "startShopping": "Start shopping",
-      "reorder": "Reorder",
-      "reorderSuccess": "Items added to your cart.",
-      "reorderError": "Unable to reorder. Please try again.",
-      "reorderOffline": "You are offline. Please reconnect to reorder.",
-      "error": "Failed to load orders.",
-    "errorInvalidPayload": "The orders data from the server is not in the expected format.",
+    "emptyCta": "Browse products to place your first order.",
+    "startShopping": "Start shopping",
+    "reorder": "Reorder",
+    "reorderSuccess": "Items added to your cart.",
+    "reorderError": "Failed to reorder. Please try again.",
+    "reorderOffline": "You are offline. Please reconnect to reorder.",
+    "error": "Failed to load orders.",
+    "errorInvalidPayload": "Orders response format is invalid.",
     "providersCount": "{{count}} providers",
     "providerFallback": "Provider",
     "manageGroup": "Manage order",
@@ -641,23 +654,25 @@
       "WRONG_ADDRESS": "Wrong address",
       "UNSAFE_LOCATION": "Unsafe location",
       "CUSTOMER_REQUESTED_RESCHEDULE": "Customer requested reschedule"
-    }
+    },
+    "providersCount_one": "{{count}} provider",
+    "providersCount_other": "{{count}} providers"
   },
   "orderDetail": {
     "title": "Order Details",
-    "address": "Delivery address",
+    "address": "Delivery Address",
     "payment": "Payment",
     "items": "Items",
     "summary": "Summary",
     "createdAt": "Placed on {{date}}",
     "messages": {
       "loading": "Loading order...",
-      "notFound": "Order not found.",
-      "missing": "We could not find this order."
+      "notFound": "Order not found",
+      "missing": "We could not find this order"
     },
     "addressMissing": "No address provided",
     "orderId": "Order ID",
-    "paymentMethod": "Payment",
+    "paymentMethod": "Payment Method",
     "quantity": "Qty: {{count}}",
     "deliveryZone": "Delivery zone",
     "scheduledLabel": "Scheduled delivery",
@@ -671,6 +686,17 @@
     "helpMessage": "Hi, I need help with my Fasket order #{{id}}",
     "whatsappUpdatesHint": "Order updates are sent via WhatsApp. Check WhatsApp for updates.",
     "whatsappUpdatesOffHint": "WhatsApp updates are off. Enable them in Settings.",
+    "orderGroupId": "Order group",
+    "etaLabel": "Estimated arrival",
+    "trackingTitle": "Live tracking",
+    "trackingUpdating": "Updating",
+    "trackingLastSeen": "Last update {{date}}",
+    "trackingWaiting": "Waiting for driver location updates.",
+    "trackingOpenMap": "Open live map",
+    "timeline": "Order timeline",
+    "pendingTimestamp": "Pending update",
+    "etaMinutes_one": "{{count}} min",
+    "etaMinutes_other": "{{count}} mins",
     "groupProviders": "This order contains {{count}} providers"
   },
   "orderSuccess": {
@@ -693,8 +719,27 @@
     "etaFallback": "Preparing your order",
     "addressMissing": "No address provided",
     "guestHint": "Track your order using your phone number from the Help screen.",
-    "whatsappUpdatesHint": "Order updates are sent via WhatsApp. Check WhatsApp for updates.",
-    "whatsappUpdatesOffHint": "WhatsApp updates are off. Enable them in Settings."
+    "whatsappUpdatesOffHint": "WhatsApp updates are off. Enable them in Settings.",
+    "groupNotice": "Your order was split into {{count}} orders.",
+    "groupOrders": "Orders in this group",
+    "whatsappUpdatesHint": "Order updates are sent via WhatsApp. Check WhatsApp for updates."
+  },
+  "reviews": {
+    "title": "Rate this order",
+    "commentPlaceholder": "Share your experience (optional)",
+    "updateButton": "Update review",
+    "submitButton": "Submit review",
+    "loadError": "Unable to load your review right now.",
+    "statusApproved": "Approved",
+    "statusRejected": "Rejected",
+    "statusPending": "Pending",
+    "selectRating": "Please select a rating",
+    "updated": "Review updated",
+    "submitted": "Review submitted",
+    "star": "{{count}} stars",
+    "error": "Something went wrong with reviews.",
+    "star_one": "{{count}} star",
+    "star_other": "{{count}} stars"
   },
   "about": {
     "title": "About Fasket",
@@ -793,7 +838,9 @@
       "email": "Support email",
       "emailSubject": "Fasket Support",
       "share": "Share Fasket / Invite a friend",
-      "phone": "Call support"
+      "phone": "Call support",
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Use"
     },
     "appVersion": "App Version",
     "logout": "Sign Out",
@@ -812,13 +859,16 @@
       "phone": "Phone is required",
       "currentPassword": "Current password is required",
       "newPassword": "New password is required",
-      "confirmPassword": "Passwords do not match"
+      "confirmPassword": "Passwords do not match",
+      "phoneInvalid": "Enter a valid phone number."
     },
     "loyalty": {
       "balanceLabel": "Points balance",
-      "rate": "Earn {{earn}} pts per currency, redeem with {{redeem}} pts per currency.",
-      "viewHistory": "View history"
-    }
+      "rate": "You earn {{earn}} points for every {{redeem}} spent.",
+      "viewHistory": "View points history"
+    },
+    "changePasswordHint": "Secure your account with a new password",
+    "updateInfoHint": "Update your personal information"
   },
   "addresses": {
     "title": "My Addresses",
@@ -947,6 +997,11 @@
       "expMonth": "Enter a valid month.",
       "expYear": "Enter a valid year.",
       "walletPhone": "Enter a valid wallet phone."
+    },
+    "brand": {
+      "visa": "Visa",
+      "mastercard": "Mastercard",
+      "amex": "American Express"
     }
   },
   "settings": {
@@ -1007,5 +1062,8 @@
     "viewHistory": "View history",
     "viewOffers": "View offers",
     "viewOrder": "View order"
-  }
+  },
+  "bestSelling": "Best Selling",
+  "hotOffers": "Hot Offers",
+  "hero": "Featured"
 }

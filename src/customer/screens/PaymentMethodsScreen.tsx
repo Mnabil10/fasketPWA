@@ -324,9 +324,9 @@ export function PaymentMethodsScreen({ appState, updateAppState }: PaymentMethod
                   onChange={(e) => setCardForm((prev) => ({ ...prev, brand: e.target.value }))}
                   className="mt-1 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-base focus:outline-none focus:ring-4 focus:ring-primary/15 focus:border-primary"
                 >
-                  <option value="Visa">Visa</option>
-                  <option value="Mastercard">Mastercard</option>
-                  <option value="Amex">American Express</option>
+                  <option value="Visa">{t("payments.brand.visa", "Visa")}</option>
+                  <option value="Mastercard">{t("payments.brand.mastercard", "Mastercard")}</option>
+                  <option value="Amex">{t("payments.brand.amex", "American Express")}</option>
                   <option value="Card">{t("payments.other", "Other")}</option>
                 </select>
               </div>

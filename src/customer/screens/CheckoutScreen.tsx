@@ -610,11 +610,11 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
         selectedOrderId: detailOrder ? detailOrder.id : null,
         selectedOrderSummary: detailOrder
           ? {
-              id: detailOrder.id,
-              totalCents: detailOrder.totalCents,
-              status: detailOrder.status,
-              createdAt: detailOrder.createdAt,
-            }
+            id: detailOrder.id,
+            totalCents: detailOrder.totalCents,
+            status: detailOrder.status,
+            createdAt: detailOrder.createdAt,
+          }
           : null,
         guestTracking: { phone, code: trackingCode ?? undefined },
         currentScreen: "order-success",
@@ -718,16 +718,16 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
         ...prev,
         user: prev.user
           ? {
-              ...prev.user,
-              loyaltyPoints: Math.max(
-                0,
-                (prev.user.loyaltyPoints ?? prev.user.points ?? 0) - redeemedPoints + earnedPoints
-              ),
-              points: Math.max(
-                0,
-                (prev.user.points ?? prev.user.loyaltyPoints ?? 0) - redeemedPoints + earnedPoints
-              ),
-            }
+            ...prev.user,
+            loyaltyPoints: Math.max(
+              0,
+              (prev.user.loyaltyPoints ?? prev.user.points ?? 0) - redeemedPoints + earnedPoints
+            ),
+            points: Math.max(
+              0,
+              (prev.user.points ?? prev.user.loyaltyPoints ?? 0) - redeemedPoints + earnedPoints
+            ),
+          }
           : prev.user,
         cart: [],
         lastOrder: res,
@@ -736,11 +736,11 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
         selectedOrderId: detailOrder ? detailOrder.id : null,
         selectedOrderSummary: detailOrder
           ? {
-              id: detailOrder.id,
-              totalCents: detailOrder.totalCents,
-              status: detailOrder.status,
-              createdAt: detailOrder.createdAt,
-            }
+            id: detailOrder.id,
+            totalCents: detailOrder.totalCents,
+            status: detailOrder.status,
+            createdAt: detailOrder.createdAt,
+          }
           : null,
         currentScreen: "order-success",
       }));
@@ -803,9 +803,8 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
       <button
         key={address.id}
         onClick={() => setSelectedAddressId(address.id)}
-        className={`w-full text-left rounded-xl border p-4 transition ${
-          isSelected ? "border-primary bg-primary/5" : "border-gray-200 bg-white"
-        }`}
+        className={`w-full text-left rounded-xl border p-4 transition ${isSelected ? "border-primary bg-primary/5" : "border-gray-200 bg-white"
+          }`}
       >
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
@@ -892,7 +891,7 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
                 {item.image ? (
                   <ImageWithFallback src={item.image} alt={item.name ?? ""} className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-400 text-xl">Cart</div>
+                  <div className="w-full h-full flex items-center justify-center text-gray-400 text-xl">{t("nav.cart", "Cart")}</div>
                 )}
               </div>
               <div className="flex-1">
@@ -1108,9 +1107,8 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
               <button
                 type="button"
                 onClick={() => setDeliveryMode("ASAP")}
-                className={`w-full text-left rounded-xl border p-3 transition ${
-                  deliveryMode === "ASAP" ? "border-primary bg-primary/5" : "border-gray-200 bg-white"
-                }`}
+                className={`w-full text-left rounded-xl border p-3 transition ${deliveryMode === "ASAP" ? "border-primary bg-primary/5" : "border-gray-200 bg-white"
+                  }`}
               >
                 <div className="flex items-center gap-3">
                   <Clock className="w-5 h-5 text-primary" />
@@ -1126,9 +1124,8 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
                 type="button"
                 onClick={() => setDeliveryMode("SCHEDULED")}
                 disabled={scheduleDisabled || scheduleLoading}
-                className={`w-full text-left rounded-xl border p-3 transition ${
-                  deliveryMode === "SCHEDULED" ? "border-primary bg-primary/5" : "border-gray-200 bg-white"
-                } ${scheduleDisabled || scheduleLoading ? "opacity-60 cursor-not-allowed" : ""}`}
+                className={`w-full text-left rounded-xl border p-3 transition ${deliveryMode === "SCHEDULED" ? "border-primary bg-primary/5" : "border-gray-200 bg-white"
+                  } ${scheduleDisabled || scheduleLoading ? "opacity-60 cursor-not-allowed" : ""}`}
               >
                 <div className="flex items-center gap-3">
                   <Clock className="w-5 h-5 text-primary" />
@@ -1171,11 +1168,10 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
                                 key={slot.id}
                                 type="button"
                                 onClick={() => setSelectedSlotId(slot.id)}
-                                className={`px-3 py-2 rounded-full border text-xs font-medium transition ${
-                                  isSelected
+                                className={`px-3 py-2 rounded-full border text-xs font-medium transition ${isSelected
                                     ? "border-primary bg-primary/10 text-primary"
                                     : "border-gray-200 bg-white text-gray-700"
-                                }`}
+                                  }`}
                               >
                                 {slot.timeLabel}
                               </button>
@@ -1210,9 +1206,8 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
                   <button
                     type="button"
                     onClick={() => setSelectedPaymentType("COD")}
-                    className={`w-full text-left rounded-xl border p-3 transition ${
-                      selectedPaymentType === "COD" ? "border-primary bg-primary/5" : "border-gray-200 bg-white"
-                    }`}
+                    className={`w-full text-left rounded-xl border p-3 transition ${selectedPaymentType === "COD" ? "border-primary bg-primary/5" : "border-gray-200 bg-white"
+                      }`}
                   >
                     <div className="flex items-center gap-3">
                       <DollarSign className="w-5 h-5 text-primary" />
@@ -1227,9 +1222,8 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
                   <button
                     type="button"
                     onClick={() => setSelectedPaymentType("CARD")}
-                    className={`w-full text-left rounded-xl border p-3 transition ${
-                      selectedPaymentType === "CARD" ? "border-primary bg-primary/5" : "border-gray-200 bg-white"
-                    }`}
+                    className={`w-full text-left rounded-xl border p-3 transition ${selectedPaymentType === "CARD" ? "border-primary bg-primary/5" : "border-gray-200 bg-white"
+                      }`}
                   >
                     <div className="flex items-center gap-3">
                       <CreditCard className="w-5 h-5 text-primary" />
@@ -1244,9 +1238,8 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
                   <button
                     type="button"
                     onClick={() => setSelectedPaymentType("WALLET")}
-                    className={`w-full text-left rounded-xl border p-3 transition ${
-                      selectedPaymentType === "WALLET" ? "border-primary bg-primary/5" : "border-gray-200 bg-white"
-                    }`}
+                    className={`w-full text-left rounded-xl border p-3 transition ${selectedPaymentType === "WALLET" ? "border-primary bg-primary/5" : "border-gray-200 bg-white"
+                      }`}
                   >
                     <div className="flex items-center gap-3">
                       <Wallet className="w-5 h-5 text-primary" />
@@ -1279,9 +1272,8 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
                       key={method.id}
                       type="button"
                       onClick={() => setSelectedPaymentMethodId(method.id)}
-                      className={`w-full text-left rounded-xl border p-3 transition ${
-                        selectedPaymentMethodId === method.id ? "border-primary bg-primary/5" : "border-gray-200 bg-white"
-                      }`}
+                      className={`w-full text-left rounded-xl border p-3 transition ${selectedPaymentMethodId === method.id ? "border-primary bg-primary/5" : "border-gray-200 bg-white"
+                        }`}
                     >
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-gray-900">{formatPaymentMethod(method)}</span>
@@ -1319,9 +1311,8 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
                       key={method.id}
                       type="button"
                       onClick={() => setSelectedPaymentMethodId(method.id)}
-                      className={`w-full text-left rounded-xl border p-3 transition ${
-                        selectedPaymentMethodId === method.id ? "border-primary bg-primary/5" : "border-gray-200 bg-white"
-                      }`}
+                      className={`w-full text-left rounded-xl border p-3 transition ${selectedPaymentMethodId === method.id ? "border-primary bg-primary/5" : "border-gray-200 bg-white"
+                        }`}
                     >
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-gray-900">{formatPaymentMethod(method)}</span>
@@ -1429,54 +1420,53 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
           </section>
         )}
 
-          <section className="section-card space-y-3">
-            <h3 className="font-semibold text-gray-900">{t("checkout.sections.notes")}</h3>
-            <Textarea
-              placeholder={t("checkout.notes.placeholder")}
-              value={deliveryNotes}
-              onChange={(e) => setDeliveryNotes(e.target.value)}
-              className="min-h-[80px]"
-            />
-          </section>
+        <section className="section-card space-y-3">
+          <h3 className="font-semibold text-gray-900">{t("checkout.sections.notes")}</h3>
+          <Textarea
+            placeholder={t("checkout.notes.placeholder")}
+            value={deliveryNotes}
+            onChange={(e) => setDeliveryNotes(e.target.value)}
+            className="min-h-[80px]"
+          />
+        </section>
 
-          <section className="section-card space-y-3">
-            <h3 className="font-semibold text-gray-900">{t("checkout.substitution.title", "Out-of-stock preference")}</h3>
-            <p className="text-xs text-gray-500">
-              {t("checkout.substitution.subtitle", "If an item is unavailable, choose what we should do.")}
-            </p>
-            <div className="grid gap-2">
-              {([
-                { id: "replace", label: t("checkout.substitution.options.replace", "Replace with similar items") },
-                { id: "contact", label: t("checkout.substitution.options.contact", "Call me before replacing") },
-                { id: "remove", label: t("checkout.substitution.options.remove", "Remove the item") },
-              ] as const).map((option) => {
-                const isSelected = substitutionPreference === option.id;
-                return (
-                  <button
-                    key={option.id}
-                    type="button"
-                    onClick={() => setSubstitutionPreference(option.id)}
-                    className={`w-full text-left rounded-xl border p-3 transition ${
-                      isSelected ? "border-primary bg-primary/5" : "border-gray-200 bg-white"
+        <section className="section-card space-y-3">
+          <h3 className="font-semibold text-gray-900">{t("checkout.substitution.title", "Out-of-stock preference")}</h3>
+          <p className="text-xs text-gray-500">
+            {t("checkout.substitution.subtitle", "If an item is unavailable, choose what we should do.")}
+          </p>
+          <div className="grid gap-2">
+            {([
+              { id: "replace", label: t("checkout.substitution.options.replace", "Replace with similar items") },
+              { id: "contact", label: t("checkout.substitution.options.contact", "Call me before replacing") },
+              { id: "remove", label: t("checkout.substitution.options.remove", "Remove the item") },
+            ] as const).map((option) => {
+              const isSelected = substitutionPreference === option.id;
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => setSubstitutionPreference(option.id)}
+                  className={`w-full text-left rounded-xl border p-3 transition ${isSelected ? "border-primary bg-primary/5" : "border-gray-200 bg-white"
                     }`}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-medium text-gray-900">{option.label}</span>
-                      <span className={`text-xs ${isSelected ? "text-primary" : "text-gray-400"}`}>
-                        {isSelected ? t("checkout.substitution.selected", "Selected") : t("checkout.substitution.select", "Select")}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-            <div className="bg-amber-50 text-amber-900 text-xs rounded-xl p-2 border border-amber-100">
-              {t("checkout.availabilityNotice", "Item quantities may change based on availability.")}
-            </div>
-          </section>
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-medium text-gray-900">{option.label}</span>
+                    <span className={`text-xs ${isSelected ? "text-primary" : "text-gray-400"}`}>
+                      {isSelected ? t("checkout.substitution.selected", "Selected") : t("checkout.substitution.select", "Select")}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          <div className="bg-amber-50 text-amber-900 text-xs rounded-xl p-2 border border-amber-100">
+            {t("checkout.availabilityNotice", "Item quantities may change based on availability.")}
+          </div>
+        </section>
 
-          <section className="section-card space-y-3">
-            <h3 className="font-semibold text-gray-900">{t("checkout.sections.summary")}</h3>
+        <section className="section-card space-y-3">
+          <h3 className="font-semibold text-gray-900">{t("checkout.sections.summary")}</h3>
           {showAddressWarning && (
             <div className="bg-amber-50 text-amber-900 text-sm rounded-xl p-2 flex items-center gap-2">
               <AlertTriangle className="w-4 h-4" />
@@ -1494,23 +1484,23 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
               {t("checkout.guest.noRewards", "Guest orders do not use coupons or loyalty rewards.")}
             </div>
           )}
-            <div className="flex items-center justify-between text-sm text-gray-600">
-              <span>{t("checkout.summary.subtotal")}</span>
-              <span className="price-text">{fmtEGP(subtotal)}</span>
-            </div>
-            <div className="flex items-center justify-between text-sm text-gray-600">
-              <span>{t("checkout.summary.serviceFee", "Service fee")}</span>
-              <span className="price-text">{fmtEGP(serviceFeeDisplayed)}</span>
-            </div>
-            <div className="flex items-center justify-between text-sm text-gray-600">
-              <span className="flex items-center gap-1">
-                <Truck className="w-4 h-4" />
-                {t("checkout.summary.delivery")}
-              </span>
-              <span className="price-text">
-                {shippingFeeCents > 0 ? fmtEGP(shippingDisplayed) : t("checkout.summary.freeDelivery", "Free")}
-              </span>
-            </div>
+          <div className="flex items-center justify-between text-sm text-gray-600">
+            <span>{t("checkout.summary.subtotal")}</span>
+            <span className="price-text">{fmtEGP(subtotal)}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm text-gray-600">
+            <span>{t("checkout.summary.serviceFee", "Service fee")}</span>
+            <span className="price-text">{fmtEGP(serviceFeeDisplayed)}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm text-gray-600">
+            <span className="flex items-center gap-1">
+              <Truck className="w-4 h-4" />
+              {t("checkout.summary.delivery")}
+            </span>
+            <span className="price-text">
+              {shippingFeeCents > 0 ? fmtEGP(shippingDisplayed) : t("checkout.summary.freeDelivery", "Free")}
+            </span>
+          </div>
           {cartGroups.length > 0 && (
             <div className="rounded-xl bg-gray-50 p-3 text-xs text-gray-600 space-y-2">
               <p className="font-semibold text-gray-900">

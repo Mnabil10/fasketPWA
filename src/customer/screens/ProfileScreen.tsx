@@ -256,7 +256,7 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
     {
       key: "privacy",
       icon: FileText,
-      label: normalizedLanguage === "ar" ? "سياسة الخصوصية" : t("profile.support.privacy", "Privacy Policy"),
+      label: t("profile.support.privacy", "Privacy Policy"),
       toggle: false,
       action: () => updateAppState({ currentScreen: "privacy" }),
       iconBg: "bg-gray-400",
@@ -264,7 +264,7 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
     {
       key: "terms",
       icon: Scale,
-      label: normalizedLanguage === "ar" ? "شروط الاستخدام" : t("profile.support.terms", "Terms of Use"),
+      label: t("profile.support.terms", "Terms of Use"),
       toggle: false,
       action: () => updateAppState({ currentScreen: "terms" }),
       iconBg: "bg-gray-400",

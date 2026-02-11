@@ -12,6 +12,7 @@ import {
   Bell,
   Globe,
   LogOut,
+  LogIn,
   ChevronRight,
   Star,
   Gift,
@@ -71,6 +72,7 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
   );
 
 
+  const isGuest = !appState.user;
   const activeLanguage = supportedLanguages.find((lang) => lang.code === normalizedLanguage) ?? supportedLanguages[0];
   const displayName = profile?.name?.trim() || t("profile.guest");
   const displayPhone = profile?.phone?.trim() || t("profile.noPhone");
@@ -341,101 +343,125 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
           <h1 className="font-poppins text-xl text-gray-900" style={{ fontWeight: 600 }}>
             {t("profile.title")}
           </h1>
-          <p className="text-xs text-gray-500">{profile?.loyaltyTier || t("profile.tier")}</p>
+          <p className="text-xs text-gray-500">{isGuest ? t("profile.guest") : (profile?.loyaltyTier || t("profile.tier"))}</p>
         </div>
 
-        <div className="mx-4 mt-4 bg-gradient-to-r from-primary/10 to-primary/5 rounded-2xl p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-gray-600">{t("profile.loyalty.balanceLabel")}</p>
-              <p className="text-2xl font-semibold text-primary">{loyaltyPoints}</p>
+        {!isGuest && (
+          <div className="mx-4 mt-4 bg-gradient-to-r from-primary/10 to-primary/5 rounded-2xl p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-gray-600">{t("profile.loyalty.balanceLabel")}</p>
+                <p className="text-2xl font-semibold text-primary">{loyaltyPoints}</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-xl"
+                onClick={() => updateAppState({ currentScreen: "loyalty-history" })}
+              >
+                {t("profile.loyalty.viewHistory")}
+              </Button>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-xl"
-              onClick={() => updateAppState({ currentScreen: "loyalty-history" })}
-            >
-              {t("profile.loyalty.viewHistory")}
-            </Button>
+            {appState.settings?.loyalty?.enabled && (
+              <p className="text-xs text-gray-600 mt-2">
+                {t("profile.loyalty.rate", {
+                  earn: appState.settings.loyalty.earnRate ?? 0,
+                  redeem: appState.settings.loyalty.redeemRate ?? 0,
+                })}
+              </p>
+            )}
           </div>
-          {appState.settings?.loyalty?.enabled && (
-            <p className="text-xs text-gray-600 mt-2">
-              {t("profile.loyalty.rate", {
-                earn: appState.settings.loyalty.earnRate ?? 0,
-                redeem: appState.settings.loyalty.redeemRate ?? 0,
-              })}
-            </p>
-          )}
-        </div>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto">
         <div className="bg-white mx-4 mt-4 rounded-xl p-4 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-              <User className="w-6 h-6" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">{displayName}</h2>
-              <p className="text-sm text-gray-600">{displayPhone}</p>
-              <p className="text-sm text-gray-600">{displayEmail}</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3 mt-4">
-            {quickStats.map((stat) => (
-              <div key={stat.label} className="bg-gray-50 rounded-xl p-3">
-                <stat.icon className="w-4 h-4 text-primary mb-1" />
-                <p className="text-xs text-gray-500">{stat.label}</p>
-                <p className="font-semibold text-gray-900">{stat.value}</p>
+          {isGuest ? (
+            <div className="bg-gradient-to-r from-primary/20 via-primary/10 to-primary/5 rounded-2xl p-6 border border-primary/20">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center text-primary shrink-0">
+                  <User className="w-7 h-7" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-1">{t("profile.guest")}</h2>
+                  <p className="text-sm text-gray-600 mb-4">{t("profile.signInCta", "Sign in to access addresses, order history, loyalty points, and more.")}</p>
+                  <Button
+                    onClick={() => updateAppState({ currentScreen: "auth" })}
+                    className="w-full sm:w-auto"
+                  >
+                    <LogIn className="w-4 h-4 mr-2" />
+                    {t("profile.login")}
+                  </Button>
+                </div>
               </div>
-            ))}
-          </div>
-          <Button
-            onClick={() => updateAppState({ currentScreen: "addresses" })}
-            className="mt-4 w-full rounded-xl"
-          >
-            {t("profile.addAddress", "Add new address")}
-          </Button>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                  <User className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">{displayName}</h2>
+                  <p className="text-sm text-gray-600">{displayPhone}</p>
+                  <p className="text-sm text-gray-600">{displayEmail}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3 mt-4">
+                {quickStats.map((stat) => (
+                  <div key={stat.label} className="bg-gray-50 rounded-xl p-3">
+                    <stat.icon className="w-4 h-4 text-primary mb-1" />
+                    <p className="text-xs text-gray-500">{stat.label}</p>
+                    <p className="font-semibold text-gray-900">{stat.value}</p>
+                  </div>
+                ))}
+              </div>
+              <Button
+                onClick={() => updateAppState({ currentScreen: "addresses" })}
+                className="mt-4 w-full rounded-xl"
+              >
+                {t("profile.addAddress", "Add new address")}
+              </Button>
+            </>
+          )}
         </div>
 
-
-        <div className="mx-4 mt-6">
-          <h3 className="font-poppins text-lg font-semibold text-gray-900 mb-3 px-1">
-            {t("profile.sectionAccount")}
-          </h3>
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            {mainMenuItems.map((item, index) => (
-              <button
-                key={item.label}
-                onClick={item.action}
-                className={cn(
-                  "w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors",
-                  index !== mainMenuItems.length - 1 && "border-b border-gray-50"
-                )}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={cn(
-                    "w-8 h-8 rounded-lg flex items-center justify-center text-white",
-                    (item as any).iconBg || "bg-gray-400"
-                  )}>
-                    <item.icon className="w-5 h-5" />
-                  </div>
-                  <span className="text-sm font-medium text-gray-900">{item.label}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {item.badge && (
-                    <Badge variant={item.badge.variant} className="text-[10px] h-5 px-1.5">
-                      {item.badge.label}
-                    </Badge>
+        {!isGuest && (
+          <div className="mx-4 mt-6">
+            <h3 className="font-poppins text-lg font-semibold text-gray-900 mb-3 px-1">
+              {t("profile.sectionAccount")}
+            </h3>
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              {mainMenuItems.map((item, index) => (
+                <button
+                  key={item.label}
+                  onClick={item.action}
+                  className={cn(
+                    "w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors",
+                    index !== mainMenuItems.length - 1 && "border-b border-gray-50"
                   )}
-                  <ChevronRight className="w-4 h-4 text-gray-300 rtl:rotate-180" />
-                </div>
-              </button>
-            ))}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={cn(
+                      "w-8 h-8 rounded-lg flex items-center justify-center text-white",
+                      (item as any).iconBg || "bg-gray-400"
+                    )}>
+                      <item.icon className="w-5 h-5" />
+                    </div>
+                    <span className="text-sm font-medium text-gray-900">{item.label}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {item.badge && (
+                      <Badge variant={item.badge.variant} className="text-[10px] h-5 px-1.5">
+                        {item.badge.label}
+                      </Badge>
+                    )}
+                    <ChevronRight className="w-4 h-4 text-gray-300 rtl:rotate-180" />
+                  </div>
+                </button>
+              ))}
 
-            <div className="p-4 flex items-center justify-between border-t border-gray-50">
+              <div className="p-4 flex items-center justify-between border-t border-gray-50">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white bg-teal-500">
                   <Globe className="w-5 h-5" />
@@ -460,13 +486,48 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
             </div>
           </div>
         </div>
+        )}
 
-        <div className="mx-4 mt-6">
-          <h3 className="font-poppins text-lg font-semibold text-gray-900 mb-3 px-1">
-            {t("profile.sectionSettings")}
-          </h3>
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            {settingsMenuItems.map((item, index) => (
+        {isGuest && (
+          <div className="mx-4 mt-6">
+            <h3 className="font-poppins text-lg font-semibold text-gray-900 mb-3 px-1">
+              {t("profile.settings.language")}
+            </h3>
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white bg-teal-500">
+                    <Globe className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-gray-900 block">{t("profile.settings.language")}</span>
+                    <p className="text-xs text-gray-500">{activeLanguage.native}</p>
+                  </div>
+                </div>
+                <select
+                  value={normalizedLanguage}
+                  onChange={handleLanguageChange}
+                  className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white focus:ring-1 focus:ring-primary h-auto min-h-0"
+                  aria-label={t("profile.settings.language")}
+                >
+                  {supportedLanguages.map((lang) => (
+                    <option key={lang.code} value={lang.code}>
+                      {lang.native}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!isGuest && (
+          <div className="mx-4 mt-6">
+            <h3 className="font-poppins text-lg font-semibold text-gray-900 mb-3 px-1">
+              {t("profile.sectionSettings")}
+            </h3>
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              {settingsMenuItems.map((item, index) => (
               <div
                 key={item.key}
                 className={cn(
@@ -497,8 +558,9 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
                 )}
               </div>
             ))}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="mx-4 mt-6">
           <h3 className="font-poppins text-lg font-semibold text-gray-900 mb-3 px-1">
@@ -561,14 +623,24 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
         </div>
 
         <div className="mx-4 mt-4 mb-6">
-          <Button
-            variant="outline"
-            onClick={handleLogout}
-            className="w-full justify-center bg-white rounded-xl p-4 h-auto shadow-sm border-red-200 text-red-600 hover:bg-red-50"
-          >
-            <LogOut className="w-5 h-5 mr-3" />
-            <span>{t("profile.logout")}</span>
-          </Button>
+          {isGuest ? (
+            <Button
+              onClick={() => updateAppState({ currentScreen: "auth" })}
+              className="w-full justify-center rounded-xl p-4 h-auto shadow-sm"
+            >
+              <LogIn className="w-5 h-5 mr-3" />
+              <span>{t("profile.login")}</span>
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              onClick={handleLogout}
+              className="w-full justify-center bg-white rounded-xl p-4 h-auto shadow-sm border-red-200 text-red-600 hover:bg-red-50"
+            >
+              <LogOut className="w-5 h-5 mr-3" />
+              <span>{t("profile.logout")}</span>
+            </Button>
+          )}
         </div>
       </div>
 

@@ -99,7 +99,6 @@ const authRequiredScreens = new Set<Screen>([
   "orders",
   "order-detail",
   "checkout",
-  "profile",
   "addresses",
   "payment-methods",
   "loyalty-history",
@@ -835,6 +834,15 @@ export function CustomerApp() {
           mode={mode}
           onAuthSuccess={handleAuthSuccess}
           onToggleMode={toggleAuthMode}
+          onContinueAsGuest={() =>
+            updateAppState({
+              currentScreen: "home",
+              postOnboardingScreen: "home",
+              bootstrapping: false,
+              guestSession: null,
+              guestTracking: null,
+            })
+          }
           branding={appState.settings?.mobileApp?.branding}
         />
       );

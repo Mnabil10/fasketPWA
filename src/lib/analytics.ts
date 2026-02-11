@@ -89,6 +89,26 @@ export function trackPromoClick(promoId: string, action?: string | null, link?: 
   trackEvent("promo_click", { promoId, action, link });
 }
 
+export function trackSmartCtaClick(ruleId?: string, actionType?: string, vendorId?: string | null) {
+  trackEvent("SMART_CTA_CLICK", { ruleId, actionType, vendorId: vendorId ?? undefined });
+}
+
+export function trackReorderClick(orderId: string, vendorId?: string | null) {
+  trackEvent("REORDER_CLICK", { orderId, vendorId: vendorId ?? undefined });
+}
+
+export function trackReorderSuccess(orderId: string, vendorId?: string | null) {
+  trackEvent("REORDER_SUCCESS", { orderId, vendorId: vendorId ?? undefined });
+}
+
+export function trackWizardShown(source?: string) {
+  trackEvent("WIZARD_SHOWN", { source });
+}
+
+export function trackWizardCompleted(optionId?: string, vendorId?: string | null) {
+  trackEvent("WIZARD_COMPLETED", { optionId, vendorId: vendorId ?? undefined });
+}
+
 export const analytics = {
   trackAppOpen,
   trackViewProduct,
@@ -97,6 +117,11 @@ export const analytics = {
   trackOrderPlaced,
   trackOrderFailed,
   trackPromoClick,
+  trackSmartCtaClick,
+  trackReorderClick,
+  trackReorderSuccess,
+  trackWizardShown,
+  trackWizardCompleted,
 };
 
 export function getStoredEvents() {

@@ -12,6 +12,7 @@ import type {
   OrderReceipt,
   OrderSummary,
   OrderTimelineEntry,
+  ReorderPreview,
   ProductOptionSelection,
 } from "../types/api";
 
@@ -535,6 +536,11 @@ export async function cancelOrderGroup(id: string): Promise<OrderGroupCancelResu
 export async function reorderOrder(id: string): Promise<ApiCart> {
   const { data } = await api.post(`/orders/${id}/reorder`);
   return (data?.data?.cart ?? data?.data ?? data) as ApiCart;
+}
+
+export async function getReorderPreview(id: string): Promise<ReorderPreview> {
+  const { data } = await api.get(`/orders/${id}/reorder-preview`);
+  return (data?.data ?? data) as ReorderPreview;
 }
 
 export async function getOrderTimeline(id: string): Promise<OrderTimelineEntry[]> {

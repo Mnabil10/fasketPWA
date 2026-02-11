@@ -66,6 +66,24 @@ export function CategoriesScreen({ appState, updateAppState }: CategoriesScreenP
     : etaValueLabel
       ? t("providers.etaTypical", { value: etaValueLabel })
       : t("providers.etaFallback", "Estimated delivery shown at checkout.");
+  const providerBadges = useMemo(() => {
+    const badges: Array<{ key: string; label: string; variant: "secondary" | "outline" }> = [];
+    if (selectedProvider?.supportsInstant) {
+      badges.push({
+        key: "instant",
+        label: t("providers.badges.instant", "Fast delivery today"),
+        variant: "secondary",
+      });
+    }
+    if (selectedProvider?.supportsPreorder) {
+      badges.push({
+        key: "preorder",
+        label: t("providers.badges.preorder", "Delivery tomorrow morning"),
+        variant: "outline",
+      });
+    }
+    return badges;
+  }, [selectedProvider, t]);
   const bestSectionRef = useRef<HTMLDivElement | null>(null);
   const offersSectionRef = useRef<HTMLDivElement | null>(null);
   const categoriesSectionRef = useRef<HTMLDivElement | null>(null);
@@ -252,6 +270,15 @@ export function CategoriesScreen({ appState, updateAppState }: CategoriesScreenP
                   <Clock className="w-3.5 h-3.5 text-primary" />
                   <span>{etaLabel}</span>
                 </div>
+                {providerBadges.length > 0 && (
+                  <div className={`mt-2 flex flex-wrap gap-1 ${isRTL ? "justify-end" : ""}`}>
+                    {providerBadges.map((badge) => (
+                      <Badge key={badge.key} variant={badge.variant} className="text-[10px] rounded-full px-2">
+                        {badge.label}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
             <Button

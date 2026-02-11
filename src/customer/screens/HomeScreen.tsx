@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "../../ui/button";
+import { Badge } from "../../ui/badge";
 import { Input } from "../../ui/input";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "../../ui/dialog";
 import {
   Search,
   ShoppingCart,
@@ -33,6 +35,10 @@ import {
   useProviders,
   useSearchHistory,
   useApiErrorToast,
+  useLastOrders,
+  useFrequentlyBought,
+  useFirstOrderWizard,
+  useReorderFlow,
 } from "../hooks";
 import {
   EmptyState,
@@ -44,8 +50,8 @@ import {
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { hashFromUrl, parseHash } from "../navigation/deepLinking";
 import { goToCart, goToCategory, goToHome, goToOrders, goToProduct } from "../navigation/navigation";
-import type { Product, ProviderSummary } from "../../types/api";
-import { trackAddToCart, trackPromoClick } from "../../lib/analytics";
+import type { FirstOrderWizardResponse, Product, ProviderSummary } from "../../types/api";
+import { trackAddToCart, trackPromoClick, trackSmartCtaClick, trackWizardCompleted, trackWizardShown } from "../../lib/analytics";
 import { openExternalUrl } from "../../lib/fasketLinks";
 import { extractApiError, mapApiErrorToMessage } from "../../utils/mapApiErrorToMessage";
 import { FASKET_GRADIENTS } from "../../styles/designSystem";
@@ -53,6 +59,9 @@ import type { CachedResult } from "../../lib/offlineCache";
 import { getLocalizedString, isFeatureEnabled } from "../utils/mobileAppConfig";
 import { resolveQuickAddProduct } from "../utils/productOptions";
 import { buildQuickAddMap } from "../utils/quickAdd";
+import { resolveSmartCta } from "../utils/growthPack";
+import { dismissFirstOrderWizard } from "../../services/growth";
+import { fmtEGP, fromCents } from "../../lib/money";
 
 interface HomeScreenProps {
   appState: AppState;
@@ -72,6 +81,7 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
   const mobileConfig = appState.settings?.mobileApp ?? null;
+  const growthPack = mobileConfig?.growthPack ?? null;
   const lang = i18n.language?.startsWith("ar") ? "ar" : "en";
   const cartHook = useCart({ userId: appState.user?.id });
   const cartGuard = useCartGuard(cartHook);
@@ -96,6 +106,28 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
   const providerSectionRef = useRef<HTMLDivElement | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const { history, addQuery, clearHistory } = useSearchHistory("home");
+  const [ctaClock, setCtaClock] = useState(() => Date.now());
+  const smartHomeConfig = growthPack?.smartHome ?? {};
+  const showReorder = smartHomeConfig.showReorder ?? true;
+  const showFrequentlyBought = smartHomeConfig.showFrequentlyBought ?? true;
+  const reorderLimit = smartHomeConfig.reorderOrdersCount ?? 2;
+  const frequentLimit = smartHomeConfig.frequentlyBoughtCount ?? 8;
+  const lastOrdersQuery = useLastOrders(reorderLimit, { enabled: showReorder && Boolean(appState.user?.id) });
+  const frequentlyBoughtQuery = useFrequentlyBought(frequentLimit, { enabled: showFrequentlyBought && Boolean(appState.user?.id) });
+  const reorderConfig = growthPack?.reorder ?? {};
+  const { reorder, reorderLoadingId, dialogs: reorderDialogs } = useReorderFlow({
+    userId: appState.user?.id,
+    allowAutoReplace: reorderConfig.allowAutoReplace ?? false,
+    showChangesSummary: reorderConfig.showChangesSummary ?? true,
+    onNavigateToCart: () => updateAppState({ currentScreen: "cart" }),
+  });
+  const smartCta = useMemo(() => resolveSmartCta(growthPack, lang, new Date(ctaClock)), [growthPack, lang, ctaClock]);
+  const wizardQuery = useFirstOrderWizard({ enabled: Boolean(appState.user?.id) });
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [wizardStepIndex, setWizardStepIndex] = useState(0);
+  const [wizardPendingAction, setWizardPendingAction] = useState<any | null>(null);
+  const wizardShownRef = useRef(false);
+  const wizardDismissedRef = useRef(false);
 
   const sectionConfigs = mobileConfig?.home?.sections ?? [];
   const sectionByType = useMemo(() => {
@@ -145,6 +177,26 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
     const provider = providerMap.get(providerId);
     if (!provider) return null;
     return lang === "ar" ? provider.nameAr || provider.name : provider.name || provider.nameAr;
+  };
+
+  const resolveProviderBadges = (provider: ProviderSummary | null) => {
+    if (!provider) return [];
+    const badges: Array<{ key: string; label: string; variant: "secondary" | "outline" }> = [];
+    if (provider.supportsInstant) {
+      badges.push({
+        key: "instant",
+        label: t("providers.badges.instant", "Fast delivery today"),
+        variant: "secondary",
+      });
+    }
+    if (provider.supportsPreorder) {
+      badges.push({
+        key: "preorder",
+        label: t("providers.badges.preorder", "Delivery tomorrow morning"),
+        variant: "outline",
+      });
+    }
+    return badges;
   };
 
   const resolveProviderType = (provider?: ProviderSummary | null): ProviderTypeKey => {
@@ -199,6 +251,22 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
       });
     }
   }, [providerType, selectedProvider, updateAppState]);
+
+  useEffect(() => {
+    if (!wizardQuery.data?.show) return;
+    if (wizardShownRef.current) return;
+    wizardShownRef.current = true;
+    wizardDismissedRef.current = false;
+    setWizardStepIndex(0);
+    setWizardPendingAction(null);
+    setWizardOpen(true);
+    trackWizardShown("home");
+  }, [wizardQuery.data?.show]);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setCtaClock(Date.now()), 60 * 1000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   const filteredProviders = useMemo(() => {
     if (!providerType) return providers;
@@ -375,6 +443,84 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
     updateAppState({ currentScreen: "categories" });
   };
 
+  const applyGrowthAction = (action?: { type?: string; vendorId?: string; mode?: "INSTANT" | "PREORDER" }) => {
+    if (!action) {
+      updateAppState({ currentScreen: "categories" });
+      return;
+    }
+    const preferredMode =
+      action.mode === "PREORDER" ? "SCHEDULED" : action.mode === "INSTANT" ? "ASAP" : null;
+    const preferredPatch = preferredMode ? { preferredDeliveryMode: preferredMode } : {};
+    if (action.type === "OPEN_VENDOR") {
+      const providerId = action.vendorId;
+      if (providerId) {
+        const provider = providerMap.get(providerId);
+        if (provider) {
+          updateAppState({
+            selectedProvider: provider,
+            selectedProviderId: provider.id,
+            currentScreen: "categories",
+            ...preferredPatch,
+          });
+          return;
+        }
+      }
+    }
+    if (action.type === "OPEN_HOME_SECTIONS") {
+      if (preferredMode) {
+        updateAppState({ ...preferredPatch });
+      }
+      providerSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    updateAppState({
+      currentScreen: providerSelected ? "categories" : "home",
+      ...preferredPatch,
+    });
+  };
+
+  const handleSmartCtaClick = () => {
+    if (!smartCta) return;
+    trackSmartCtaClick(smartCta.id, smartCta.action?.type, smartCta.action?.vendorId ?? null);
+    applyGrowthAction(smartCta.action);
+  };
+
+  const handleWizardOption = async (option?: { id?: string; action?: any }) => {
+    if (!option) return;
+    const totalSteps = wizardSteps.length;
+    const isLastStep = totalSteps === 0 || wizardStepIndex >= totalSteps - 1;
+    const nextAction = option.action ?? wizardPendingAction;
+
+    if (!isLastStep) {
+      if (option.action) {
+        setWizardPendingAction(option.action);
+      }
+      setWizardStepIndex((prev) => Math.min(prev + 1, Math.max(totalSteps - 1, 0)));
+      return;
+    }
+
+    const vendorId = (option.action?.vendorId ?? wizardPendingAction?.vendorId) ?? null;
+    trackWizardCompleted(option.id, vendorId);
+    setWizardOpen(false);
+    setWizardStepIndex(0);
+    setWizardPendingAction(null);
+    if (!wizardDismissedRef.current) {
+      wizardDismissedRef.current = true;
+      await dismissFirstOrderWizard().catch(() => undefined);
+    }
+    applyGrowthAction(nextAction);
+  };
+
+  const handleWizardSkip = async () => {
+    setWizardOpen(false);
+    setWizardStepIndex(0);
+    setWizardPendingAction(null);
+    if (!wizardDismissedRef.current) {
+      wizardDismissedRef.current = true;
+      await dismissFirstOrderWizard().catch(() => undefined);
+    }
+  };
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchScope === "provider" && !providerSelected) {
@@ -414,6 +560,15 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
     t("home.subtitlePremium", "Your premium online supermarket in Badr City.")
   );
   const heroGradient = mobileConfig?.theme?.heroGradient || `var(--hero-gradient, ${FASKET_GRADIENTS.hero})`;
+  const wizardData: FirstOrderWizardResponse | null = wizardQuery.data ?? null;
+  const wizardSteps = wizardData?.steps ?? [];
+  const wizardStep = wizardSteps[wizardStepIndex] ?? null;
+  const wizardTitle = wizardStep
+    ? getLocalizedString(wizardStep.title, lang, t("home.wizard.title", "Start your first order"))
+    : t("home.wizard.title", "Start your first order");
+  const wizardSubtitle = wizardStep
+    ? getLocalizedString(wizardStep.subtitle, lang, "")
+    : "";
 
   const resolvePillIcon = (name?: string) => {
     const key = (name || "").toLowerCase();
@@ -593,6 +748,19 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
                         <Star className="w-3 h-3 text-amber-500" />
                         <span>{ratingLabel}</span>
                       </div>
+                      {(() => {
+                        const badges = resolveProviderBadges(provider);
+                        if (!badges.length) return null;
+                        return (
+                          <div className="mt-2 flex flex-wrap gap-1">
+                            {badges.map((badge) => (
+                              <Badge key={badge.key} variant={badge.variant} className="text-[10px] rounded-full px-2">
+                                {badge.label}
+                              </Badge>
+                            ))}
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 </button>
@@ -605,6 +773,162 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
             subtitle={t("home.providerTypes.emptySubtitle", "Try another category to keep shopping.")}
           />
         )}
+      </div>
+    );
+  };
+
+  const renderReorderSection = () => {
+    if (!showReorder || !appState.user) return null;
+    const orders = lastOrdersQuery.data ?? [];
+    if (!lastOrdersQuery.isLoading && orders.length === 0) return null;
+    return (
+      <div className="section-card space-y-4 motion-fade">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <p className="text-xs text-gray-500">{t("home.reorder.subtitle", "Quick repeat")}</p>
+            <h2 className="text-xl font-semibold text-gray-900">{t("home.reorder.title", "Reorder")}</h2>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-primary px-2"
+            onClick={() => updateAppState({ currentScreen: "orders" })}
+          >
+            {t("home.reorder.viewAll", "View all")}
+          </Button>
+        </div>
+        {lastOrdersQuery.isLoading ? (
+          <div className="space-y-2">
+            {Array.from({ length: Math.min(reorderLimit, 2) }).map((_, idx) => (
+              <div key={idx} className="h-16 rounded-xl bg-gray-100 skeleton-soft" />
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {orders.map((order) => {
+              const providerName =
+                lang === "ar"
+                  ? order.providerNameAr || order.providerName || t("providers.providerFallback", "Provider")
+                  : order.providerName || order.providerNameAr || t("providers.providerFallback", "Provider");
+              return (
+                <div
+                  key={order.id}
+                  className="rounded-2xl border border-border bg-white p-3 shadow-card flex items-center justify-between gap-3"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 line-clamp-1">{providerName}</p>
+                    <p className="text-xs text-gray-500">
+                      {t("home.reorder.itemsCount", {
+                        count: order.itemsCount ?? 0,
+                        defaultValue: `${order.itemsCount ?? 0} items`,
+                      })}
+                    </p>
+                    <p className="text-xs text-gray-400">#{order.code ?? order.id}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-primary price-text">
+                        {fmtEGP(fromCents(order.totalCents))}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => reorder(order.id, order.providerId ?? null)}
+                      disabled={reorderLoadingId === order.id}
+                    >
+                      {reorderLoadingId === order.id
+                        ? t("orders.reorderLoading", "Reordering...")
+                        : t("orders.reorder", "Reorder")}
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderFrequentlyBoughtSection = () => {
+    if (!showFrequentlyBought || !appState.user) return null;
+    const products = frequentlyBoughtQuery.data ?? [];
+    if (!frequentlyBoughtQuery.isLoading && products.length === 0) return null;
+    return (
+      <div className="section-card space-y-4 motion-fade">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <p className="text-xs text-gray-500">{t("home.frequently.subtitle", "Picked for you")}</p>
+            <h2 className="text-xl font-semibold text-gray-900">{t("home.frequently.title", "Frequently bought")}</h2>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-primary px-2"
+            onClick={() => updateAppState({ currentScreen: "categories" })}
+          >
+            {t("home.frequently.cta", "Shop more")}
+          </Button>
+        </div>
+        {frequentlyBoughtQuery.isLoading ? (
+          <div className="premium-grid">
+            {Array.from({ length: 4 }).map((_, idx) => (
+              <ProductCardSkeleton key={idx} imageVariant="compact" />
+            ))}
+          </div>
+        ) : products.length > 0 ? (
+          <div className="premium-grid">
+            {products.map((product) => {
+              const quick = quickAddMap.get(product.id) ?? null;
+              const providerName = resolveProviderName(product.providerId) || undefined;
+              return (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  imageVariant="compact"
+                  adding={cartHook.addingProductId === product.id}
+                  disabled={isOffline}
+                  onAddToCart={handleAddToCart}
+                  quantity={quick?.qty ?? 0}
+                  onIncrease={() => handleQuickIncrease(product)}
+                  onDecrease={() => handleQuickDecrease(product)}
+                  metaLabel={providerName}
+                  onPress={(p) => {
+                    if (p.providerId) {
+                      const provider = providerMap.get(p.providerId);
+                      updateAppState({
+                        selectedProvider: provider ?? null,
+                        selectedProviderId: p.providerId,
+                      });
+                    }
+                    goToProduct(p.slug || p.id, updateAppState, { product: p });
+                  }}
+                />
+              );
+            })}
+          </div>
+        ) : null}
+      </div>
+    );
+  };
+
+  const renderSmartCta = () => {
+    if (!smartCta || !smartCta.title) return null;
+    return (
+      <div className="section-card space-y-3 bg-gradient-to-r from-primary/10 via-white to-primary/5 border border-primary/10 motion-fade">
+        <div className="flex items-center justify-between gap-4">
+          <div className="space-y-1">
+            <p className="text-xs text-gray-500">{t("home.smartCta.kicker", "Just for you")}</p>
+            <h2 className="text-xl font-semibold text-gray-900">{smartCta.title}</h2>
+            {smartCta.subtitle ? (
+              <p className="text-sm text-gray-600">{smartCta.subtitle}</p>
+            ) : null}
+          </div>
+          <Button className="rounded-xl" onClick={handleSmartCtaClick}>
+            {t("home.smartCta.cta", "Start order")}
+          </Button>
+        </div>
       </div>
     );
   };
@@ -902,6 +1226,9 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
       )}
 
       <div className="flex-1 overflow-y-auto space-y-5">
+        {renderSmartCta()}
+        {renderReorderSection()}
+        {renderFrequentlyBoughtSection()}
         <div className="section-card grid grid-cols-1 sm:grid-cols-3 gap-3">
           {[
             {
@@ -1012,6 +1339,47 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
 
       <MobileNav appState={appState} updateAppState={updateAppState} />
       {cartGuard.dialog}
+      {reorderDialogs}
+      <Dialog
+        open={wizardOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            handleWizardSkip();
+          } else {
+            setWizardOpen(true);
+          }
+        }}
+      >
+        <DialogContent className="max-h-[80vh] overflow-y-auto space-y-4">
+          <DialogHeader>
+            <DialogTitle>{wizardTitle}</DialogTitle>
+          </DialogHeader>
+          {wizardSubtitle ? <p className="text-sm text-gray-600">{wizardSubtitle}</p> : null}
+          {wizardStep?.options && wizardStep.options.length > 0 ? (
+            <div className="space-y-2">
+              {wizardStep.options.map((option) => {
+                const label = getLocalizedString(option.label, lang, "");
+                return (
+                  <Button
+                    key={option.id}
+                    variant="outline"
+                    className="w-full justify-between"
+                    onClick={() => handleWizardOption(option)}
+                  >
+                    <span>{label}</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                );
+              })}
+            </div>
+          ) : null}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={handleWizardSkip}>
+              {t("home.wizard.skip", "Skip")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 

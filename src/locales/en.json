@@ -165,11 +165,11 @@
     "searchProviderPlaceholder": "Select a provider to start searching",
     "searchScopeLabel": "Search scope",
     "searchScope": {
-      "provider": "Within provider",
+      "provider": "Within {{provider}}",
       "providerFallback": "Within provider",
       "all": "All providers"
     },
-    "subtitlePremium": "Fresh groceries and essentials delivered fast",
+    "subtitlePremium": "Your premium online supermarket in Badr City.",
     "deliveryEta": "30-45 min delivery",
     "coveragePromise": "We cover all of Badr City",
     "qualityPromise": "Handpicked quality products",
@@ -201,11 +201,30 @@
       "categoriesTitle": "Shop by category",
       "categoriesSubtitle": "Browse essentials fast"
     },
+    "smartCta": {
+      "kicker": "Just for you",
+      "cta": "Start order"
+    },
+    "reorder": {
+      "title": "Reorder",
+      "subtitle": "Quick repeat",
+      "viewAll": "View all",
+      "itemsCount": "{{count}} items"
+    },
+    "frequently": {
+      "title": "Frequently bought",
+      "subtitle": "Picked for you",
+      "cta": "Shop more"
+    },
+    "wizard": {
+      "title": "Start your first order",
+      "skip": "Skip"
+    },
     "sections": {
       "categories": "Shop by category",
       "bestSelling": "Popular this week",
       "hotOffers": "Hot offers",
-      "searchResults": "Search Results",
+      "searchResults": "Search results",
       "curated": "Curated for you"
     },
     "categoryHeadline": "Shop by category",
@@ -215,11 +234,11 @@
     },
     "promotions": "Promotions",
     "promotionsCta": "Shop now",
-    "emptySearchTitle": "No results found",
-    "emptySearchSubtitle": "Try another search term",
+    "emptySearchTitle": "No products found",
+    "emptySearchSubtitle": "Try searching for another keyword.",
     "searchError": "Search failed",
     "loyaltyWidget": {
-      "title": "Fasket Points",
+      "title": "Your Points",
       "subtitle": "You have {{points}} points",
       "cta": "View history"
     }
@@ -231,24 +250,24 @@
     "error": "Failed to load providers.",
     "providerFallback": "Provider",
     "taglineDefault": "Fresh groceries delivered to your door.",
-    "etaValue": "{{value}}",
-    "etaTypical": "30-45 min",
+    "etaValue": "Expected delivery: {{value}}",
+    "etaTypical": "Usually within {{value}} (varies by area)",
     "etaFallback": "ETA shown at checkout",
-    "contactPolicies": "Support & policies"
+    "contactPolicies": "Support & policies",
+    "badges": {
+      "instant": "Fast delivery today",
+      "preorder": "Delivery tomorrow morning"
+    }
   },
   "categories": {
     "title": "Categories",
     "searchPlaceholder": "Search categories...",
+    "pullToRefresh": "Pull to refresh categories",
     "filters": {
       "all": "All",
       "popular": "Popular",
       "trending": "Trending"
     },
-    "featuredTitle": "Featured Category",
-    "browseTitle": "Browse Categories",
-    "countLabel": "{{count}} items",
-    "emptyTitle": "No categories found",
-    "emptySubtitle": "Try another filter",
     "sections": {
       "best": "Most requested",
       "offers": "Today's offers",
@@ -256,9 +275,14 @@
     },
     "bestTitle": "Most requested",
     "bestEmpty": "Best sellers will appear here.",
-    "errorOffers": "Unable to load today's offers",
-    "errorBest": "Unable to load most requested items",
-    "errorLoading": "Unable to load categories"
+    "featuredTitle": "Featured today",
+    "browseTitle": "Browse categories",
+    "countLabel": "{{count}} categories",
+    "emptyTitle": "No categories found",
+    "emptySubtitle": "Try searching with different keywords.",
+    "errorLoading": "Failed to load categories.",
+    "errorOffers": "Failed to load featured offers.",
+    "errorBest": "Failed to load best sellers."
   },
   "products": {
     "title": "Products",
@@ -271,11 +295,11 @@
     "weight_select_price": "Select a weight to set the price",
     "sort": {
       "label": "Sort by",
-      "popularity": "Popularity",
+      "popularity": "Most popular",
       "priceLow": "Price: Low to High",
       "priceHigh": "Price: High to Low",
-      "rating": "Rating",
-      "name": "Name",
+      "rating": "Highest rated",
+      "name": "Name A-Z",
       "desc": "High to Low",
       "asc": "Low to High"
     },
@@ -283,14 +307,14 @@
       "grid": "Grid",
       "list": "List"
     },
-    "badges": {
-      "inStock": "In stock",
+      "badges": {
+        "inStock": "In stock",
       "outOfStock": "Out of stock",
       "fresh": "Fresh",
       "nextDay": "Next day",
       "byWeight": "By weight",
       "suggestedAlt": "Suggested alternative"
-    },
+      },
     "filters": {
       "inStock": "In Stock",
       "onSale": "On Sale",
@@ -395,7 +419,7 @@
     "serviceFeeLabel": "Service fee",
     "etaLabel": "Estimated delivery time",
     "availabilityNotice": "Item quantities may change based on availability.",
-    "summaryEtaFallback": "Standard delivery time",
+    "summaryEtaFallback": "Delivery time will be confirmed at checkout.",
     "totalLabel": "Total",
     "deliveryUnavailable": "This address is outside this provider's delivery area.",
     "groupsTitle": "Delivery by branch",
@@ -449,10 +473,10 @@
     },
     "deliveryWindow": {
       "title": "Delivery time",
-      "asap": "ASAP",
-      "asapDesc": "Deliver as soon as possible.",
-      "schedule": "Schedule",
-      "scheduleDesc": "Pick a delivery slot.",
+      "asap": "Instant (today)",
+      "asapDesc": "Deliver today as soon as possible.",
+      "schedule": "Pre-order",
+      "scheduleDesc": "Reserve a delivery slot.",
       "select": "Select a time slot",
       "loading": "Loading slots...",
       "noSlots": "No delivery slots available right now.",
@@ -475,26 +499,26 @@
       "placeOrder": "Place order",
       "placing": "Placing your order..."
     },
-    "notes": {
-      "placeholder": "Add extra notes for your order (optional)"
-    },
-    "substitution": {
-      "title": "Out-of-stock preference",
-      "subtitle": "If an item is unavailable, choose what we should do.",
-      "options": {
-        "replace": "Replace with similar items",
-        "contact": "Call me before replacing",
-        "remove": "Remove the item"
+      "notes": {
+        "placeholder": "Add extra notes for your order (optional)"
       },
-      "selected": "Selected",
-      "select": "Select",
-      "noteFormat": "Substitution preference: {{choice}}"
-    },
-    "availabilityNotice": "Item quantities may change based on availability.",
-    "buttons": {
-      "addAddress": "+ Add new",
-      "placeOrder": "Place Order ({{total}})"
-    },
+      "substitution": {
+        "title": "Out-of-stock preference",
+        "subtitle": "If an item is unavailable, choose what we should do.",
+        "options": {
+          "replace": "Replace with similar items",
+          "contact": "Call me before replacing",
+          "remove": "Remove the item"
+        },
+        "selected": "Selected",
+        "select": "Select",
+        "noteFormat": "Substitution preference: {{choice}}"
+      },
+      "availabilityNotice": "Item quantities may change based on availability.",
+      "buttons": {
+        "addAddress": "+ Add new",
+        "placeOrder": "Place Order ({{total}})"
+      },
     "notesPlaceholder": "Leave delivery instructions (optional)",
     "paymentMethods": {
       "cod": "Cash on delivery",
@@ -549,8 +573,7 @@
       "noRewards": "Guest orders do not use coupons or loyalty rewards.",
       "locationUnavailable": "Location services are not available.",
       "locationSet": "Location updated.",
-      "locationError": "Unable to get your location.",
-      "phoneInvalid": "Enter a valid phone number."
+      "locationError": "Unable to get your location."
     },
     "payment": {
       "cod": "Cash on delivery",
@@ -596,10 +619,7 @@
       "pointsLabel": "Points to redeem",
       "balance": "Available balance: {{balance}}",
       "preview": "You'll save {{amount}}",
-      "summaryLabel": "Loyalty discount",
-      "maxPerOrder": "You can redeem up to {{value}} points for this order.",
-      "minRedeem": "Minimum {{value}} points to redeem.",
-      "maxDiscountPercent": "Loyalty discount capped at {{value}}% of order total."
+      "summaryLabel": "Loyalty discount"
     }
   },
   "orders": {
@@ -607,12 +627,12 @@
     "loading": "Loading orders...",
     "empty": "You have no orders yet.",
     "status": {
-      "pending": "Pending",
+      "pending": "Pending confirmation",
       "confirmed": "Confirmed",
       "preparing": "Preparing",
       "out_for_delivery": "Out for delivery",
-      "delivering": "Delivering",
-      "delivery_failed": "Delivery Failed",
+      "delivering": "Out for delivery",
+      "delivery_failed": "Delivery failed",
       "completed": "Completed",
       "processing": "Processing",
       "shipped": "Shipped",
@@ -623,14 +643,25 @@
     "count": "{{count}} orders",
     "dateFormat": "DD MMM YYYY HH:mm",
     "totalLabel": "{{amount}}",
-    "emptyCta": "Browse products to place your first order.",
-    "startShopping": "Start shopping",
-    "reorder": "Reorder",
-    "reorderSuccess": "Items added to your cart.",
-    "reorderError": "Failed to reorder. Please try again.",
-    "reorderOffline": "You are offline. Please reconnect to reorder.",
-    "error": "Failed to load orders.",
-    "errorInvalidPayload": "Orders response format is invalid.",
+      "emptyCta": "Browse products to place your first order.",
+      "startShopping": "Start shopping",
+      "reorder": "Reorder",
+      "reorderLoading": "Reordering...",
+      "reorderEmpty": "We couldn't find available items to reorder.",
+      "reorderSuccess": "Items added to your cart.",
+      "reorderError": "Unable to reorder. Please try again.",
+      "reorderOffline": "You are offline. Please reconnect to reorder.",
+      "reorderConflictTitle": "Replace cart?",
+      "reorderConflict": "Your cart is currently from {{current}}. Clear it to reorder from {{next}}.",
+      "reorderConflictConfirm": "Clear cart & continue",
+      "reorderSummaryTitle": "Reorder changes",
+      "reorderSummaryMissing": "Unavailable items",
+      "reorderSummaryReplaced": "Replaced items",
+      "reorderSummaryReplacedLabel": "Replacement",
+      "reorderSummaryPrice": "Price updates",
+      "reorderSummaryCta": "View cart",
+      "error": "Failed to load orders.",
+    "errorInvalidPayload": "The orders data from the server is not in the expected format.",
     "providersCount": "{{count}} providers",
     "providerFallback": "Provider",
     "manageGroup": "Manage order",

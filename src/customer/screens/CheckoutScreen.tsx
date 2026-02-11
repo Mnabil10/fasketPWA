@@ -90,7 +90,9 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
   const [weightNoticeAccepted, setWeightNoticeAccepted] = useState(false);
   const [selectedPaymentType, setSelectedPaymentType] = useState<"COD" | "CARD" | "WALLET">("COD");
   const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string | null>(null);
-  const [deliveryMode, setDeliveryMode] = useState<"ASAP" | "SCHEDULED">("ASAP");
+  const preferredMode =
+    appState.preferredDeliveryMode === "SCHEDULED" ? "SCHEDULED" : "ASAP";
+  const [deliveryMode, setDeliveryMode] = useState<"ASAP" | "SCHEDULED">(preferredMode);
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
 
   const loading = cart.isLoading || cart.isFetching || (!isGuest && addressesLoading);
@@ -247,10 +249,22 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
   }, [deliveryMode]);
 
   useEffect(() => {
+    if (!appState.preferredDeliveryMode) return;
+    setDeliveryMode(appState.preferredDeliveryMode === "SCHEDULED" ? "SCHEDULED" : "ASAP");
+    updateAppState({ preferredDeliveryMode: null });
+  }, [appState.preferredDeliveryMode, updateAppState]);
+
+  useEffect(() => {
     if (deliveryMode === "SCHEDULED" && scheduleDisabled) {
       setDeliveryMode("ASAP");
     }
   }, [deliveryMode, scheduleDisabled]);
+
+  useEffect(() => {
+    if (deliveryMode === "SCHEDULED" && !canSchedule) {
+      setDeliveryMode("ASAP");
+    }
+  }, [deliveryMode, canSchedule]);
 
   useEffect(() => {
     if (selectedSlotId && !selectedSlot) {
@@ -1523,28 +1537,34 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
               })}
             </div>
           )}
-          <div className="flex items-center justify-between text-sm text-gray-600">
-            <span className="flex items-center gap-1">
-              <Clock className="w-4 h-4" />
-              {t("checkout.summary.eta")}
-            </span>
-            <span>
-              {isGuest
-                ? guestAddressValid
-                  ? etaLabel
-                  : t("checkout.summary.etaUnknown")
-                : selectedAddress
-                  ? etaLabel
-                  : t("checkout.summary.etaUnknown")}
-            </span>
-          </div>
-          {deliveryMode === "SCHEDULED" && selectedSlot && (
+          {deliveryMode === "ASAP" && (
+            <div className="flex items-center justify-between text-sm text-gray-600">
+              <span className="flex items-center gap-1">
+                <Clock className="w-4 h-4" />
+                {t("checkout.summary.eta")}
+              </span>
+              <span>
+                {isGuest
+                  ? guestAddressValid
+                    ? etaLabel
+                    : t("checkout.summary.etaUnknown")
+                  : selectedAddress
+                    ? etaLabel
+                    : t("checkout.summary.etaUnknown")}
+              </span>
+            </div>
+          )}
+          {deliveryMode === "SCHEDULED" && (
             <div className="flex items-center justify-between text-sm text-gray-600">
               <span className="flex items-center gap-1">
                 <Clock className="w-4 h-4" />
                 {t("checkout.deliveryWindow.selectedLabel", "Scheduled")}
               </span>
-              <span>{selectedSlot.dateLabel} {selectedSlot.timeLabel}</span>
+              <span>
+                {selectedSlot
+                  ? `${selectedSlot.dateLabel} ${selectedSlot.timeLabel}`
+                  : t("checkout.deliveryWindow.required", "Select a delivery time slot.")}
+              </span>
             </div>
           )}
           {couponDiscount > 0 && (

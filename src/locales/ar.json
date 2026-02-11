@@ -106,8 +106,7 @@
         "title": "تتبع طلبك لحظة بلحظة",
         "subtitle": "اعرف حالة طلبك من وقت الشراء وحتى وصوله إلى باب منزلك."
       }
-    ],
-    "welcome": "مرحبًا بك في"
+    ]
   },
   "auth": {
     "welcomeBack": "مرحبًا بعودتك",
@@ -151,16 +150,13 @@
     "errorRegister": "تعذّر إنشاء الحساب. من فضلك جرّب بعدين.",
     "passwordMinLength": "لازم أن تكون كلمة المرور 8 أحرف على الأقل وتحتوي على حروف وأرقام.",
     "sessionExpired": "انتهت الجلسة، من فضلك تسجيل الدخول مرة أخرى.",
-    "sessionMissing": "جلسة التسجيل مش متاحة. من فضلك البدء من جديد.",
-    "fullNamePlaceholder": "أدخل اسمك الكامل",
-    "emailPlaceholder": "example@email.com",
-    "phonePlaceholder": "01*********"
+    "sessionMissing": "جلسة التسجيل مش متاحة. من فضلك البدء من جديد."
   },
   "home": {
-    "greeting": "مرحبًا،",
-    "greetingGuest": "مرحبا بكم في فاسكت",
-    "prompt": "ابدأ التسوق اليوم",
-    "searchPlaceholder": "ابحث عن المنتجات...",
+    "greeting": "مرحبًا {{name}}!",
+    "greetingGuest": "أهلًا بك في فاسكت",
+    "prompt": "ما الذي تحتاجه اليوم؟",
+    "searchPlaceholder": "ابحث عن فواكه طازجة أو وجبات خفيفة…",
     "searchPlaceholderGlobal": "ابحث في كل المزودين",
     "notifications": "الإشعارات",
     "sections": {
@@ -168,22 +164,31 @@
       "bestSelling": "الأكثر طلبًا هذا الأسبوع",
       "hotOffers": "عروض ساخنة",
       "searchResults": "نتائج البحث",
-      "curated": "مختار لك"
+      "curated": "مختارات لك"
     },
-    "promotions": "العروض",
-    "emptySearchTitle": "لا توجد نتائج",
-    "emptySearchSubtitle": "جرّب كلمة بحث أخرى",
-    "promotionsCta": "تسوق الآن",
+    "promotions": [
+      {
+        "title": "عروض يومية طازجة",
+        "subtitle": "خصومات تصل إلى 30٪ على منتجات مختارة."
+      },
+      {
+        "title": "توصيل فائق السرعة",
+        "subtitle": "مشترياتك توصلك خلال أقل من 30 دقيقة."
+      }
+    ],
+    "emptySearchTitle": "لم نعثر على نتائج",
+    "emptySearchSubtitle": "جرّب استخدام كلمة مفتاحية مختلفة.",
+    "promotionsCta": "تسوّق دلوقتي",
     "searchError": "فشل البحث",
     "loyaltyWidget": {
-      "title": "نقاط فاسكت",
-      "subtitle": "لديك {{points}} نقطة",
-      "cta": "عرض السجل"
+      "title": "رصيد نقاطك",
+      "subtitle": "اربح نقاطًا مع كل طلب واستبدلها عند الدفع.",
+      "cta": "استخدم النقاط دلوقتي"
     },
     "searchProviderPlaceholder": "اختر مزودًا لبدء البحث",
     "searchScopeLabel": "نطاق البحث",
     "searchScope": {
-      "provider": "داخل المزود",
+      "provider": "داخل {{provider}}",
       "providerFallback": "داخل المزود",
       "all": "كل المزودين"
     },
@@ -214,6 +219,25 @@
       "categoriesTitle": "تسوّق حسب التصنيف",
       "categoriesSubtitle": "تصنيفات مرتبة وسهلة"
     },
+    "smartCta": {
+      "kicker": "خصيصًا لك",
+      "cta": "ابدأ الطلب"
+    },
+    "reorder": {
+      "title": "إعادة الطلب",
+      "subtitle": "تكرار سريع",
+      "viewAll": "عرض الكل",
+      "itemsCount": "{{count}} عنصر"
+    },
+    "frequently": {
+      "title": "الأكثر شراءً",
+      "subtitle": "مختارة لك",
+      "cta": "تسوق المزيد"
+    },
+    "wizard": {
+      "title": "ابدأ أول طلب لك",
+      "skip": "تخطي"
+    },
     "filters": {
       "inStock": "متوفر"
     },
@@ -231,50 +255,55 @@
     "error": "تعذر تحميل المزودين.",
     "providerFallback": "المزود",
     "taglineDefault": "منتجات طازة توصل لحد باب بيتك.",
-    "etaValue": "{{value}}",
-    "etaTypical": "٣٠-٤٥ دقيقة",
+    "etaValue": "التوصيل المتوقع: {{value}}",
+    "etaTypical": "عادة خلال {{value}} (حسب المنطقة)",
     "etaFallback": "موعد التوصيل هيظهر عند الدفع.",
-    "contactPolicies": "الدعم والسياسات"
+    "contactPolicies": "الدعم والسياسات",
+    "badges": {
+      "instant": "توصيل سريع اليوم",
+      "preorder": "توصيل بكرة صباحًا"
+    }
   },
   "categories": {
     "title": "الأقسام",
     "searchPlaceholder": "ابحث في الأقسام...",
-    "filters": {
-      "all": "الكل",
-      "popular": "الشائعة",
-      "trending": "الرائجة"
-    },
-    "featuredTitle": "قسم مميز",
-    "browseTitle": "تصفح الأقسام",
-    "countLabel": "{{count}} أصناف",
-    "emptyTitle": "لم يتم العثور على أقسام",
-    "emptySubtitle": "جرّب تصفية أخرى",
+      "filters": {
+        "all": "الكل",
+        "popular": "الأكثر شيوعًا",
+        "trending": "الرائجة"
+      },
+    "featuredTitle": "مختارات اليوم",
+    "browseTitle": "استكشف الفئات",
+    "countLabel": "{{count}} فئة",
+    "emptyTitle": "مفيش فئات",
+    "emptySubtitle": "جرّب البحث باستخدام كلمات أخرى.",
     "sections": {
-      "best": "الأكثر طلبًا",
-      "offers": "عروض اليوم",
-      "categories": "الأقسام"
-    },
-    "bestTitle": "الأكثر طلبًا",
-    "bestEmpty": "المنتجات الأكثر مبيعًا ستظهر هنا.",
-    "errorOffers": "مش قادرين نحمّل عروض اليوم",
-    "errorBest": "مش قادرين نحمّل المنتجات الأكثر طلبًا",
-    "errorLoading": "مش قادرين نحمّل الأقسام"
+        "best": "الأكثر طلبًا",
+        "offers": "عروض اليوم",
+        "categories": "التصنيفات"
+      },
+      "bestTitle": "الأكثر طلبًا",
+      "bestEmpty": "سيظهر الأكثر طلبًا هنا قريبًا.",
+      "errorOffers": "فشل تحميل العروض.",
+      "errorBest": "فشل تحميل الأكثر طلبًا.",
+    "errorLoading": "فشل تحميل الفئات.",
+    "pullToRefresh": "اسحب للتحديث"
   },
   "products": {
     "title": "المنتجات",
-    "searchPlaceholder": "ابحث في المنتجات...",
+    "searchPlaceholder": "ابحث عن المنتجات...",
     "featuredBadge": "مميز",
     "filterButton": "تصفية",
-    "filterTitle": "التصفية",
+    "filterTitle": "خيارات التصفية",
     "priceOnSelect": "اختار لتحديد السعر",
     "weight_select_price": "اختر الوزن لتحديد السعر",
     "sort": {
       "label": "ترتيب حسب",
-      "popularity": "الأكثر شهرة",
+      "popularity": "الأكثر شيوعًا",
       "priceLow": "السعر: من الأقل للأعلى",
       "priceHigh": "السعر: من الأعلى للأقل",
-      "rating": "التقييم",
-      "name": "الاسم",
+      "rating": "الأعلى تقييمًا",
+      "name": "الاسم أ-ي",
       "desc": "من الأعلى للأقل",
       "asc": "من الأقل للأعلى"
     },
@@ -292,17 +321,17 @@
     },
     "filters": {
       "inStock": "متوفر",
-      "onSale": "في العرض",
+      "onSale": "تخفيضات",
       "minPrice": "أقل سعر",
       "maxPrice": "أعلى سعر",
       "clear": "مسح التصفية",
       "minPricePlaceholder": "٠",
       "maxPricePlaceholder": "٠"
     },
-    "emptyTitle": "لم يتم العثور على منتجات",
-    "emptySubtitle": "جرّب تصفية أو بحث مختلف",
+    "emptyTitle": "مفيش منتجات",
+    "emptySubtitle": "حاول البحث بكلمات أخرى.",
     "loading": "جارٍ تحميل المنتجات...",
-    "error": "فشل تحميل المنتجات",
+    "error": "تعذّر تحميل المنتجات.",
     "itemsCount": "{{count}} عنصر",
     "buttons": {
       "add": "أضف إلى السلة",
@@ -363,7 +392,7 @@
     "summaryNote": "يتم احتساب رسوم التوصيل والخصومات عند الدفع.",
     "checkout": "متابعة الدفع",
     "loading": "جارٍ تحميل سلتك...",
-    "clear": "مسح",
+    "clear": "مسح السلة",
     "conflict": {
       "title": "استبدال السلة؟",
       "message": "السلة فيها منتجات من {{current}}. تحب تمسحها وتبدأ من {{next}}؟",
@@ -371,12 +400,12 @@
       "clearFailed": "تعذر تفريغ السلة. من فضلك جرّب تاني."
     },
     "loadError": "تعذّر تحميل محتويات السلة. جرّب تاني.",
-    "imageUnavailable": "لا توجد صورة",
+    "imageUnavailable": "الصورة مش متاحة",
     "localSummaryNote": "هذه العناصر محفوظة على هذا الجهاز فقط. سجّل الدخول لمزامنة سلتك.",
-    "loginToCheckout": "سجل الدخول لإتمام الطلب ومزامنة عربتك.",
-    "offlineCheckout": "أنت غير متصل. يرجى إعادة الاتصال للمتابعة.",
+    "loginToCheckout": "سجّل الدخول لإتمام الطلب ومزامنة السلة.",
+    "offlineCheckout": "أنت غير متصل بالإنترنت. اتصل بالإنترنت لمتابعة إتمام الطلب.",
     "remove": "إزالة العنصر",
-    "saveAndLogin": "حفظ وتسجيل الدخول للدفع",
+    "saveAndLogin": "حفظ السلة وتسجيل الدخول",
     "subtotalLabel": "الإجمالي الفرعي",
     "syncing": "جارٍ مزامنة السلة...",
     "updateError": "تعذّر تحديث السلة. جرّب تاني.",
@@ -387,22 +416,17 @@
     "manageAddresses": "إدارة العناوين",
     "shippingLabel": "رسوم التوصيل",
     "serviceFeeLabel": "رسوم الخدمة",
-    "summaryEtaFallback": "وقت التوصيل القياسي",
+    "summaryEtaFallback": "سيتم تأكيد وقت التوصيل عند إتمام الطلب.",
     "totalLabel": "الإجمالي",
     "deliveryUnavailable": "هذا العنوان خارج نطاق توصيل هذا المزود.",
     "etaLabel": "الوقت المتوقع للتسليم",
-    "availabilityNotice": "قد تتغير كميات الأصناف حسب توفرها.",
+    "availabilityNotice": "قد تتغير الكميات حسب المتاح.",
     "guestSummaryNote": "رسوم التوصيل تُحسب أثناء إتمام الطلب.",
     "deliveryEstimateLabel": "رسوم التوصيل التقديرية",
-    "deliveryEstimateMissing": "أضف عنوانًا لرؤية رسوم الشحن.",
-    "deliveryEstimateGuest": "حدد عنوانك عند إتمام الطلب لرؤية رسوم الشحن.",
-    "deliveryEstimateLogin": "سجل الدخول لرؤية رسوم الشحن.",
-    "checkoutGuest": "الدفع كضيف",
-    "groupsTitle": "التوصيل حسب الفرع",
-    "sections": {
-      "items": "الأصناف"
-    },
-    "loyaltyLimit": "يمكن استخدام حتى {{value}} نقطة عند الدفع."
+    "deliveryEstimateMissing": "أضف عنوانًا لعرض رسوم التوصيل.",
+    "deliveryEstimateGuest": "حدد عنوانك عند إتمام الطلب لعرض رسوم التوصيل.",
+    "deliveryEstimateLogin": "سجّل الدخول لعرض رسوم التوصيل.",
+    "checkoutGuest": "إتمام الطلب كضيف"
   },
   "checkout": {
     "title": "الدفع",
@@ -426,9 +450,8 @@
       "minutes": "دقيقة",
       "discount": "الخصم",
       "etaUnknown": "الوقت المتوقع غير متوفر.",
-      "freeDelivery": "مجاناً",
-      "deliveryUnavailable": "هذا العنوان خارج نطاق توصيل هذا المزود.",
-      "byBranch": "التوصيل حسب الفرع"
+      "freeDelivery": "توصيل مجاني",
+      "deliveryUnavailable": "هذا العنوان خارج نطاق توصيل هذا المزود."
     },
     "deliveryEstimate": {
       "label": "رسوم التوصيل التقديرية",
@@ -541,10 +564,7 @@
       "pointsLabel": "عدد النقاط المطلوب استبدالها",
       "balance": "الرصيد المتاح: {{balance}}",
       "preview": "ستوفّر {{amount}}",
-      "summaryLabel": "خصم الولاء",
-      "maxPerOrder": "يمكنك استبدال حتى {{value}} نقطة لهذا الطلب.",
-      "minRedeem": "الحد الأدنى للاستبدال هو {{value}} نقطة.",
-      "maxDiscountPercent": "خصم نقاط الولاء بحد أقصى {{value}}% من إجمالي الطلب."
+      "summaryLabel": "خصم الولاء"
     },
     "stepsLabel": "السلة > العنوان > المراجعة > التأكيد",
     "steps": {
@@ -557,10 +577,10 @@
     },
     "deliveryWindow": {
       "title": "وقت التوصيل",
-      "asap": "في أسرع وقت",
-      "asapDesc": "توصيل في أسرع وقت ممكن.",
-      "schedule": "جدولة",
-      "scheduleDesc": "اختر موعداً للتوصيل.",
+      "asap": "توصيل سريع اليوم",
+      "asapDesc": "توصيل اليوم بأسرع وقت.",
+      "schedule": "حجز مسبق",
+      "scheduleDesc": "احجز ميعاد توصيل.",
       "select": "اختر موعداً للتوصيل",
       "loading": "جاري تحميل المواعيد...",
       "noSlots": "مفيش مواعيد توصيل متاحة دلوقتي.",
@@ -623,16 +643,27 @@
     "count": "{{count}} طلب",
     "dateFormat": "DD MMM YYYY · HH:mm",
     "totalLabel": "{{amount}}",
-    "emptyCta": "تصفح المنتجات لعمل أول طلب لك.",
+    "emptyCta": "تصفّح المنتجات لعمل أول طلب",
     "startShopping": "ابدأ التسوق",
-    "reorder": "إعادة طلب",
-    "reorderSuccess": "تم إضافة الأصناف إلى عربتك.",
-    "reorderError": "فشل إعادة الطلب. يرجى المحاولة مرة أخرى.",
-    "reorderOffline": "أنت غير متصل. يرجى إعادة الاتصال لإعادة الطلب.",
+    "reorder": "إعادة الطلب",
+    "reorderLoading": "جارٍ إعادة الطلب...",
+    "reorderEmpty": "مفيش عناصر متاحة لإعادة الطلب.",
+    "reorderConflictTitle": "تبديل السلة؟",
+    "reorderConflict": "سلتك الحالية من {{current}}. تفرّغها علشان تعيد الطلب من {{next}}؟",
+    "reorderConflictConfirm": "افرغ السلة وكمل",
+    "reorderSummaryTitle": "تغييرات إعادة الطلب",
+    "reorderSummaryMissing": "عناصر غير متاحة",
+    "reorderSummaryReplaced": "عناصر تم استبدالها",
+    "reorderSummaryReplacedLabel": "البديل",
+    "reorderSummaryPrice": "تحديثات الأسعار",
+    "reorderSummaryCta": "عرض السلة",
+    "reorderSuccess": "تمت إضافة العناصر للسلة.",
+    "reorderError": "تعذر إعادة الطلب. حاول مرة أخرى.",
+    "reorderOffline": "أنت غير متصل بالإنترنت. اتصل وحاول مرة أخرى.",
     "error": "فشل تحميل الطلبات.",
-    "errorInvalidPayload": "تنسيق استجابة الطلبات غير صالح.",
+    "errorInvalidPayload": "صيغة بيانات الطلبات من الخادم مش صحيحة.",
     "providersCount": "{{count}} مزود",
-    "providerFallback": "مزود",
+    "providerFallback": "المزود",
     "manageGroup": "إدارة الطلب",
     "cancel": "إلغاء",
     "cancelHint": "يمكنك إلغاء هذا الطلب قبل بدء التحضير.",
@@ -667,8 +698,8 @@
     "createdAt": "تم الطلب في {{date}}",
     "messages": {
       "loading": "جارٍ تحميل الطلب…",
-      "notFound": "الطلب غير موجود",
-      "missing": "تعذر العثور على هذا الطلب"
+      "notFound": "تعذّر العثور على الطلب.",
+      "missing": "مش ممكن العثور على هذا الطلب."
     },
     "addressMissing": "لم يتم توفير عنوان",
     "orderId": "رقم الطلب",
@@ -683,7 +714,7 @@
     "helpTitle": "تحتاج مساعدة بخصوص هذا الطلب؟",
     "helpSubtitle": "تواصل معنا إذا واجهت أي مشكلة في طلبك الحالي.",
     "helpButton": "التواصل مع خدمة العملاء",
-    "helpMessage": "مرحبًا، أحتاج للمساعدة في طلبي من فاسكت رقم #{{id}}",
+    "helpMessage": "مرحبًا، أواجه مشكلة في الطلب رقم {{id}}",
     "whatsappUpdatesHint": "يتم إرسال تحديثات الطلب عبر واتساب. اتأكد من واتساب للتحديثات.",
     "whatsappUpdatesOffHint": "تحديثات واتساب متوقفة. فعّلها من الإعدادات.",
     "groupProviders": "يحتوي هذا الطلب على {{count}} مزودين",
@@ -704,7 +735,7 @@
     "subtitle": "شكرًا لاختيارك فاسكت.",
     "pendingConfirmation": "جارٍ التأكيد من المزود. هنبلغك قريبًا.",
     "estimated": "الوقت المتوقع للتسليم",
-    "scheduledLabel": "توصيل مجدول",
+    "scheduledLabel": "موعد توصيل مجدول",
     "address": "عنوان التوصيل",
     "total": "الإجمالي",
     "buttons": {
@@ -803,17 +834,13 @@
       "whatsappMissing": "غير متاح",
       "copy": "نسخ",
       "copied": "تم نسخ الرقم",
-      "copyFailed": "فشل نسخ الرقم",
+      "copyFailed": "تعذر نسخ الرقم",
       "whatsappMessage": "مرحبًا، أحتاج مساعدة بخصوص استخدام تطبيق فاسكت.",
       "email": "الإيميل للدعم",
       "emailSubject": "Fasket Support",
       "share": "مشاركة التطبيق",
-      "phone": "الاتصال بخدمة العملاء",
-      "privacy": "سياسة الخصوصية",
-      "terms": "شروط الاستخدام"
-    },
-    "changePasswordHint": "أمّن حسابك بكلمة مرور جديدة",
-    "updateInfoHint": "تحديث معلوماتك الشخصية"
+      "phone": "الاتصال بخدمة العملاء"
+    }
   },
   "addresses": {
     "title": "عناويني",
@@ -889,7 +916,7 @@
   },
   "payments": {
     "title": "طرق الدفع",
-    "subtitle": "احفظ البطاقات والمحافظ الإلكترونية بأمان.",
+    "subtitle": "احفظ البطاقات والمحافظ بأمان.",
     "cards": "البطاقات",
     "wallets": "المحافظ",
     "card": "بطاقة",
@@ -942,11 +969,6 @@
       "expMonth": "اكتب شهرًا صحيحًا.",
       "expYear": "اكتب سنة صحيحة.",
       "walletPhone": "اكتب رقم محفظة صحيحًا."
-    },
-    "brand": {
-      "visa": "فيزا",
-      "mastercard": "ماستركارد",
-      "amex": "أمريكان إكسبريس"
     }
   },
   "settings": {
@@ -1045,24 +1067,6 @@
     "whatsapp_prefill": "مرحباً، أحتاج مساعدة بخصوص {{intent}}",
     "groupOrders": "الطلبات داخل هذه المجموعة",
     "loggedInHint": "هل لديك حساب؟ يمكنك عرض طلباتك من تبويب الطلبات."
-  },
-  "reviews": {
-    "title": "قيّم هذا الطلب",
-    "commentPlaceholder": "شاركنا تجربتك (اختياري)",
-    "updateButton": "تحديث التقييم",
-    "submitButton": "إرسال التقييم",
-    "loadError": "تعذر تحميل تقييمك الآن.",
-    "statusApproved": "مقبول",
-    "statusRejected": "مرفوض",
-    "statusPending": "قيد المراجعة",
-    "selectRating": "يرجى اختيار تقييم",
-    "updated": "تم تحديث التقييم",
-    "submitted": "تم إرسال التقييم",
-    "star_one": "نجمة واحدة",
-    "star_other": "{{count}} نجوم",
-    "error": "حدث خطأ ما في التقييمات."
-  },
-  "bestSelling": "الأكثر مبيعًا",
-  "hotOffers": "عروض مميزة",
-  "hero": "مميز"
+  }
 }
+

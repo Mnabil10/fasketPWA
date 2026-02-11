@@ -127,6 +127,7 @@ export async function getAppSettings(): Promise<CachedResult<AppSettings>> {
     const payload = data as any;
     return payload?.data ?? data;
   }
+  const defaultTtlMs = 6 * 60 * 60 * 1000;
   return withOfflineCache(
     "app-settings",
     async () => {
@@ -141,6 +142,17 @@ export async function getAppSettings(): Promise<CachedResult<AppSettings>> {
         throw error;
       }
     },
-    { ttlMs: 10 * 60 * 1000, version: APP_VERSION }
+    {
+      ttlMs: defaultTtlMs,
+      ttlMsResolver: (data) => {
+        const node = data as AppSettings | null | undefined;
+        const ttlSeconds = node?.mobileApp?.growthPack?.cacheTtlSeconds;
+        if (typeof ttlSeconds === "number" && Number.isFinite(ttlSeconds) && ttlSeconds > 0) {
+          return ttlSeconds * 1000;
+        }
+        return defaultTtlMs;
+      },
+      version: APP_VERSION,
+    }
   );
 }

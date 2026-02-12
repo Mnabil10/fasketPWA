@@ -16,7 +16,7 @@ import { placeGuestOrder, placeOrder, quoteGuestOrder, type GuestOrderQuote } fr
 import { getDeliveryWindows } from "../../services/settings";
 import { fmtEGP, fromCents } from "../../lib/money";
 import type { Address, OrderDetail, OrderGroupSummary, SavedPaymentMethod } from "../../types/api";
-import { NetworkBanner, EmptyState, RetryBlock } from "../components";
+import { NetworkBanner, EmptyState, RetryBlock, MobileCheckbox } from "../components";
 import { trackCheckoutStarted, trackOrderFailed, trackOrderPlaced } from "../../lib/analytics";
 import { goToCart } from "../navigation/navigation";
 import { mapApiErrorToMessage } from "../../utils/mapApiErrorToMessage";
@@ -1594,35 +1594,25 @@ export function CheckoutScreen({ appState, updateAppState }: CheckoutScreenProps
             <span className="price-text">{fmtEGP(total)}</span>
           </div>
           {hasWeightBasedItems && (
-            <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-white p-3 text-xs text-gray-700">
-              <input
-                type="checkbox"
-                className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                checked={weightNoticeAccepted}
-                onChange={(e) => setWeightNoticeAccepted(e.target.checked)}
-              />
-              <span>
-                {t(
-                  "checkout.weightNotice.text",
-                  "Some items are sold by weight. The final total may go up or down after weighing."
-                )}
-              </span>
-            </label>
-          )}
-          <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-white p-3 text-xs text-gray-700">
-            <input
-              type="checkbox"
-              className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-              checked={deliveryTermsAccepted}
-              onChange={(e) => setDeliveryTermsAccepted(e.target.checked)}
-            />
-            <span>
+            <MobileCheckbox
+              checked={weightNoticeAccepted}
+              onChange={setWeightNoticeAccepted}
+            >
               {t(
-                "checkout.deliveryTerms.text",
-                "For the safety of our delivery captain and vehicle, delivery is at the building entrance by default. If a safe place is available, the captain can go up to the apartment door when possible."
+                "checkout.weightNotice.text",
+                "Some items are sold by weight. The final total may go up or down after weighing."
               )}
-            </span>
-          </label>
+            </MobileCheckbox>
+          )}
+          <MobileCheckbox
+            checked={deliveryTermsAccepted}
+            onChange={setDeliveryTermsAccepted}
+          >
+            {t(
+              "checkout.deliveryTerms.text",
+              "For the safety of our delivery captain and vehicle, delivery is at the building entrance by default. If a safe place is available, the captain can go up to the apartment door when possible."
+            )}
+          </MobileCheckbox>
           <div className="rounded-xl bg-gray-50 p-3 text-sm text-gray-700">
             <p className="font-semibold text-gray-900">{t("checkout.trust.title", "We deliver anywhere inside Badr City")}</p>
             <p className="text-xs text-gray-600">

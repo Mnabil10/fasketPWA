@@ -1,5 +1,6 @@
 export * from "./ProductCard";
 export * from "./EmptyState";
+export * from "./MobileCheckbox";
 export * from "./SkeletonGrid";
 export * from "./SkeletonList";
 export * from "./NetworkBanner";

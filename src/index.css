@@ -291,6 +291,10 @@ label {
   }
 }
 
+.mobile-checkbox-label {
+  -webkit-tap-highlight-color: transparent;
+}
+
 @layer components {
   .card {
     @apply rounded-2xl shadow-card bg-white;

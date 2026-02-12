@@ -114,6 +114,7 @@
     "fullName": "Full Name",
     "email": "Email (optional)",
     "phone": "Phone Number",
+    "phoneOptional": "Phone Number (optional)",
     "phoneHint": "Enter your phone in +20 format.",
     "identifierLabel": "Email or phone",
     "identifierPlaceholder": "Email or phone number",
@@ -428,7 +429,8 @@
     "availabilityNotice": "Item quantities may change based on availability.",
     "summaryEtaFallback": "Delivery time will be confirmed at checkout.",
     "totalLabel": "Total",
-    "deliveryUnavailable": "This address is outside this provider's delivery area."
+    "deliveryUnavailable": "This address is outside this provider's delivery area.",
+    "groupsTitle": "Delivery by branch"
   },
   "checkout": {
     "title": "Checkout",
@@ -463,7 +465,8 @@
       "discount": "Discount",
       "etaUnknown": "Estimated time is not available.",
       "freeDelivery": "Free delivery",
-      "deliveryUnavailable": "This address is outside this provider's delivery area."
+      "deliveryUnavailable": "This address is outside this provider's delivery area.",
+      "byBranch": "Delivery by branch"
     },
     "deliveryEstimate": {
       "label": "Estimated delivery fee",

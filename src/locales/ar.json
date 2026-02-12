@@ -114,6 +114,7 @@
     "fullName": "الاسم الكامل",
     "email": "الإيميل (اختياري)",
     "phone": "رقم التليفون",
+    "phoneOptional": "رقم التليفون (اختياري)",
     "phoneHint": "اكتب موبايلك بتنسيق +20.",
     "identifierLabel": "الإيميل أو رقم الجوال",
     "identifierPlaceholder": "اكتب البريد أو رقم الجوال",
@@ -428,7 +429,8 @@
     "deliveryEstimateMissing": "أضف عنوانًا لعرض رسوم التوصيل.",
     "deliveryEstimateGuest": "حدد عنوانك عند إتمام الطلب لعرض رسوم التوصيل.",
     "deliveryEstimateLogin": "سجّل الدخول لعرض رسوم التوصيل.",
-    "checkoutGuest": "إتمام الطلب كضيف"
+    "checkoutGuest": "إتمام الطلب كضيف",
+    "groupsTitle": "التوصيل حسب الفرع"
   },
   "checkout": {
     "title": "الدفع",
@@ -453,7 +455,8 @@
       "discount": "الخصم",
       "etaUnknown": "الوقت المتوقع غير متوفر.",
       "freeDelivery": "توصيل مجاني",
-      "deliveryUnavailable": "هذا العنوان خارج نطاق توصيل هذا المزود."
+      "deliveryUnavailable": "هذا العنوان خارج نطاق توصيل هذا المزود.",
+      "byBranch": "التوصيل حسب الفرع"
     },
     "deliveryEstimate": {
       "label": "رسوم التوصيل التقديرية",

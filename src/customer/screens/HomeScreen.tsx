@@ -450,7 +450,8 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
     }
     const preferredMode =
       action.mode === "PREORDER" ? "SCHEDULED" : action.mode === "INSTANT" ? "ASAP" : null;
-    const preferredPatch = preferredMode ? { preferredDeliveryMode: preferredMode } : {};
+    const preferredPatch: { preferredDeliveryMode?: "ASAP" | "SCHEDULED" } =
+      preferredMode ? { preferredDeliveryMode: preferredMode } : {};
     if (action.type === "OPEN_VENDOR") {
       const providerId = action.vendorId;
       if (providerId) {
@@ -572,12 +573,14 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
   );
   const wizardTitleFallback = isDeliveryModeStep ? t("home.wizard.deliveryMode.title") : t("home.wizard.title", "Start your first order");
   const wizardSubtitleFallback = isDeliveryModeStep ? t("home.wizard.deliveryMode.subtitle") : "";
-  const wizardTitle = wizardStep
+  const rawWizardTitle = wizardStep
     ? getLocalizedString(wizardStep.title, lang, wizardTitleFallback)
     : t("home.wizard.title", "Start your first order");
-  const wizardSubtitle = wizardStep
+  const rawWizardSubtitle = wizardStep
     ? getLocalizedString(wizardStep.subtitle, lang, wizardSubtitleFallback)
     : "";
+  const wizardTitle = (isArabic && rawWizardTitle === "How do you want your delivery?") ? tAr("home.wizard.deliveryMode.title") : rawWizardTitle;
+  const wizardSubtitle = (isArabic && rawWizardSubtitle === "Pick a mode to start shopping fast.") ? tAr("home.wizard.deliveryMode.subtitle") : rawWizardSubtitle;
 
   const resolvePillIcon = (name?: string) => {
     const key = (name || "").toLowerCase();
@@ -1384,11 +1387,15 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
               {wizardStep.options.map((option) => {
                 const optionFallback =
                   option.action?.mode === "INSTANT"
-                    ? t("home.wizard.deliveryMode.instant")
+                    ? tAr("home.wizard.deliveryMode.instant")
                     : option.action?.mode === "PREORDER"
-                      ? t("home.wizard.deliveryMode.schedule")
+                      ? tAr("home.wizard.deliveryMode.schedule")
                       : "";
-                const label = getLocalizedString(option.label, lang, optionFallback);
+                let label = getLocalizedString(option.label, lang, optionFallback);
+                if (isArabic) {
+                  if (label === "Fast delivery today") label = tAr("home.wizard.deliveryMode.instant");
+                  else if (label === "Schedule for tomorrow") label = tAr("home.wizard.deliveryMode.schedule");
+                }
                 const isRtl = i18n.dir() === "rtl";
                 return (
                   <Button
@@ -1406,7 +1413,7 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
           ) : null}
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={handleWizardSkip}>
-              {t("home.wizard.skip", "Skip")}
+              {tAr("home.wizard.skip", "Skip")}
             </Button>
           </DialogFooter>
         </DialogContent>

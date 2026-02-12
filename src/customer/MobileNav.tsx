@@ -148,9 +148,9 @@ export function MobileNav({ appState, updateAppState }: MobileNavProps) {
   return (
     <>
       <div aria-hidden="true" className="w-full" style={{ height: NAVIGATION_SAFE_AREA }} />
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 border-t border-gray-200 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom,12px)+10px)] shadow-nav-soft backdrop-blur-md">
+      <nav className="mobile-bottom-nav fixed bottom-0 left-0 right-0 z-50 px-2">
         <div
-          className="grid gap-2"
+          className="grid gap-0"
           style={{ gridTemplateColumns: `repeat(${Math.max(navItems.length, 1)}, minmax(0, 1fr))` }}
         >
           {navItems.map((item) => {
@@ -161,19 +161,19 @@ export function MobileNav({ appState, updateAppState }: MobileNavProps) {
               <button
                 key={item.id}
                 onClick={() => navigate(item.screen)}
-                className={`relative flex flex-col items-center gap-1 rounded-xl py-2 transition-colors ${
-                  isActive ? "text-primary bg-primary/8 shadow-card" : "text-gray-600 hover:text-primary"
+                className={`mobile-nav-item relative flex flex-col items-center justify-center gap-1 py-2 min-h-[50px] transition-all duration-200 active:scale-[0.97] ${
+                  isActive ? "text-primary" : "text-[rgba(60,60,67,0.6)]"
                 }`}
               >
                 <span className="relative inline-flex shrink-0">
-                  <Icon className="w-5 h-5" />
+                  <Icon className={`w-6 h-6 ${isActive ? "drop-shadow-sm" : ""}`} strokeWidth={isActive ? 2.5 : 2} />
                   {item.id === "cart" && appState.cart.length > 0 && (
-                    <span className="absolute -top-2.5 -start-3.5 bg-primary text-white text-[11px] rounded-full min-w-5 h-5 px-1 flex items-center justify-center shadow-card">
-                      {appState.cart.length}
+                    <span className="absolute -top-2 -start-4 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-white text-[11px] font-semibold flex items-center justify-center">
+                      {appState.cart.length > 99 ? "99+" : appState.cart.length}
                     </span>
                   )}
                 </span>
-                <span className="text-[11px] font-semibold leading-none">{item.label}</span>
+                <span className="text-[10px] font-medium leading-tight">{item.label}</span>
               </button>
             );
           })}

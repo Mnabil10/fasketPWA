@@ -28,7 +28,7 @@
     "@capacitor/keyboard": "7.0.3",
     "@capacitor/local-notifications": "^7.0.4",
     "@capacitor/network": "^7.0.3",
-    "@capacitor/push-notifications": "^7.0.3",
+    "@capacitor/push-notifications": "^7.0.4",
     "@capacitor/splash-screen": "^7.0.0",
     "@capacitor/status-bar": "7.0.3",
     "@ionic/react": "^8.5.0",

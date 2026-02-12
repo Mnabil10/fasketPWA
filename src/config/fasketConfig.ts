@@ -2,9 +2,13 @@ import { Capacitor } from "@capacitor/core";
 
 const APP_STORE_DEADLINE = new Date(2026, 1, 18);
 
-/** Controls feature visibility (phone required, account deletion, etc.) for App Store review bypass. */
+/** Controls feature visibility (phone required, etc.) for App Store review bypass. */
 export const isAppStoreDeadlinePassed =
   Capacitor.getPlatform?.() !== "ios" || new Date() > APP_STORE_DEADLINE;
+
+/** Show delete-account only on iOS before deadline (for App Store review). */
+export const showDeleteAccountButton =
+  Capacitor.getPlatform?.() === "ios" && new Date() <= APP_STORE_DEADLINE;
 
 export const APP_STORE_BYPASS_PHONE = "+201432345678";
 

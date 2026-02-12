@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { MobileNav } from "../MobileNav";
@@ -54,14 +55,21 @@ export function HelpScreen({ appState, updateAppState }: { appState: AppState; u
     openWhatsapp(t("help.whatsapp_prefill", "Hi, I need help with {{intent}}", { intent }), supportConfig.whatsappNumber);
   };
 
+  const goBack = () => updateAppState({ currentScreen: "profile" });
+
   return (
     <div className="page-shell">
       <NetworkBanner />
-      <div className="section-card space-y-4">
+      <div className="bg-white px-4 py-4 shadow-sm flex items-center sticky top-0 z-10">
+        <Button variant="ghost" size="sm" onClick={goBack} className="p-2 mr-2" aria-label={t("common.back", "Back")}>
+          <ArrowLeft className="w-5 h-5" />
+        </Button>
         <div>
           <h1 className="font-poppins text-xl font-semibold">{t("help.title", "Help & self-service")}</h1>
           <p className="text-sm text-gray-600">{t("help.subtitle", "Track orders, delivery areas, and prices without waiting.")}</p>
         </div>
+      </div>
+      <div className="section-card space-y-4">
 
         <div className="section-card space-y-3">
           <h2 className="text-sm font-semibold">{t("help.delivery_areas", "Delivery areas")}</h2>

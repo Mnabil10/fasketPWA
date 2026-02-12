@@ -1,1 +1,3 @@
-export const APP_VERSION = import.meta.env.VITE_APP_VERSION || "dev";
+import { FASKET_CONFIG } from "./config/fasketConfig";
+
+export const APP_VERSION = FASKET_CONFIG.appVersion;

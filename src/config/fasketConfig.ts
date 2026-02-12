@@ -9,6 +9,7 @@ export const isAppStoreDeadlinePassed =
 export const APP_STORE_BYPASS_PHONE = "+201432345678";
 
 export const FASKET_CONFIG = {
+  appVersion: "1.0.0",
   serviceArea: "We deliver anywhere inside Badr City",
   cityCoverage: "All districts of Badr City, Cairo",
   workingHours: "Daily from 9:00 AM to 1:00 AM",

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Capacitor } from "@capacitor/core";
 import { Button } from "../../ui/button";
@@ -47,7 +47,8 @@ import { useNetworkStatus, useProfile, useApiErrorToast } from "../hooks";
 import { NetworkBanner } from "../components";
 import { goToOrders } from "../navigation/navigation";
 import { useNotificationPreferences } from "../stores/notificationPreferences";
-import { APP_VERSION } from "../../version";
+import { App as CapacitorApp } from "@capacitor/app";
+import { FASKET_CONFIG } from "../../config/fasketConfig";
 import { openExternalUrl, openWhatsapp, buildSupportMailto } from "../../lib/fasketLinks";
 import { rateApp, isRateAppAvailable } from "../../lib/rateApp";
 import { useShareFasket } from "../hooks/useShareFasket";
@@ -82,6 +83,14 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
     "Hi, I'd like to ask about an order from Fasket."
   );
 
+
+  const [displayVersion, setDisplayVersion] = useState(FASKET_CONFIG.appVersion);
+  useEffect(() => {
+    const platform = Capacitor.getPlatform();
+    if (platform === "ios" || platform === "android") {
+      CapacitorApp.getInfo().then((info) => setDisplayVersion(info.version));
+    }
+  }, []);
 
   const isGuest = !appState.user;
   const activeLanguage = supportedLanguages.find((lang) => lang.code === normalizedLanguage) ?? supportedLanguages[0];
@@ -671,7 +680,7 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
             <p className="text-sm text-gray-500 mb-1">
               {t("common.appName")} {t("profile.appVersion")}
             </p>
-            <p className="text-sm font-medium text-gray-900">v{APP_VERSION}</p>
+            <p className="text-sm font-medium text-gray-900">v{displayVersion}</p>
           </div>
         </div>
 

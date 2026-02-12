@@ -109,13 +109,13 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
         : null,
       iconBg: "bg-indigo-500",
     },
-    {
-      icon: CreditCard,
-      label: t("profile.menu.payments", "Payment Methods"),
-      action: () => updateAppState({ currentScreen: "payment-methods" }),
-      badge: null,
-      iconBg: "bg-green-600",
-    },
+    // {
+    //   icon: CreditCard,
+    //   label: t("profile.menu.payments", "Payment Methods"),
+    //   action: () => updateAppState({ currentScreen: "payment-methods" }),
+    //   badge: null,
+    //   iconBg: "bg-green-600",
+    // },
     {
       icon: User,
       label: t("profile.editProfile"),

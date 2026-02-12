@@ -709,7 +709,7 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
     }
 
     return (
-      <div ref={providerSectionRef} className="section-card space-y-4 motion-fade">
+      <div ref={providerSectionRef} className="section-card cupertino-inset space-y-4 motion-fade">
         <div className="flex items-center justify-between gap-2">
           <div>
             <p className="text-xs text-gray-500">
@@ -1100,7 +1100,7 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
     <div className="page-shell">
       <NetworkBanner stale={staleData} />
       {heroSectionEnabled && (
-        <div className="section-card space-y-4 glass-surface" style={{ background: heroGradient }}>
+        <div className="section-card cupertino-hero space-y-4 glass-surface" style={{ background: heroGradient }}>
           <div className="flex items-start justify-between gap-3">
             <div className="space-y-1">
               <p className="text-sm text-gray-700 flex items-center gap-2">
@@ -1114,7 +1114,7 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
                   {highlightPills.map((pill) => (
                     <div
                       key={pill.label}
-                      className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-white/70 border border-border shadow-sm text-xs text-gray-700"
+                      className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-white/80 border border-white/50 shadow-sm text-xs text-gray-700"
                     >
                       <pill.icon className="w-4 h-4 text-primary" />
                       <span>{pill.label}</span>
@@ -1152,7 +1152,7 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
             <Input
               placeholder={searchPlaceholder}
               disabled={searchScope === "provider" && !providerSelected}
-              className={`h-12 rounded-2xl bg-white/80 border-none shadow-inner ${i18n.dir() === "rtl" ? "pr-12 text-right" : "pl-12"}`}
+              className={`h-12 cupertino-search-input rounded-2xl bg-white/80 border-none shadow-inner ${i18n.dir() === "rtl" ? "pr-12 text-right" : "pl-12"}`}
               value={q}
               ref={searchInputRef}
               onFocus={() => setShowHistory(true)}
@@ -1189,27 +1189,25 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
           </form>
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs text-gray-600">{t("home.searchScopeLabel", "Search scope")}</span>
-            <Button
-              type="button"
-              size="sm"
-              variant={searchScope === "provider" ? "default" : "outline"}
-              className="rounded-full px-3"
-              disabled={!providerSelected}
-              onClick={() => setSearchScope("provider")}
-            >
-              {providerSelected
-                ? t("home.searchScope.provider", { provider: providerLabel ?? t("home.providersTitle", "Provider") })
-                : t("home.searchScope.providerFallback", "Within provider")}
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant={searchScope === "all" ? "default" : "outline"}
-              className="rounded-full px-3"
-              onClick={() => setSearchScope("all")}
-            >
-              {t("home.searchScope.all", "All providers")}
-            </Button>
+            <div className="cupertino-segmented inline-flex">
+              <button
+                type="button"
+                data-active={searchScope === "provider"}
+                disabled={!providerSelected}
+                onClick={() => setSearchScope("provider")}
+              >
+                {providerSelected
+                  ? t("home.searchScope.provider", { provider: providerLabel ?? t("home.providersTitle", "Provider") })
+                  : t("home.searchScope.providerFallback", "Within provider")}
+              </button>
+              <button
+                type="button"
+                data-active={searchScope === "all"}
+                onClick={() => setSearchScope("all")}
+              >
+                {t("home.searchScope.all", "All providers")}
+              </button>
+            </div>
           </div>
 
           {loyaltyWidgetEnabled && (
@@ -1252,57 +1250,61 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
         {renderSmartCta()}
         {renderReorderSection()}
         {renderFrequentlyBoughtSection()}
-        <div className="section-card grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {[
-            {
-              key: "search",
-              title: t("home.quickPaths.searchTitle", "Quick search"),
-              subtitle: t("home.quickPaths.searchSubtitle", "Find items in seconds"),
-              icon: Search,
-              action: () => {
-                searchInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-                searchInputRef.current?.focus();
+        <div className="section-card cupertino-inset">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
+            {[
+              {
+                key: "search",
+                title: t("home.quickPaths.searchTitle", "Quick search"),
+                subtitle: t("home.quickPaths.searchSubtitle", "Find items in seconds"),
+                icon: Search,
+                action: () => {
+                  searchInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                  searchInputRef.current?.focus();
+                },
               },
-            },
-            {
-              key: "providers",
-              title: t("home.quickPaths.providersTitle", "Shop by provider"),
-              subtitle: t("home.quickPaths.providersSubtitle", "Pick a trusted store"),
-              icon: Store,
-              action: () => providerSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
-            },
-            {
-              key: "categories",
-              title: t("home.quickPaths.categoriesTitle", "Shop by category"),
-              subtitle: t("home.quickPaths.categoriesSubtitle", "Browse essentials fast"),
-              icon: Grid,
-              action: () => {
-                if (!providerSelected) {
-                  showToast({
-                    type: "info",
-                    message: t("home.selectProviderPrompt", "Select a provider to browse products."),
-                  });
-                  providerSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-                  return;
-                }
-                updateAppState({ currentScreen: "categories" });
+              {
+                key: "providers",
+                title: t("home.quickPaths.providersTitle", "Shop by provider"),
+                subtitle: t("home.quickPaths.providersSubtitle", "Pick a trusted store"),
+                icon: Store,
+                action: () => providerSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
               },
-            },
-          ].map((card) => (
-            <button
-              key={card.key}
-              onClick={card.action}
-              className="rounded-2xl border border-border bg-white p-4 text-left shadow-card hover:-translate-y-0.5 transition-transform duration-200"
-            >
-              <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-3">
-                <card.icon className="w-5 h-5" />
-              </div>
-              <p className="text-sm font-semibold text-gray-900">{card.title}</p>
-              <p className="text-xs text-gray-500">{card.subtitle}</p>
-            </button>
-          ))}
+              {
+                key: "categories",
+                title: t("home.quickPaths.categoriesTitle", "Shop by category"),
+                subtitle: t("home.quickPaths.categoriesSubtitle", "Browse essentials fast"),
+                icon: Grid,
+                action: () => {
+                  if (!providerSelected) {
+                    showToast({
+                      type: "info",
+                      message: t("home.selectProviderPrompt", "Select a provider to browse products."),
+                    });
+                    providerSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    return;
+                  }
+                  updateAppState({ currentScreen: "categories" });
+                },
+              },
+            ].map((card) => (
+              <button
+                key={card.key}
+                onClick={card.action}
+                className="group flex flex-col items-center gap-2 rounded-xl border border-border bg-white p-3 sm:p-4 text-center shadow-sm hover:shadow-md hover:border-primary/30 hover:bg-primary/5 transition-all duration-200 active:scale-[0.98]"
+              >
+                <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                  <card.icon className="w-5 h-5" />
+                </div>
+                <div className="min-w-0 w-full space-y-0.5">
+                  <p className="text-xs font-semibold text-gray-900 line-clamp-2 leading-tight">{card.title}</p>
+                  <p className="text-[10px] sm:text-xs text-gray-500 line-clamp-2 leading-tight hidden sm:block">{card.subtitle}</p>
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="section-card space-y-4">
+        <div className="section-card cupertino-inset space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-gray-500">{t("home.providerTypes.subtitle", "Choose a market type")}</p>

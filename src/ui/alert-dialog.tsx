@@ -55,7 +55,7 @@ function AlertDialogContent({
       <AlertDialogPrimitive.Content
         data-slot="alert-dialog-content"
         className={cn(
-          "bg-white data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-xl translate-x-[-50%] translate-y-[-50%] gap-4 rounded-2xl border border-gray-100 p-6 shadow-strong duration-200",
+          "bg-white data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-[min(calc(100%-2rem),36rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-2xl border border-gray-100 p-6 shadow-strong duration-200",
           className,
         )}
         {...props}
@@ -121,11 +121,14 @@ function AlertDialogDescription({
 
 function AlertDialogAction({
   className,
+  variant = "default",
   ...props
-}: React.ComponentProps<typeof AlertDialogPrimitive.Action>) {
+}: React.ComponentProps<typeof AlertDialogPrimitive.Action> & {
+  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
+}) {
   return (
     <AlertDialogPrimitive.Action
-      className={cn(buttonVariants(), className)}
+      className={cn(buttonVariants({ variant }), className)}
       {...props}
     />
   );

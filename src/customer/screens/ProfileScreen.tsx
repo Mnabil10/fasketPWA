@@ -39,6 +39,7 @@ import { goToOrders } from "../navigation/navigation";
 import { useNotificationPreferences } from "../stores/notificationPreferences";
 import { APP_VERSION } from "../../version";
 import { openExternalUrl, openWhatsapp, buildSupportMailto } from "../../lib/fasketLinks";
+import { rateApp, isRateAppAvailable } from "../../lib/rateApp";
 import { useShareFasket } from "../hooks/useShareFasket";
 import { resolveSupportConfig } from "../utils/mobileAppConfig";
 import { logout as logoutApi } from "../../services/auth";
@@ -232,9 +233,9 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
       icon: Star,
       label: t("profile.support.rate"),
       toggle: false,
-      action: () => openExternalUrl(supportConfig.playStoreUrl),
-      subtitle: supportConfig.playStoreUrl ? undefined : t("profile.support.rateSoon"),
-      disabled: !supportConfig.playStoreUrl,
+      action: () => rateApp({ playStoreUrl: supportConfig.playStoreUrl, appStoreUrl: supportConfig.appStoreUrl }),
+      subtitle: isRateAppAvailable(supportConfig) ? undefined : t("profile.support.rateSoon"),
+      disabled: !isRateAppAvailable(supportConfig),
       iconBg: "bg-yellow-500",
     },
     {

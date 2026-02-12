@@ -672,6 +672,7 @@
     "providerFallback": "Provider",
     "manageGroup": "Manage order",
     "cancel": "Cancel",
+    "cancelOrder": "Cancel order",
     "cancelHint": "You can cancel this order before preparation starts.",
     "cancelPartialHint": "You can only cancel some providers in this order.",
     "cancelLocked": "Cancellation is locked after preparation starts.",

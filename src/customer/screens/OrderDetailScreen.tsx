@@ -22,6 +22,7 @@ import { MobileNav } from "../MobileNav";
 import { NetworkBanner, RetryBlock, SkeletonList, EmptyState, OrderProgress } from "../components";
 import {
   useApiErrorToast,
+  useCancelOrder,
   useCancelOrderGroup,
   useNetworkStatus,
   useOrderDetail,
@@ -69,6 +70,7 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
   const lang = i18n.language?.startsWith("ar") ? "ar" : "en";
   const whatsappOrderUpdatesEnabled = useNotificationPreferences((state) => state.preferences.whatsappOrderUpdates ?? true);
   const apiErrorToast = useApiErrorToast("reviews.error");
+  const cancelOrder_ = useCancelOrder();
   const cancelGroup = useCancelOrderGroup();
   const [cancelDialogOpen, setCancelDialogOpen] = React.useState(false);
   const selectedOrder = appState.selectedOrder;
@@ -304,6 +306,18 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
     }
   };
 
+  const handleCancelOrder = async () => {
+    if (!fallbackId) return;
+    try {
+      await cancelOrder_.mutateAsync(fallbackId);
+      setCancelDialogOpen(false);
+      orderQuery?.refetch?.();
+      showToast({ type: "success", message: t("orders.cancelSuccess", "Order canceled") });
+    } catch (error) {
+      apiErrorToast(error, "orders.cancelError");
+    }
+  };
+
   const handleCancelGroup = async () => {
     if (!groupId) return;
     try {
@@ -327,6 +341,8 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
       apiErrorToast(error, "orders.cancelError");
     }
   };
+
+  const canCancelSingle = !isGroup && cancelableStatuses.has(statusKey);
 
   return (
     <div className="page-shell">
@@ -492,6 +508,27 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
               </section>
             )}
 
+            {canCancelSingle && (
+              <section className="section-card space-y-3">
+                <h2 className="font-medium text-gray-900">{t("orders.manageGroup", "Manage order")}</h2>
+                <p className="text-sm text-gray-600">
+                  {t("orders.cancelHint", "You can cancel this order before preparation starts.")}
+                </p>
+                <Button
+                  variant="destructive"
+                  size="lg"
+                  className="w-full bg-red-600 text-white hover:bg-red-700 shadow-lg ring-2 ring-red-400"
+                  onClick={() => setCancelDialogOpen(true)}
+                  disabled={cancelOrder_.isPending || isOffline}
+                >
+                  <XCircle className="w-5 h-5" />
+                  {cancelOrder_.isPending
+                    ? t("orders.canceling", "Canceling...")
+                    : t("orders.cancelOrder", "Cancel order")}
+                </Button>
+              </section>
+            )}
+
             {isGroup ? (
               <section className="section-card space-y-3">
                 <div className="flex items-center justify-between">
@@ -652,13 +689,15 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
                     </p>
                     <Button
                       variant="destructive"
-                      className="w-full"
+                      size="lg"
+                      className="w-full bg-red-600 text-white hover:bg-red-700 shadow-lg ring-2 ring-red-400"
                       onClick={() => setCancelDialogOpen(true)}
                       disabled={cancelGroup.isPending || isOffline}
                     >
+                      <XCircle className="w-5 h-5" />
                       {cancelGroup.isPending
                         ? t("orders.canceling", "Canceling...")
-                        : t("orders.cancel", "Cancel")}
+                        : t("orders.cancelOrder", "Cancel order")}
                     </Button>
                   </>
                 ) : (
@@ -800,13 +839,13 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
               </Button>
             </section>
 
-            {isGroup && (
+            {(isGroup || canCancelSingle) && (
               <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>{t("orders.cancelConfirmTitle", "Cancel order")}</AlertDialogTitle>
                     <AlertDialogDescription>
-                      {blockedProviders.length > 0
+                      {isGroup && blockedProviders.length > 0
                         ? t(
                             "orders.cancelPartialWarning",
                             "Some providers already started preparing. We will cancel only eligible providers."
@@ -815,11 +854,20 @@ export function OrderDetailScreen({ appState, updateAppState }: OrderDetailScree
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>{t("common.cancel", "Cancel")}</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleCancelGroup} disabled={cancelGroup.isPending}>
-                      {cancelGroup.isPending
-                        ? t("orders.canceling", "Canceling...")
-                        : t("orders.cancel", "Cancel")}
+                    <AlertDialogCancel>{t("common.back", "Back")}</AlertDialogCancel>
+                    <AlertDialogAction
+                      variant="destructive"
+                      className="bg-red-600 text-white hover:bg-red-700"
+                      onClick={isGroup ? handleCancelGroup : handleCancelOrder}
+                      disabled={isGroup ? cancelGroup.isPending : cancelOrder_.isPending}
+                    >
+                      {isGroup
+                        ? cancelGroup.isPending
+                          ? t("orders.canceling", "Canceling...")
+                          : t("orders.cancelOrder", "إلغاء الطلب")
+                        : cancelOrder_.isPending
+                          ? t("orders.canceling", "Canceling...")
+                          : t("orders.cancelOrder", "Cancel order")}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient, type UseQueryOptions } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import {
+  cancelOrder,
   cancelOrderGroup,
   getDriverLocation,
   getOrderById,
@@ -208,6 +209,17 @@ export function useOrderDriverLocation<TData = DriverLocation | null>(
     gcTime: 5 * 60 * 1000,
     retry: 1,
     ...restOptions,
+  });
+}
+
+export function useCancelOrder() {
+  const queryClient = useQueryClient();
+  return useMutation<OrderDetail, Error, string>({
+    mutationFn: (orderId: string) => cancelOrder(orderId),
+    onSuccess: (_result, orderId) => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["order", orderId] });
+    },
   });
 }
 

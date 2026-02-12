@@ -672,6 +672,7 @@
     "providerFallback": "المزود",
     "manageGroup": "إدارة الطلب",
     "cancel": "إلغاء",
+    "cancelOrder": "إلغاء الطلب",
     "cancelHint": "يمكنك إلغاء هذا الطلب قبل بدء التحضير.",
     "cancelPartialHint": "يمكنك إلغاء بعض المزودين فقط في هذا الطلب.",
     "cancelLocked": "مش ممكن الإلغاء بعد بدء التحضير.",

@@ -44,6 +44,8 @@ npx ionic cap run ios -l --external
 
 ## Push Notifications (iOS)
 
+**Important:** On macOS (iPad app on Apple Silicon Mac), push notifications have known reliability issues (delays, failures). For reliable testing, use a physical iPhone or iPad.
+
 For push notifications to work:
 1. **Push Notifications capability** – Enable in Xcode: Signing & Capabilities → + Capability → Push Notifications.
 2. **APNs key in Firebase** – Upload your APNs key (.p8) to Firebase Console (Project Settings → Cloud Messaging → Apple app configuration).

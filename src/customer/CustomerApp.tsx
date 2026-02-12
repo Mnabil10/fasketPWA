@@ -55,6 +55,7 @@ import { initPush, registerDeviceToken, subscribeToNotifications } from "../lib/
 import { playNotificationSound } from "../lib/notificationSound";
 import { useNotificationPreferences } from "./stores/notificationPreferences";
 import { useToast } from "./providers/ToastProvider";
+import { Capacitor } from "@capacitor/core";
 import { App as CapacitorApp } from "@capacitor/app";
 import { goToCart, goToCategory, goToHome, goToOrders, goToProduct } from "./navigation/navigation";
 import { HelpScreen } from "./screens/HelpScreen";
@@ -487,6 +488,13 @@ export function CustomerApp() {
 
   useEffect(() => {
     trackAppOpen();
+  }, []);
+
+  useEffect(() => {
+    const p = Capacitor.getPlatform?.() ?? "web";
+    if (p === "ios" || p === "android" || p === "macos") {
+      void initPush().catch(() => undefined);
+    }
   }, []);
 
   useEffect(() => {

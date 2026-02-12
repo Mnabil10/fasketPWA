@@ -36,7 +36,7 @@ let localNotificationListenerBound = false;
 
 const isNative = () => {
   const platform = Capacitor.getPlatform?.() ?? "web";
-  return platform === "ios" || platform === "android";
+  return platform === "ios" || platform === "android" || platform === "macos";
 };
 
 function notifyListeners(payload: NotificationPayload) {
@@ -326,9 +326,8 @@ export function handleIncomingNotification(payload: NotificationPayload) {
 
 function detectPlatform(): "ios" | "android" | "web" {
   const platform = Capacitor.getPlatform?.() ?? "web";
-  if (platform === "ios" || platform === "android") {
-    return platform;
-  }
+  if (platform === "ios" || platform === "macos") return "ios";
+  if (platform === "android") return "android";
   if (typeof navigator === "undefined") return "web";
   const ua = navigator.userAgent?.toLowerCase?.() ?? "";
   if (ua.includes("iphone") || ua.includes("ipad") || ua.includes("ipod")) {

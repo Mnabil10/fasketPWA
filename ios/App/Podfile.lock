@@ -16,7 +16,7 @@ PODS:
     - Capacitor
   - CapacitorNetwork (7.0.3):
     - Capacitor
-  - CapacitorPushNotifications (7.0.3):
+  - CapacitorPushNotifications (7.0.4):
     - Capacitor
   - CapacitorSecureStoragePlugin (0.12.0):
     - Capacitor
@@ -25,6 +25,64 @@ PODS:
     - Capacitor
   - CapacitorStatusBar (7.0.3):
     - Capacitor
+  - Firebase/CoreOnly (11.15.0):
+    - FirebaseCore (~> 11.15.0)
+  - Firebase/Messaging (11.15.0):
+    - Firebase/CoreOnly
+    - FirebaseMessaging (~> 11.15.0)
+  - FirebaseCore (11.15.0):
+    - FirebaseCoreInternal (~> 11.15.0)
+    - GoogleUtilities/Environment (~> 8.1)
+    - GoogleUtilities/Logger (~> 8.1)
+  - FirebaseCoreInternal (11.15.0):
+    - "GoogleUtilities/NSData+zlib (~> 8.1)"
+  - FirebaseInstallations (11.15.0):
+    - FirebaseCore (~> 11.15.0)
+    - GoogleUtilities/Environment (~> 8.1)
+    - GoogleUtilities/UserDefaults (~> 8.1)
+    - PromisesObjC (~> 2.4)
+  - FirebaseMessaging (11.15.0):
+    - FirebaseCore (~> 11.15.0)
+    - FirebaseInstallations (~> 11.0)
+    - GoogleDataTransport (~> 10.0)
+    - GoogleUtilities/AppDelegateSwizzler (~> 8.1)
+    - GoogleUtilities/Environment (~> 8.1)
+    - GoogleUtilities/Reachability (~> 8.1)
+    - GoogleUtilities/UserDefaults (~> 8.1)
+    - nanopb (~> 3.30910.0)
+  - GoogleDataTransport (10.1.0):
+    - nanopb (~> 3.30910.0)
+    - PromisesObjC (~> 2.4)
+  - GoogleUtilities/AppDelegateSwizzler (8.1.0):
+    - GoogleUtilities/Environment
+    - GoogleUtilities/Logger
+    - GoogleUtilities/Network
+    - GoogleUtilities/Privacy
+  - GoogleUtilities/Environment (8.1.0):
+    - GoogleUtilities/Privacy
+  - GoogleUtilities/Logger (8.1.0):
+    - GoogleUtilities/Environment
+    - GoogleUtilities/Privacy
+  - GoogleUtilities/Network (8.1.0):
+    - GoogleUtilities/Logger
+    - "GoogleUtilities/NSData+zlib"
+    - GoogleUtilities/Privacy
+    - GoogleUtilities/Reachability
+  - "GoogleUtilities/NSData+zlib (8.1.0)":
+    - GoogleUtilities/Privacy
+  - GoogleUtilities/Privacy (8.1.0)
+  - GoogleUtilities/Reachability (8.1.0):
+    - GoogleUtilities/Logger
+    - GoogleUtilities/Privacy
+  - GoogleUtilities/UserDefaults (8.1.0):
+    - GoogleUtilities/Logger
+    - GoogleUtilities/Privacy
+  - nanopb (3.30910.0):
+    - nanopb/decode (= 3.30910.0)
+    - nanopb/encode (= 3.30910.0)
+  - nanopb/decode (3.30910.0)
+  - nanopb/encode (3.30910.0)
+  - PromisesObjC (2.4.0)
   - SwiftKeychainWrapper (4.0.1)
 
 DEPENDENCIES:
@@ -41,9 +99,19 @@ DEPENDENCIES:
   - CapacitorSecureStoragePlugin (from `../../node_modules/capacitor-secure-storage-plugin`)
   - "CapacitorSplashScreen (from `../../node_modules/@capacitor/splash-screen`)"
   - "CapacitorStatusBar (from `../../node_modules/@capacitor/status-bar`)"
+  - Firebase/Messaging
 
 SPEC REPOS:
   trunk:
+    - Firebase
+    - FirebaseCore
+    - FirebaseCoreInternal
+    - FirebaseInstallations
+    - FirebaseMessaging
+    - GoogleDataTransport
+    - GoogleUtilities
+    - nanopb
+    - PromisesObjC
     - SwiftKeychainWrapper
 
 EXTERNAL SOURCES:
@@ -84,12 +152,21 @@ SPEC CHECKSUMS:
   CapacitorKeyboard: 62f36104f26d53d8b3a2a43f2a69fe714f1777d5
   CapacitorLocalNotifications: ba2a08bd92887b08f352e6b2db430575cef0cea3
   CapacitorNetwork: 1a22460c6f900686f12ffa52f3074ee313821b08
-  CapacitorPushNotifications: bdd621fbd562be34a41f4a7b1750efa000447d5a
+  CapacitorPushNotifications: 7604512af53bbfdf1dd8fb2256b9ef1e8a69cdc2
   CapacitorSecureStoragePlugin: 50de0808ad398aa401e00f9e58adf88c77cb3c25
   CapacitorSplashScreen: 7e7a0a1113833032f196b3af6fa437baccacf5bc
   CapacitorStatusBar: 0659ddc7b1713764a05831463d215b177a15d054
+  Firebase: d99ac19b909cd2c548339c2241ecd0d1599ab02e
+  FirebaseCore: efb3893e5b94f32b86e331e3bd6dadf18b66568e
+  FirebaseCoreInternal: 9afa45b1159304c963da48addb78275ef701c6b4
+  FirebaseInstallations: 317270fec08a5d418fdbc8429282238cab3ac843
+  FirebaseMessaging: 3b26e2cee503815e01c3701236b020aa9b576f09
+  GoogleDataTransport: aae35b7ea0c09004c3797d53c8c41f66f219d6a7
+  GoogleUtilities: 00c88b9a86066ef77f0da2fab05f65d7768ed8e1
+  nanopb: fad817b59e0457d11a5dfbde799381cd727c1275
+  PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
   SwiftKeychainWrapper: 807ba1d63c33a7d0613288512399cd1eda1e470c
 
-PODFILE CHECKSUM: 6e442aff75da5c6344cceba28b43fdab3dacc81c
+PODFILE CHECKSUM: 61c28a7ebcb61af5c418827c3a81a1b35be9947a
 
 COCOAPODS: 1.16.2

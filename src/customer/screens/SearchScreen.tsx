@@ -50,7 +50,7 @@ export function SearchScreen({ appState, updateAppState }: SearchScreenProps) {
   const debouncedQ = useDebouncedValue(q, 250);
   const [searchScope, setSearchScope] = useState<"provider" | "all">(providerSelected ? "provider" : "all");
   const searchInputRef = useRef<HTMLInputElement | null>(null);
-  const { history, addQuery, clearHistory } = useSearchHistory("search");
+  const { history, addQuery, clearHistory } = useSearchHistory("home");
 
   const searchProviderId = searchScope === "provider" ? providerId : undefined;
   const showingSearch = debouncedQ.trim().length > 0 && (searchScope === "all" || providerSelected);
@@ -216,39 +216,38 @@ export function SearchScreen({ appState, updateAppState }: SearchScreenProps) {
       <div className="flex-1 overflow-y-auto space-y-5 px-4 pb-6">
         {!showingSearch ? (
           <div className="section-card space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                <History className="w-4 h-4 text-gray-500" />
+                {t("products.recentSearches", "Recent searches")}
+              </span>
+              {history.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => clearHistory()}
+                  className="text-sm text-primary hover:underline"
+                >
+                  {t("products.clearHistory", "Clear")}
+                </button>
+              )}
+            </div>
             {history.length > 0 ? (
-              <>
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                    <History className="w-4 h-4 text-gray-500" />
-                    {t("products.recentSearches", "Recent searches")}
-                  </span>
+              <div className="space-y-1">
+                {history.map((item) => (
                   <button
+                    key={item}
                     type="button"
-                    onClick={() => clearHistory()}
-                    className="text-sm text-primary hover:underline"
+                    onClick={() => handleHistoryItemClick(item)}
+                    className="w-full text-left px-4 py-3 rounded-xl bg-gray-50 hover:bg-gray-100 text-gray-900 font-medium transition-colors"
                   >
-                    {t("products.clearHistory", "Clear")}
+                    {item}
                   </button>
-                </div>
-                <div className="space-y-1">
-                  {history.map((item) => (
-                    <button
-                      key={item}
-                      type="button"
-                      onClick={() => handleHistoryItemClick(item)}
-                      className="w-full text-left px-4 py-3 rounded-xl bg-gray-50 hover:bg-gray-100 text-gray-900 font-medium transition-colors"
-                    >
-                      {item}
-                    </button>
-                  ))}
-                </div>
-              </>
+                ))}
+              </div>
             ) : (
-              <EmptyState
-                title={t("search.emptyTitle", "Start searching")}
-                subtitle={t("search.emptySubtitle", "Search across all providers or within a specific store.")}
-              />
+              <p className="text-sm text-gray-500 py-2">
+                {t("search.noRecentSearches", "No recent searches. Start typing above.")}
+              </p>
             )}
           </div>
         ) : (

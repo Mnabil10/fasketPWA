@@ -303,7 +303,8 @@
   },
   "search": {
     "emptyTitle": "Start searching",
-    "emptySubtitle": "Search across all providers or within a specific store."
+    "emptySubtitle": "Search across all providers or within a specific store.",
+    "noRecentSearches": "No recent searches. Start typing above."
   },
   "products": {
     "title": "Products",

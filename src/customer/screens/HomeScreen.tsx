@@ -2,13 +2,11 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "../../ui/button";
 import { Badge } from "../../ui/badge";
-import { Input } from "../../ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "../../ui/dialog";
 import {
   Search,
   ShoppingCart,
   Bell,
-  History,
   Sparkles,
   ChevronRight,
   Clock,
@@ -33,7 +31,6 @@ import {
   useNetworkStatus,
   useProducts,
   useProviders,
-  useSearchHistory,
   useApiErrorToast,
   useLastOrders,
   useFrequentlyBought,
@@ -47,7 +44,6 @@ import {
   ProductCardSkeleton,
   RetryBlock,
 } from "../components";
-import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { hashFromUrl, parseHash } from "../navigation/deepLinking";
 import { goToCart, goToCategory, goToHome, goToOrders, goToProduct } from "../navigation/navigation";
 import type { FirstOrderWizardResponse, Product, ProviderSummary } from "../../types/api";
@@ -98,14 +94,7 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
       : selectedProvider.name || selectedProvider.nameAr
     : null;
 
-  const [q, setQ] = useState("");
-  const debouncedQ = useDebouncedValue(q, 250);
-  const [searchScope, setSearchScope] = useState<"provider" | "all">(providerSelected ? "provider" : "all");
-  const showingSearch = debouncedQ.trim().length > 0 && (searchScope === "all" || providerSelected);
-  const searchInputRef = useRef<HTMLInputElement | null>(null);
   const providerSectionRef = useRef<HTMLDivElement | null>(null);
-  const [showHistory, setShowHistory] = useState(false);
-  const { history, addQuery, clearHistory } = useSearchHistory("home");
   const [ctaClock, setCtaClock] = useState(() => Date.now());
   const smartHomeConfig = growthPack?.smartHome ?? {};
   const showReorder = smartHomeConfig.showReorder ?? true;
@@ -152,17 +141,11 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
     { type: "hot-offers", limit: hotLimit, providerId },
     { enabled: providerSelected }
   );
-  const searchProviderId = searchScope === "provider" ? providerId : undefined;
-  const searchQuery = useProducts(
-    { search: debouncedQ || undefined, providerId: searchProviderId },
-    { enabled: showingSearch && Boolean(debouncedQ) }
-  );
   const staleData =
     (providersQuery.data?.stale ?? false) ||
     (providerSelected && (categoriesQuery.data?.stale ?? false)) ||
     (providerSelected && (bestQuery.data?.stale ?? false)) ||
-    (providerSelected && (hotQuery.data?.stale ?? false)) ||
-    (showingSearch && (searchQuery.data?.stale ?? false));
+    (providerSelected && (hotQuery.data?.stale ?? false));
 
   const promoImages = [
     "https://images.unsplash.com/photo-1705727209465-b292e4129a37?auto=format&fit=crop&w=1080&q=80",
@@ -522,35 +505,12 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
     }
   };
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchScope === "provider" && !providerSelected) {
-      showToast({
-        type: "info",
-        message: t("home.selectProviderPrompt", "Select a provider to browse products."),
-      });
-      return;
-    }
-    addQuery(q);
-    if (!showingSearch) return;
-    searchQuery.refetch();
-  };
+  const goToSearch = () => updateAppState({ currentScreen: "search" });
 
   const greeting = appState.user
     ? t("home.greeting", { name: appState.user?.name?.split(" ")[0] || "" })
     : t("home.greetingGuest");
-  const searchPlaceholder =
-    searchScope === "all"
-      ? t("home.searchPlaceholderGlobal", "Search across providers")
-      : providerSelected
-        ? t("home.searchPlaceholder")
-        : t("home.searchProviderPlaceholder", "Select a provider to start searching");
-
-  useEffect(() => {
-    if (!providerSelected && searchScope === "provider") {
-      setSearchScope("all");
-    }
-  }, [providerSelected, searchScope]);
+  const searchPlaceholder = t("home.searchPlaceholderGlobal", "Search across providers");
 
   const heroConfig = mobileConfig?.home?.hero ?? {};
   const isArabic = lang === "ar" || (typeof document !== "undefined" && document.documentElement.getAttribute("dir") === "rtl");
@@ -1144,71 +1104,16 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
             </div>
           </div>
 
-          <form className="relative" onSubmit={handleSearchSubmit}>
-            <Search
-              className={`absolute top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 ${i18n.dir() === "rtl" ? "right-4" : "left-4"
-                }`}
-            />
-            <Input
-              placeholder={searchPlaceholder}
-              disabled={searchScope === "provider" && !providerSelected}
-              className={`h-12 cupertino-search-input rounded-2xl bg-white/80 border-none shadow-inner ${i18n.dir() === "rtl" ? "pr-12 text-right" : "pl-12"}`}
-              value={q}
-              ref={searchInputRef}
-              onFocus={() => setShowHistory(true)}
-              onBlur={() => setTimeout(() => setShowHistory(false), 100)}
-              onChange={(e) => setQ(e.target.value)}
-            />
-            <button type="submit" className="hidden" />
-            {showHistory && history.length > 0 && (
-              <div className="absolute z-10 mt-2 left-0 right-0 bg-white rounded-2xl shadow-card border max-h-48 overflow-auto">
-                <div className="flex items-center justify-between px-3 py-2 text-xs text-gray-500">
-                  <span className="flex items-center gap-1">
-                    <History className="w-3 h-3" /> {t("products.recentSearches", "Recent searches")}
-                  </span>
-                  <button className="text-primary" type="button" onClick={() => clearHistory()}>
-                    {t("products.clearHistory", "Clear")}
-                  </button>
-                </div>
-                {history.map((item) => (
-                  <button
-                    key={item}
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => {
-                      setQ(item);
-                      addQuery(item);
-                    }}
-                    className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm"
-                  >
-                    {item}
-                  </button>
-                ))}
-              </div>
-            )}
-          </form>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs text-gray-600">{t("home.searchScopeLabel", "Search scope")}</span>
-            <div className="cupertino-segmented inline-flex">
-              <button
-                type="button"
-                data-active={searchScope === "provider"}
-                disabled={!providerSelected}
-                onClick={() => setSearchScope("provider")}
-              >
-                {providerSelected
-                  ? t("home.searchScope.provider", { provider: providerLabel ?? t("home.providersTitle", "Provider") })
-                  : t("home.searchScope.providerFallback", "Within provider")}
-              </button>
-              <button
-                type="button"
-                data-active={searchScope === "all"}
-                onClick={() => setSearchScope("all")}
-              >
-                {t("home.searchScope.all", "All providers")}
-              </button>
-            </div>
-          </div>
+          <button
+            type="button"
+            onClick={goToSearch}
+            className={`relative w-full flex items-center gap-3 h-12 cupertino-search-input rounded-2xl bg-white/80 border-none shadow-inner px-4 cursor-pointer ${
+              i18n.dir() === "rtl" ? "flex-row-reverse text-right" : ""
+            }`}
+          >
+            <Search className="text-gray-400 w-5 h-5 shrink-0" />
+            <span className="flex-1 text-gray-500 font-medium">{searchPlaceholder}</span>
+          </button>
 
           {loyaltyWidgetEnabled && (
             <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-3">
@@ -1258,10 +1163,7 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
                 title: t("home.quickPaths.searchTitle", "Quick search"),
                 subtitle: t("home.quickPaths.searchSubtitle", "Find items in seconds"),
                 icon: Search,
-                action: () => {
-                  searchInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-                  searchInputRef.current?.focus();
-                },
+                action: goToSearch,
               },
               {
                 key: "providers",
@@ -1342,14 +1244,7 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
           </div>
         </div>
         {renderProvidersSection()}
-        {showingSearch ? (
-          renderProductsSection(
-            t("home.sections.searchResults"),
-            searchQuery,
-            () => updateAppState({ currentScreen: "categories" }),
-            { showProviderMeta: searchScope === "all" }
-          )
-        ) : !providerSelected ? (
+        {!providerSelected ? (
           <EmptyState
             title={t("home.providersPromptTitle", "Choose a provider to continue")}
             subtitle={t("home.providersPromptSubtitle", "Providers have their own categories and products.")}

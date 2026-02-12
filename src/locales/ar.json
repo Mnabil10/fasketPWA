@@ -301,6 +301,10 @@
     "errorBest": "فشل تحميل الأكثر طلبًا.",
     "pullToRefresh": "اسحب للتحديث"
   },
+  "search": {
+    "emptyTitle": "ابدأ البحث",
+    "emptySubtitle": "ابحث في كل المزودين أو داخل متجر معين."
+  },
   "products": {
     "title": "المنتجات",
     "searchPlaceholder": "ابحث عن المنتجات...",

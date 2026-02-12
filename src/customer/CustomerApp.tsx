@@ -58,6 +58,7 @@ import { useToast } from "./providers/ToastProvider";
 import { App as CapacitorApp } from "@capacitor/app";
 import { goToCart, goToCategory, goToHome, goToOrders, goToProduct } from "./navigation/navigation";
 import { HelpScreen } from "./screens/HelpScreen";
+import { SearchScreen } from "./screens/SearchScreen";
 import { applyMobileAppTheme } from "./utils/mobileAppTheme";
 import { LegalHtmlScreen } from "./screens/LegalHtmlScreen";
 
@@ -143,7 +144,8 @@ export type Screen =
   | "privacy"
   | "terms"
   | "edit-profile"
-  | "change-password";
+  | "change-password"
+  | "search";
 
 const authRequiredScreens = new Set<Screen>([
   "orders",
@@ -987,6 +989,8 @@ export function CustomerApp() {
         return <OrderDetailScreen appState={appState} updateAppState={updateAppState} />;
       case "help":
         return <HelpScreen appState={appState} updateAppState={updateAppState} />;
+      case "search":
+        return <SearchScreen appState={appState} updateAppState={updateAppState} />;
       case "profile":
         return <ProfileScreen appState={appState} updateAppState={updateAppState} />;
       case "addresses":

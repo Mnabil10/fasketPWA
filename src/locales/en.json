@@ -301,6 +301,10 @@
     "errorOffers": "Failed to load featured offers.",
     "errorBest": "Failed to load best sellers."
   },
+  "search": {
+    "emptyTitle": "Start searching",
+    "emptySubtitle": "Search across all providers or within a specific store."
+  },
   "products": {
     "title": "Products",
     "searchPlaceholder": "Search products...",

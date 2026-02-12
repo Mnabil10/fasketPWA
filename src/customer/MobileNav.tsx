@@ -28,6 +28,7 @@ const VALID_SCREENS = new Set<AppState["currentScreen"]>([
   "order-detail",
   "help",
   "profile",
+  "search",
   "addresses",
   "loyalty-history",
   "about",

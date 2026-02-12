@@ -2,7 +2,7 @@ import { Capacitor } from "@capacitor/core";
 
 const APP_STORE_DEADLINE = new Date(2026, 1, 18);
 
-/** When true: phone required. When false (iOS only, before deadline): phone optional, uses bypass. */
+/** Controls feature visibility (phone required, account deletion, etc.) for App Store review bypass. */
 export const isAppStoreDeadlinePassed =
   Capacitor.getPlatform?.() !== "ios" || new Date() > APP_STORE_DEADLINE;
 

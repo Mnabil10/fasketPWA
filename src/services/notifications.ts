@@ -7,6 +7,7 @@ export type RegisterDevicePayload = {
   language?: string;
   appVersion?: string;
   deviceModel?: string;
+  deviceId?: string;
   userId?: string;
   preferences?: NotificationPreferences;
 };
@@ -52,6 +53,7 @@ export async function registerDevice(payload: RegisterDevicePayload) {
       language: payload.language,
       appVersion: payload.appVersion,
       deviceModel: payload.deviceModel,
+      deviceId: payload.deviceId,
       userId: payload.userId,
       preferences: payload.preferences,
     });

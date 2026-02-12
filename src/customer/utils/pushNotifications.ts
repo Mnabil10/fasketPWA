@@ -17,6 +17,7 @@ export type NotificationPayload = {
   priority?: string;
   sound?: string;
   vibrate?: string | boolean;
+  origin?: "receive" | "tap";
   data?: Record<string, unknown>;
 };
 
@@ -27,6 +28,7 @@ let initializing: Promise<string | null> | null = null;
 const listeners = new Set<NotificationListener>();
 const LOCAL_NOTIFICATION_CHANNEL_ID = "fasket_notifications";
 const MAX_NOTIFICATION_ID = 2147483647;
+const DEVICE_ID_KEY = "fasket-push-device-id";
 let localNotificationSeed = Math.floor(Date.now() % MAX_NOTIFICATION_ID);
 let localNotificationsReady = false;
 let localNotificationsInitializing: Promise<boolean> | null = null;
@@ -70,7 +72,8 @@ function mapNotificationData(data: Record<string, unknown> | undefined, base: No
   const points = typeof pointsRaw === "number" ? pointsRaw : Number(pointsRaw) || undefined;
   const title = typeof data.title === "string" ? data.title : undefined;
   const body = typeof data.body === "string" ? data.body : undefined;
-  const route = typeof data.route === "string" ? data.route : undefined;
+  const route =
+    typeof data.route === "string" ? data.route : typeof data.url === "string" ? data.url : undefined;
   const priority = typeof data.priority === "string" ? data.priority : undefined;
   const sound = typeof data.sound === "string" ? data.sound : undefined;
   const vibrate = typeof data.vibrate === "string" || typeof data.vibrate === "boolean" ? data.vibrate : undefined;
@@ -127,6 +130,25 @@ function buildNotificationExtra(payload: NotificationPayload): Record<string, un
   return extra;
 }
 
+function getDeviceId(): string {
+  if (typeof window === "undefined") {
+    return `device-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  }
+  try {
+    const storage = window.localStorage;
+    const existing = storage.getItem(DEVICE_ID_KEY);
+    if (existing) return existing;
+    const generated =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `device-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    storage.setItem(DEVICE_ID_KEY, generated);
+    return generated;
+  } catch {
+    return `device-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  }
+}
+
 async function ensureLocalNotificationsReady(): Promise<boolean> {
   if (!isNative()) return false;
   if (localNotificationsReady) return true;
@@ -148,13 +170,13 @@ async function ensureLocalNotificationsReady(): Promise<boolean> {
           vibration: true,
         });
       }
-      if (!localNotificationListenerBound) {
-        localNotificationListenerBound = true;
-        void LocalNotifications.addListener("localNotificationActionPerformed", (action) => {
-          const { notification } = action;
-          notifyListeners(mapLocalNotification(notification));
-        });
-      }
+        if (!localNotificationListenerBound) {
+          localNotificationListenerBound = true;
+          void LocalNotifications.addListener("localNotificationActionPerformed", (action) => {
+            const { notification } = action;
+            notifyListeners({ ...mapLocalNotification(notification), origin: "tap" });
+          });
+        }
       localNotificationsReady = true;
       return true;
     } catch (error) {
@@ -242,13 +264,13 @@ export async function initializePushNotifications(): Promise<string | null> {
         });
 
         PushNotifications.addListener("pushNotificationReceived", (notification) => {
-          const payload = mapNotification(notification);
+          const payload = { ...mapNotification(notification), origin: "receive" };
           notifyListeners(payload);
           void showLocalNotification(payload);
         });
 
         PushNotifications.addListener("pushNotificationActionPerformed", ({ notification }) => {
-          notifyListeners(mapNotification(notification));
+          notifyListeners({ ...mapNotification(notification), origin: "tap" });
         });
 
         await PushNotifications.register();
@@ -278,6 +300,7 @@ export async function registerDeviceToken(
       platform: detectPlatform(),
       appVersion: APP_VERSION,
       language: i18n.language?.split("-")[0] ?? "en",
+      deviceId: getDeviceId(),
       userId,
       preferences,
     };

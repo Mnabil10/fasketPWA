@@ -333,7 +333,10 @@ export function AddressesScreen({ appState, updateAppState }: AddressesScreenPro
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-h-[80vh] overflow-y-auto space-y-4">
+        <DialogContent
+          className="max-h-[80vh] overflow-y-auto space-y-4"
+          aria-describedby={undefined}
+        >
           <DialogHeader>
             <DialogTitle>{editingId ? t("addresses.dialogs.editTitle") : t("addresses.dialogs.addTitle")}</DialogTitle>
           </DialogHeader>

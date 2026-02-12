@@ -109,6 +109,16 @@ export function trackWizardCompleted(optionId?: string, vendorId?: string | null
   trackEvent("WIZARD_COMPLETED", { optionId, vendorId: vendorId ?? undefined });
 }
 
+export function trackNotificationOpened(params?: {
+  notificationType?: string;
+  orderId?: string;
+  vendorId?: string;
+  campaignId?: string;
+  url?: string;
+}) {
+  trackEvent("NOTIF_OPENED", params);
+}
+
 export const analytics = {
   trackAppOpen,
   trackViewProduct,
@@ -122,6 +132,7 @@ export const analytics = {
   trackReorderSuccess,
   trackWizardShown,
   trackWizardCompleted,
+  trackNotificationOpened,
 };
 
 export function getStoredEvents() {

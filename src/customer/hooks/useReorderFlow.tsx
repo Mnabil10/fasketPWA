@@ -191,7 +191,10 @@ export function useReorderFlow(options?: UseReorderFlowOptions): UseReorderFlowR
           if (!open) setReorderSummary(null);
         }}
       >
-        <DialogContent className="max-h-[80vh] overflow-y-auto space-y-4">
+        <DialogContent
+          className="max-h-[80vh] overflow-y-auto space-y-4"
+          aria-describedby={undefined}
+        >
           <DialogHeader>
             <DialogTitle>{t("orders.reorderSummaryTitle", "Reorder changes")}</DialogTitle>
           </DialogHeader>

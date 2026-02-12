@@ -30,3 +30,6 @@ yarn-error.log*
 
 # Optional eslint cache
 .eslintcache
+
+# Firebase/iOS
+ios/App/App/GoogleService-Info.plist

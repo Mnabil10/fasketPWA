@@ -1,9 +1,16 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Capacitor } from "@capacitor/core";
 import { Button } from "../../ui/button";
 import { Badge } from "../../ui/badge";
 import { Switch } from "../../ui/switch";
 import { cn } from "../../ui/utils";
+import {
+  BottomSheet,
+  BottomSheetContent,
+  BottomSheetHeader,
+  BottomSheetTitle,
+} from "../../ui/bottom-sheet";
 import {
   ArrowLeft,
   User,
@@ -25,6 +32,7 @@ import {
   ExternalLink,
   Share2,
   Copy,
+  Check,
   type LucideIcon,
 } from "lucide-react";
 import { MobileNav } from "../MobileNav";
@@ -289,8 +297,16 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
     },
   ];
 
+  const isMobile = useMemo(() => (Capacitor.getPlatform?.() ?? "web") !== "web", []);
+  const [languageSheetOpen, setLanguageSheetOpen] = useState(false);
+
   const handleLanguageChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     i18n.changeLanguage(event.target.value);
+  };
+
+  const handleLanguageSelect = (code: string) => {
+    i18n.changeLanguage(code);
+    setLanguageSheetOpen(false);
   };
 
   const handleCopyWhatsapp = async () => {
@@ -472,18 +488,30 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
                   <p className="text-xs text-gray-500">{activeLanguage.native}</p>
                 </div>
               </div>
-              <select
-                value={normalizedLanguage}
-                onChange={handleLanguageChange}
-                className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white focus:ring-1 focus:ring-primary h-auto min-h-0"
-                aria-label={t("profile.settings.language")}
-              >
-                {supportedLanguages.map((lang) => (
-                  <option key={lang.code} value={lang.code}>
-                    {lang.native}
-                  </option>
-                ))}
-              </select>
+              {isMobile ? (
+                <button
+                  type="button"
+                  onClick={() => setLanguageSheetOpen(true)}
+                  className="flex items-center gap-1 text-sm text-primary font-medium"
+                  aria-label={t("profile.settings.language")}
+                >
+                  {activeLanguage.native}
+                  <ChevronRight className="w-4 h-4 rtl:rotate-180" />
+                </button>
+              ) : (
+                <select
+                  value={normalizedLanguage}
+                  onChange={handleLanguageChange}
+                  className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white focus:ring-1 focus:ring-primary h-auto min-h-0"
+                  aria-label={t("profile.settings.language")}
+                >
+                  {supportedLanguages.map((lang) => (
+                    <option key={lang.code} value={lang.code}>
+                      {lang.native}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
           </div>
         </div>
@@ -505,18 +533,30 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
                     <p className="text-xs text-gray-500">{activeLanguage.native}</p>
                   </div>
                 </div>
-                <select
-                  value={normalizedLanguage}
-                  onChange={handleLanguageChange}
-                  className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white focus:ring-1 focus:ring-primary h-auto min-h-0"
-                  aria-label={t("profile.settings.language")}
-                >
-                  {supportedLanguages.map((lang) => (
-                    <option key={lang.code} value={lang.code}>
-                      {lang.native}
-                    </option>
-                  ))}
-                </select>
+                {isMobile ? (
+                  <button
+                    type="button"
+                    onClick={() => setLanguageSheetOpen(true)}
+                    className="flex items-center gap-1 text-sm text-primary font-medium"
+                    aria-label={t("profile.settings.language")}
+                  >
+                    {activeLanguage.native}
+                    <ChevronRight className="w-4 h-4 rtl:rotate-180" />
+                  </button>
+                ) : (
+                  <select
+                    value={normalizedLanguage}
+                    onChange={handleLanguageChange}
+                    className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white focus:ring-1 focus:ring-primary h-auto min-h-0"
+                    aria-label={t("profile.settings.language")}
+                  >
+                    {supportedLanguages.map((lang) => (
+                      <option key={lang.code} value={lang.code}>
+                        {lang.native}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
             </div>
           </div>
@@ -644,6 +684,30 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
           )}
         </div>
       </div>
+
+      <BottomSheet open={languageSheetOpen} onOpenChange={setLanguageSheetOpen}>
+        <BottomSheetContent>
+          <BottomSheetHeader>
+            <BottomSheetTitle>{t("profile.settings.language")}</BottomSheetTitle>
+          </BottomSheetHeader>
+          <div className="mt-2 flex flex-col gap-0">
+            {supportedLanguages.map((lang) => (
+              <button
+                key={lang.code}
+                type="button"
+                onClick={() => handleLanguageSelect(lang.code)}
+                className={cn(
+                  "flex items-center justify-between py-4 px-3 rounded-xl text-left transition-colors",
+                  normalizedLanguage === lang.code ? "bg-primary/10 text-primary" : "hover:bg-gray-50"
+                )}
+              >
+                <span className="font-medium">{lang.native}</span>
+                {normalizedLanguage === lang.code && <Check className="w-5 h-5 shrink-0" />}
+              </button>
+            ))}
+          </div>
+        </BottomSheetContent>
+      </BottomSheet>
 
       <MobileNav appState={appState} updateAppState={updateAppState} />
     </div>

@@ -42,9 +42,17 @@ To run with live reload (highly recommended for development):
 npx ionic cap run ios -l --external
 ```
 
+## Push Notifications (iOS)
+
+For push notifications to work:
+1. **Push Notifications capability** – Enable in Xcode: Signing & Capabilities → + Capability → Push Notifications.
+2. **APNs key in Firebase** – Upload your APNs key (.p8) to Firebase Console (Project Settings → Cloud Messaging → Apple app configuration).
+3. **Bundle ID match** – Ensure `GoogleService-Info.plist` bundle ID matches the app’s bundle ID (development: `fasket.user`, release: `cloud.fasket.customer` – add both if needed in Firebase).
+
 ## Troubleshooting
 - **Pod Issues**: If you face native dependencies issues, run:
   ```bash
   cd ios/App && pod install && cd ../..
   ```
 - **Signing**: For physical devices, you must select a Team in the "Signing & Capabilities" tab in Xcode.
+- **Push token not received**: Confirm AppDelegate includes `didRegisterForRemoteNotificationsWithDeviceToken` and `didFailToRegisterForRemoteNotificationsWithError` (already added).

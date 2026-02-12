@@ -168,7 +168,7 @@ export function MobileNav({ appState, updateAppState }: MobileNavProps) {
                 <span className="relative inline-flex shrink-0">
                   <Icon className="w-5 h-5" />
                   {item.id === "cart" && appState.cart.length > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 bg-primary text-white text-[11px] rounded-full min-w-5 h-5 px-1 flex items-center justify-center shadow-card">
+                    <span className="absolute -top-2.5 -start-3.5 bg-primary text-white text-[11px] rounded-full min-w-5 h-5 px-1 flex items-center justify-center shadow-card">
                       {appState.cart.length}
                     </span>
                   )}

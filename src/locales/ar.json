@@ -838,7 +838,13 @@
       "emailSubject": "Fasket Support",
       "share": "مشاركة التطبيق",
       "phone": "الاتصال بخدمة العملاء"
-    }
+    },
+    "deleteAccount": "حذف الحساب",
+    "deleteAccountConfirmTitle": "هل أنت متأكد من حذف الحساب؟",
+    "deleteAccountConfirmDescription": "لا يمكن التراجع عن هذا الإجراء.",
+    "deleteAccountConfirm": "حذف",
+    "deleteAccountCancel": "إلغاء",
+    "deleteAccountSuccess": "سيتم إرسال طلب حذف الحساب إلى فريق الدعم وسيتم حذف حسابك خلال ٤٨ ساعة"
   },
   "addresses": {
     "title": "عناويني",

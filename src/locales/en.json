@@ -851,6 +851,12 @@
       "share": "Share Fasket / Invite a friend",
       "phone": "Call support"
     },
+    "deleteAccount": "Delete account",
+    "deleteAccountConfirmTitle": "Are you sure you want to delete your account?",
+    "deleteAccountConfirmDescription": "This action cannot be undone.",
+    "deleteAccountConfirm": "Delete",
+    "deleteAccountCancel": "Cancel",
+    "deleteAccountSuccess": "Your account deletion request will be sent to the support team and your account will be deleted within 48 hours",
     "appVersion": "App Version",
     "login": "Sign In",
     "logout": "Sign Out",

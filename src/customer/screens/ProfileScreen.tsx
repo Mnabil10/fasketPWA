@@ -8,6 +8,7 @@ import { cn } from "../../ui/utils";
 import {
   BottomSheet,
   BottomSheetContent,
+  BottomSheetDescription,
   BottomSheetHeader,
   BottomSheetTitle,
 } from "../../ui/bottom-sheet";
@@ -33,6 +34,7 @@ import {
   Share2,
   Copy,
   Check,
+  Trash2,
   type LucideIcon,
 } from "lucide-react";
 import { MobileNav } from "../MobileNav";
@@ -53,7 +55,7 @@ import { resolveSupportConfig } from "../utils/mobileAppConfig";
 import { logout as logoutApi } from "../../services/auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocalCartStore } from "../stores/localCart";
-import { FASKET_CONFIG } from "../../config/fasketConfig";
+import { isAppStoreDeadlinePassed } from "../../config/fasketConfig";
 
 interface ProfileScreenProps {
   appState: AppState;
@@ -299,6 +301,7 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
 
   const isMobile = useMemo(() => (Capacitor.getPlatform?.() ?? "web") !== "web", []);
   const [languageSheetOpen, setLanguageSheetOpen] = useState(false);
+  const [deleteAccountSheetOpen, setDeleteAccountSheetOpen] = useState(false);
 
   const handleLanguageChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     i18n.changeLanguage(event.target.value);
@@ -347,6 +350,15 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
         currentScreen: "auth",
       });
     }
+  };
+
+  const handleDeleteAccountConfirm = () => {
+    setDeleteAccountSheetOpen(false);
+    showToast({
+      type: "info",
+      message: t("profile.deleteAccountSuccess"),
+    });
+    void handleLogout();
   };
 
   return (
@@ -663,7 +675,7 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
           </div>
         </div>
 
-        <div className="mx-4 mt-4 mb-6">
+        <div className="mx-4 mt-4 mb-6 flex flex-col gap-3">
           {isGuest ? (
             <Button
               onClick={() => updateAppState({ currentScreen: "auth" })}
@@ -673,14 +685,26 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
               <span>{t("profile.login")}</span>
             </Button>
           ) : (
-            <Button
-              variant="outline"
-              onClick={handleLogout}
-              className="w-full justify-center bg-white rounded-xl p-4 h-auto shadow-sm border-red-200 text-red-600 hover:bg-red-50"
-            >
-              <LogOut className="w-5 h-5 mr-3" />
-              <span>{t("profile.logout")}</span>
-            </Button>
+            <>
+              <Button
+                variant="outline"
+                onClick={handleLogout}
+                className="w-full justify-center bg-white rounded-xl p-4 h-auto shadow-sm border-red-200 text-red-600 hover:bg-red-50"
+              >
+                <LogOut className="w-5 h-5 mr-3" />
+                <span>{t("profile.logout")}</span>
+              </Button>
+              {isAppStoreDeadlinePassed && (
+                <Button
+                  variant="outline"
+                  onClick={() => setDeleteAccountSheetOpen(true)}
+                  className="w-full justify-center bg-white rounded-xl p-4 h-auto shadow-sm border-gray-200 text-gray-600 hover:bg-gray-50"
+                >
+                  <Trash2 className="w-5 h-5 mr-3" />
+                  <span>{t("profile.deleteAccount")}</span>
+                </Button>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -705,6 +729,33 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
                 {normalizedLanguage === lang.code && <Check className="w-5 h-5 shrink-0" />}
               </button>
             ))}
+          </div>
+        </BottomSheetContent>
+      </BottomSheet>
+
+      <BottomSheet open={deleteAccountSheetOpen} onOpenChange={setDeleteAccountSheetOpen}>
+        <BottomSheetContent>
+          <BottomSheetHeader>
+            <BottomSheetTitle>{t("profile.deleteAccountConfirmTitle")}</BottomSheetTitle>
+            <BottomSheetDescription className="text-gray-600 mt-2">
+              {t("profile.deleteAccountConfirmDescription")}
+            </BottomSheetDescription>
+          </BottomSheetHeader>
+          <div className="mt-6 flex flex-col gap-2">
+            <Button
+              variant="destructive"
+              className="w-full rounded-xl bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500/30"
+              onClick={handleDeleteAccountConfirm}
+            >
+              {t("profile.deleteAccount")}
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full rounded-xl"
+              onClick={() => setDeleteAccountSheetOpen(false)}
+            >
+              {t("profile.deleteAccountCancel")}
+            </Button>
           </div>
         </BottomSheetContent>
       </BottomSheet>

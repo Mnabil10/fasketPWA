@@ -68,7 +68,8 @@
     "orderCancelNotAllowed": "This order can't be canceled after preparation starts.",
     "couponInvalid": "This coupon code isn't valid.",
     "couponExpired": "This coupon has expired.",
-    "paymentMethodDisabled": "This payment method is currently unavailable."
+    "paymentMethodDisabled": "This payment method is currently unavailable.",
+    "orderingClosed": "Ordering is closed right now"
   },
   "nav": {
     "home": "Home",

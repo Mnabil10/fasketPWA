@@ -66,6 +66,7 @@
     "otpTooManyAttempts": "محاولات كتير قوي. جرّب تاني بعدين.",
     "otpLocked": "محاولات كتير قوي. جرّب تاني بعدين.",
     "paymentMethodDisabled": "طريقة الدفع هذه مش متاحة دلوقتي.",
+    "orderingClosed": "الطلب مغلق حاليًا",
     "driverInactive": "السائق مش متاح دلوقتي.",
     "driverNotFound": "لم يتم العثور على السائق.",
     "validationFailed": "من فضلك مراجعة البيانات وجرّب تاني."

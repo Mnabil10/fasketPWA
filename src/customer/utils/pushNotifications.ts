@@ -225,6 +225,9 @@ async function showLocalNotification(payload: NotificationPayload): Promise<void
   if (Capacitor.getPlatform?.() === "android") {
     notification.channelId = LOCAL_NOTIFICATION_CHANNEL_ID;
   }
+  if (Capacitor.getPlatform?.() === "ios") {
+    notification.schedule = { at: new Date(Date.now() + 100) };
+  }
   try {
     await LocalNotifications.schedule({ notifications: [notification] });
   } catch (error) {
@@ -251,7 +254,7 @@ export async function initializePushNotifications(): Promise<string | null> {
           resolve(null);
           return;
         }
-        void ensureLocalNotificationsReady();
+        await ensureLocalNotificationsReady();
 
         PushNotifications.addListener("registration", (token: Token) => {
           cachedToken = token.value;
@@ -264,13 +267,13 @@ export async function initializePushNotifications(): Promise<string | null> {
         });
 
         PushNotifications.addListener("pushNotificationReceived", (notification) => {
-          const payload = { ...mapNotification(notification), origin: "receive" };
+          const payload: NotificationPayload = { ...mapNotification(notification), origin: "receive" };
           notifyListeners(payload);
           void showLocalNotification(payload);
         });
 
         PushNotifications.addListener("pushNotificationActionPerformed", ({ notification }) => {
-          notifyListeners({ ...mapNotification(notification), origin: "tap" });
+          notifyListeners({ ...mapNotification(notification), origin: "tap" } as NotificationPayload);
         });
 
         await PushNotifications.register();

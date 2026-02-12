@@ -150,6 +150,7 @@
     "nameRequired": "Full name is required.",
     "errorLogin": "Failed to sign in. Please check your details.",
     "errorRegister": "Failed to create your account. Please try again.",
+    "userAlreadyExists": "User already exists",
     "sessionExpired": "Session expired, please log in again.",
     "sessionMissing": "Signup session is missing. Please start again."
   },

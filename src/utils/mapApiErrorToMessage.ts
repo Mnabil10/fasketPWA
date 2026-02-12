@@ -127,6 +127,7 @@ export function mapApiErrorToMessage(
     }
     const knownMessageKeys: Record<string, string> = {
       "Ordering is closed right now": "errors.orderingClosed",
+      "User already exists": "auth.userAlreadyExists",
     };
     if (keyCandidate && knownMessageKeys[keyCandidate]) {
       return translate(knownMessageKeys[keyCandidate], translator);

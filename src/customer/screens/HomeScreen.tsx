@@ -552,22 +552,31 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
   }, [providerSelected, searchScope]);
 
   const heroConfig = mobileConfig?.home?.hero ?? {};
-  const heroPrompt = getLocalizedString(heroConfig.prompt, lang, t("home.prompt"));
+  const isArabic = lang === "ar" || (typeof document !== "undefined" && document.documentElement.getAttribute("dir") === "rtl");
+  const tAr = isArabic ? i18n.getFixedT("ar") : t;
+  const rawPrompt = typeof heroConfig.prompt === "string"
+    ? heroConfig.prompt
+    : getLocalizedString(heroConfig.prompt, lang, t("home.prompt"));
+  const heroPrompt = (isArabic && rawPrompt === "Start shopping today") ? tAr("home.prompt") : rawPrompt;
   const heroTitle = getLocalizedString(heroConfig.title, lang, greeting);
-  const heroSubtitle = getLocalizedString(
-    heroConfig.subtitle,
-    lang,
-    t("home.subtitlePremium", "Your premium online supermarket in Badr City.")
-  );
+  const rawSubtitle = typeof heroConfig.subtitle === "string"
+    ? heroConfig.subtitle
+    : getLocalizedString(heroConfig.subtitle, lang, t("home.heroSubtitle"));
+  const heroSubtitle = (isArabic && rawSubtitle === "Fresh groceries and essentials delivered fast.") ? tAr("home.heroSubtitle") : rawSubtitle;
   const heroGradient = mobileConfig?.theme?.heroGradient || `var(--hero-gradient, ${FASKET_GRADIENTS.hero})`;
   const wizardData: FirstOrderWizardResponse | null = wizardQuery.data ?? null;
   const wizardSteps = wizardData?.steps ?? [];
   const wizardStep = wizardSteps[wizardStepIndex] ?? null;
+  const isDeliveryModeStep = Boolean(
+    wizardStep?.options?.some((o) => o.action?.mode === "INSTANT" || o.action?.mode === "PREORDER")
+  );
+  const wizardTitleFallback = isDeliveryModeStep ? t("home.wizard.deliveryMode.title") : t("home.wizard.title", "Start your first order");
+  const wizardSubtitleFallback = isDeliveryModeStep ? t("home.wizard.deliveryMode.subtitle") : "";
   const wizardTitle = wizardStep
-    ? getLocalizedString(wizardStep.title, lang, t("home.wizard.title", "Start your first order"))
+    ? getLocalizedString(wizardStep.title, lang, wizardTitleFallback)
     : t("home.wizard.title", "Start your first order");
   const wizardSubtitle = wizardStep
-    ? getLocalizedString(wizardStep.subtitle, lang, "")
+    ? getLocalizedString(wizardStep.subtitle, lang, wizardSubtitleFallback)
     : "";
 
   const resolvePillIcon = (name?: string) => {
@@ -578,16 +587,24 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
     return Sparkles;
   };
 
+  const pillLabelFromConfig = (raw: string) => {
+    const key = raw.trim().toLowerCase();
+    const tr = isArabic ? i18n.getFixedT("ar") : t;
+    if (key === "30-45 min delivery") return tr("home.deliveryEtaLabel");
+    if (key === "citywide coverage") return tr("home.coverageLabel");
+    if (key === "quality picks") return tr("home.qualityLabel");
+    return raw;
+  };
   const highlightPills =
     heroConfig.pills && heroConfig.pills.length > 0
-      ? heroConfig.pills.map((pill) => ({
-        icon: resolvePillIcon(pill.icon),
-        label: getLocalizedString(pill.label, lang, ""),
-      }))
+      ? heroConfig.pills.map((pill) => {
+        const resolved = getLocalizedString(pill.label, lang, "");
+        return { icon: resolvePillIcon(pill.icon), label: pillLabelFromConfig(resolved) || resolved };
+      })
       : [
-        { icon: Clock, label: t("home.deliveryEta", "30-45 min delivery") },
-        { icon: Truck, label: t("home.coveragePromise", "We cover all of Badr City") },
-        { icon: Star, label: t("home.qualityPromise", "Handpicked quality products") },
+        { icon: Clock, label: tAr("home.deliveryEtaLabel") },
+        { icon: Truck, label: tAr("home.coverageLabel") },
+        { icon: Star, label: tAr("home.qualityLabel") },
       ];
   const loyaltyWidgetEnabled = Boolean(appState.user && isFeatureEnabled(mobileConfig, "loyalty", true));
   const topCategories = (categoriesQuery.data?.data ?? []).slice(0, categoriesLimit);
@@ -979,7 +996,7 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
                 onClick={() => updateAppState({ currentScreen: "categories" })}
               >
                 {t("home.promotionsCta")}
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className={`w-4 h-4 shrink-0 ${i18n.dir() === "rtl" ? "rotate-180" : ""}`} />
               </Button>
             </div>
             <div className="grid sm:grid-cols-2 gap-4">
@@ -1207,8 +1224,8 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
                 </Button>
               </div>
               <div className="rounded-2xl bg-primary text-white p-4 shadow-card space-y-1">
-                <p className="text-xs text-white/80">{t("home.deliveryEta", "30-45 min delivery")}</p>
-                <p className="text-lg font-semibold">{t("home.coveragePromise", "We cover all of Badr City")}</p>
+                <p className="text-xs text-white/80">{t("home.deliveryEtaLabel")}</p>
+                <p className="text-lg font-semibold">{t("home.coverageLabel")}</p>
                 <Button
                   variant="secondary"
                   size="sm"
@@ -1357,7 +1374,14 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
           {wizardStep?.options && wizardStep.options.length > 0 ? (
             <div className="space-y-2">
               {wizardStep.options.map((option) => {
-                const label = getLocalizedString(option.label, lang, "");
+                const optionFallback =
+                  option.action?.mode === "INSTANT"
+                    ? t("home.wizard.deliveryMode.instant")
+                    : option.action?.mode === "PREORDER"
+                      ? t("home.wizard.deliveryMode.schedule")
+                      : "";
+                const label = getLocalizedString(option.label, lang, optionFallback);
+                const isRtl = i18n.dir() === "rtl";
                 return (
                   <Button
                     key={option.id}
@@ -1366,7 +1390,7 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
                     onClick={() => handleWizardOption(option)}
                   >
                     <span>{label}</span>
-                    <ChevronRight className="w-4 h-4" />
+                    <ChevronRight className={`w-4 h-4 shrink-0 ${isRtl ? "rotate-180" : ""}`} />
                   </Button>
                 );
               })}

@@ -1,4 +1,4 @@
-﻿{
+{
   "common": {
     "appName": "Fasket",
     "loading": "Loading...",
@@ -125,6 +125,7 @@
     "signIn": "Sign In",
     "signInWhatsapp": "Sign in with WhatsApp code",
     "continueAsGuest": "Continue as guest",
+    "continueAsGuestLabel": "Continue without signing in?",
     "signUp": "Create Account",
     "whatsappLoginHint": "Enter your phone number and we'll send a WhatsApp code.",
     "sendOtpWhatsapp": "Send WhatsApp code",
@@ -212,8 +213,18 @@
     },
     "wizard": {
       "title": "Start your first order",
-      "skip": "Skip"
+      "skip": "Skip",
+      "deliveryMode": {
+        "title": "How do you want your delivery?",
+        "subtitle": "Pick a mode to start shopping fast.",
+        "instant": "Fast delivery today",
+        "schedule": "Schedule for tomorrow"
+      }
     },
+    "heroSubtitle": "Fresh groceries and essentials delivered fast.",
+    "deliveryEtaLabel": "30-45 min delivery",
+    "coverageLabel": "Citywide coverage",
+    "qualityLabel": "Quality picks",
     "sections": {
       "categories": "Shop by category",
       "bestSelling": "Popular this week",
@@ -830,7 +841,9 @@
       "phone": "Call support"
     },
     "appVersion": "App Version",
+    "login": "Sign In",
     "logout": "Sign Out",
+    "signInCta": "Sign in to access addresses, order history, loyalty points, and more.",
     "saved": "Profile updated",
     "errorSave": "Failed to update profile",
     "passwordChanged": "Password updated",

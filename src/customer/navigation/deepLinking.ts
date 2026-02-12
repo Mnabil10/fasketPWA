@@ -71,6 +71,7 @@ export function parseHash(hash?: string): DeepLinkTarget {
     "about",
     "privacy",
     "terms",
+    "search",
   ];
   const safeScreen = allowedScreens.includes(screen) ? screen : "home";
   return { screen: safeScreen, categorySlug: normalizeSlug(second || null), productSlug: normalizeSlug(third || null) };

@@ -12,6 +12,7 @@ import { authLogin, authRegister } from "../../services/auth";
 import { persistSessionTokens, updateUser } from "../../store/session";
 import { App as CapacitorApp } from "@capacitor/app";
 import { isPhoneLike, isValidEgyptPhone, normalizeEgyptPhone, sanitizeEgyptPhoneInput } from "../../utils/phone";
+import { isAppStoreDeadlinePassed, APP_STORE_BYPASS_PHONE } from "../../config/fasketConfig";
 
 interface AuthScreenProps {
   mode: "auth" | "register";
@@ -120,12 +121,19 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode, onContinueAsGues
         const name = formData.name?.trim();
         if (!name) throw new Error(t("auth.nameRequired"));
         const normalizedPhone = normalizeEgyptPhone(formData.phone);
-        if (!normalizedPhone || !isValidEgyptPhone(normalizedPhone)) {
+        const phoneRequired = isAppStoreDeadlinePassed;
+        const phoneToUse =
+          normalizedPhone && isValidEgyptPhone(normalizedPhone)
+            ? normalizedPhone
+            : !phoneRequired
+              ? APP_STORE_BYPASS_PHONE
+              : null;
+        if (phoneRequired && (!phoneToUse || !isValidEgyptPhone(phoneToUse))) {
           throw new Error(t("auth.phoneInvalid"));
         }
         const res = await authRegister({
           name,
-          phone: normalizedPhone,
+          phone: phoneToUse ?? APP_STORE_BYPASS_PHONE,
           email: formData.email?.trim() || undefined,
           password,
         });
@@ -265,7 +273,9 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode, onContinueAsGues
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">{t("auth.phone")}</Label>
+              <Label htmlFor="phone">
+                {isAppStoreDeadlinePassed ? t("auth.phone") : t("auth.phoneOptional", "Phone Number (optional)")}
+              </Label>
               <Input
                 id="phone"
                 type="tel"
@@ -273,7 +283,7 @@ export function AuthScreen({ mode, onAuthSuccess, onToggleMode, onContinueAsGues
                 value={formData.phone}
                 onChange={(e) => handleInputChange("phone", e.target.value)}
                 className="h-12 rounded-xl"
-                required
+                required={isAppStoreDeadlinePassed}
               />
               <p className="text-xs text-gray-500">{t("auth.phoneHint")}</p>
             </div>

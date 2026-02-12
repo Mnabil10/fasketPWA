@@ -55,9 +55,11 @@ import { initPush, registerDeviceToken, subscribeToNotifications } from "../lib/
 import { playNotificationSound } from "../lib/notificationSound";
 import { useNotificationPreferences } from "./stores/notificationPreferences";
 import { useToast } from "./providers/ToastProvider";
+import { Capacitor } from "@capacitor/core";
 import { App as CapacitorApp } from "@capacitor/app";
 import { goToCart, goToCategory, goToHome, goToOrders, goToProduct } from "./navigation/navigation";
 import { HelpScreen } from "./screens/HelpScreen";
+import { SearchScreen } from "./screens/SearchScreen";
 import { applyMobileAppTheme } from "./utils/mobileAppTheme";
 import { LegalHtmlScreen } from "./screens/LegalHtmlScreen";
 
@@ -143,7 +145,8 @@ export type Screen =
   | "privacy"
   | "terms"
   | "edit-profile"
-  | "change-password";
+  | "change-password"
+  | "search";
 
 const authRequiredScreens = new Set<Screen>([
   "orders",
@@ -485,6 +488,13 @@ export function CustomerApp() {
 
   useEffect(() => {
     trackAppOpen();
+  }, []);
+
+  useEffect(() => {
+    const p = Capacitor.getPlatform?.() ?? "web";
+    if (p === "ios" || p === "android" || p === "macos") {
+      void initPush().catch(() => undefined);
+    }
   }, []);
 
   useEffect(() => {
@@ -987,6 +997,8 @@ export function CustomerApp() {
         return <OrderDetailScreen appState={appState} updateAppState={updateAppState} />;
       case "help":
         return <HelpScreen appState={appState} updateAppState={updateAppState} />;
+      case "search":
+        return <SearchScreen appState={appState} updateAppState={updateAppState} />;
       case "profile":
         return <ProfileScreen appState={appState} updateAppState={updateAppState} />;
       case "addresses":

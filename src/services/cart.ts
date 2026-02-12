@@ -212,8 +212,8 @@ export const fillFromOrder = (
   }).then((payload) => {
     const result = ((payload as any)?.data ?? payload) as ReorderFillResult;
     if (result?.cart) {
-      result.cart = normalizeCart(result.cart as any);
+      (result as { cart: ApiCart }).cart = normalizeCart(result.cart as any);
     }
-    return result;
+    return result as ReorderFillResult;
   });
 };

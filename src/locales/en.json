@@ -1,4 +1,4 @@
-﻿{
+{
   "common": {
     "appName": "Fasket",
     "loading": "Loading...",
@@ -68,7 +68,8 @@
     "orderCancelNotAllowed": "This order can't be canceled after preparation starts.",
     "couponInvalid": "This coupon code isn't valid.",
     "couponExpired": "This coupon has expired.",
-    "paymentMethodDisabled": "This payment method is currently unavailable."
+    "paymentMethodDisabled": "This payment method is currently unavailable.",
+    "orderingClosed": "Ordering is closed right now"
   },
   "nav": {
     "home": "Home",
@@ -114,6 +115,7 @@
     "fullName": "Full Name",
     "email": "Email (optional)",
     "phone": "Phone Number",
+    "phoneOptional": "Phone Number (optional)",
     "phoneHint": "Enter your phone in +20 format.",
     "identifierLabel": "Email or phone",
     "identifierPlaceholder": "Email or phone number",
@@ -125,6 +127,7 @@
     "signIn": "Sign In",
     "signInWhatsapp": "Sign in with WhatsApp code",
     "continueAsGuest": "Continue as guest",
+    "continueAsGuestLabel": "Continue without signing in?",
     "signUp": "Create Account",
     "whatsappLoginHint": "Enter your phone number and we'll send a WhatsApp code.",
     "sendOtpWhatsapp": "Send WhatsApp code",
@@ -147,6 +150,7 @@
     "nameRequired": "Full name is required.",
     "errorLogin": "Failed to sign in. Please check your details.",
     "errorRegister": "Failed to create your account. Please try again.",
+    "userAlreadyExists": "User already exists",
     "sessionExpired": "Session expired, please log in again.",
     "sessionMissing": "Signup session is missing. Please start again."
   },
@@ -212,8 +216,18 @@
     },
     "wizard": {
       "title": "Start your first order",
-      "skip": "Skip"
+      "skip": "Skip",
+      "deliveryMode": {
+        "title": "How do you want your delivery?",
+        "subtitle": "Pick a mode to start shopping fast.",
+        "instant": "Fast delivery today",
+        "schedule": "Schedule for tomorrow"
+      }
     },
+    "heroSubtitle": "Fresh groceries and essentials delivered fast.",
+    "deliveryEtaLabel": "30-45 min delivery",
+    "coverageLabel": "Citywide coverage",
+    "qualityLabel": "Quality picks",
     "sections": {
       "categories": "Shop by category",
       "bestSelling": "Popular this week",
@@ -286,6 +300,11 @@
     "errorLoading": "Failed to load categories.",
     "errorOffers": "Failed to load featured offers.",
     "errorBest": "Failed to load best sellers."
+  },
+  "search": {
+    "emptyTitle": "Start searching",
+    "emptySubtitle": "Search across all providers or within a specific store.",
+    "noRecentSearches": "No recent searches. Start typing above."
   },
   "products": {
     "title": "Products",
@@ -417,7 +436,8 @@
     "availabilityNotice": "Item quantities may change based on availability.",
     "summaryEtaFallback": "Delivery time will be confirmed at checkout.",
     "totalLabel": "Total",
-    "deliveryUnavailable": "This address is outside this provider's delivery area."
+    "deliveryUnavailable": "This address is outside this provider's delivery area.",
+    "groupsTitle": "Delivery by branch"
   },
   "checkout": {
     "title": "Checkout",
@@ -452,7 +472,8 @@
       "discount": "Discount",
       "etaUnknown": "Estimated time is not available.",
       "freeDelivery": "Free delivery",
-      "deliveryUnavailable": "This address is outside this provider's delivery area."
+      "deliveryUnavailable": "This address is outside this provider's delivery area.",
+      "byBranch": "Delivery by branch"
     },
     "deliveryEstimate": {
       "label": "Estimated delivery fee",
@@ -656,6 +677,7 @@
     "providerFallback": "Provider",
     "manageGroup": "Manage order",
     "cancel": "Cancel",
+    "cancelOrder": "Cancel order",
     "cancelHint": "You can cancel this order before preparation starts.",
     "cancelPartialHint": "You can only cancel some providers in this order.",
     "cancelLocked": "Cancellation is locked after preparation starts.",
@@ -829,8 +851,16 @@
       "share": "Share Fasket / Invite a friend",
       "phone": "Call support"
     },
+    "deleteAccount": "Delete account",
+    "deleteAccountConfirmTitle": "Are you sure you want to delete your account?",
+    "deleteAccountConfirmDescription": "This action cannot be undone.",
+    "deleteAccountConfirm": "Delete",
+    "deleteAccountCancel": "Cancel",
+    "deleteAccountSuccess": "Your account deletion request will be sent to the support team and your account will be deleted within 48 hours",
     "appVersion": "App Version",
+    "login": "Sign In",
     "logout": "Sign Out",
+    "signInCta": "Sign in to access addresses, order history, loyalty points, and more.",
     "saved": "Profile updated",
     "errorSave": "Failed to update profile",
     "passwordChanged": "Password updated",

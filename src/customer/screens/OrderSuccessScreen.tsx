@@ -3,7 +3,7 @@ import dayjs from "dayjs";
 import { useTranslation } from "react-i18next";
 import { Button } from "../../ui/button";
 import { Badge } from "../../ui/badge";
-import { CheckCircle, Clock, MapPin, Phone, Star, CreditCard, MessageCircle } from "lucide-react";
+import { CheckCircle, Clock, MapPin, Phone, Star, CreditCard, MessageCircle, ArrowLeft } from "lucide-react";
 import { AppState, type UpdateAppState } from "../CustomerApp";
 import { useProducts, useCart, useCartGuard, useApiErrorToast } from "../hooks";
 import type { OrderDetail, OrderGroupSummary, Product, ProductOptionSelection } from "../../types/api";
@@ -256,6 +256,11 @@ export function OrderSuccessScreen({ appState, updateAppState }: OrderSuccessScr
   return (
     <div className="flex flex-col h-full bg-gradient-to-b from-green-50 to-white">
       <NetworkBanner stale={staleData} />
+      <div className="flex-shrink-0 flex items-center px-4 py-3 pt-[max(12px,env(safe-area-inset-top))] bg-white/80 border-b border-gray-100">
+        <Button variant="ghost" size="sm" onClick={() => goToHome(updateAppState)} className="p-2 -ml-2" aria-label={t("common.back")}>
+          <ArrowLeft className="w-5 h-5" />
+        </Button>
+      </div>
       <div ref={scrollContainerRef} className="flex-1 flex flex-col items-center justify-start lg:justify-center px-4 sm:px-6 py-6 sm:py-8 overflow-y-auto gap-6 pb-32">
         <div className={`relative ${showConfetti ? "animate-bounce" : ""}`}>
           <div className="w-24 h-24 sm:w-32 sm:h-32 bg-green-100 rounded-full flex items-center justify-center">

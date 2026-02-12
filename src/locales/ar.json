@@ -66,6 +66,7 @@
     "otpTooManyAttempts": "محاولات كتير قوي. جرّب تاني بعدين.",
     "otpLocked": "محاولات كتير قوي. جرّب تاني بعدين.",
     "paymentMethodDisabled": "طريقة الدفع هذه مش متاحة دلوقتي.",
+    "orderingClosed": "الطلب مغلق حاليًا",
     "driverInactive": "السائق مش متاح دلوقتي.",
     "driverNotFound": "لم يتم العثور على السائق.",
     "validationFailed": "من فضلك مراجعة البيانات وجرّب تاني."
@@ -114,6 +115,7 @@
     "fullName": "الاسم الكامل",
     "email": "الإيميل (اختياري)",
     "phone": "رقم التليفون",
+    "phoneOptional": "رقم التليفون (اختياري)",
     "phoneHint": "اكتب موبايلك بتنسيق +20.",
     "identifierLabel": "الإيميل أو رقم الجوال",
     "identifierPlaceholder": "اكتب البريد أو رقم الجوال",
@@ -131,6 +133,7 @@
     "resendIn": "إعادة الإرسال خلال {{time}}",
     "resendReady": "إعادة الإرسال متاحة دلوقتي",
     "continueAsGuest": "الدخول كضيف",
+    "continueAsGuestLabel": "متابعة بدون تسجيل الدخول؟",
     "signUp": "إنشاء حساب",
     "haveAccount": "لديك حساب مسبقًا؟",
     "noAccount": "لا تملك حسابًا؟",
@@ -146,6 +149,7 @@
     "nameRequired": "الاسم الكامل مطلوب.",
     "errorLogin": "تعذّر تسجيل الدخول. تأكّد من البيانات وجرّب تاني.",
     "errorRegister": "تعذّر إنشاء الحساب. من فضلك جرّب بعدين.",
+    "userAlreadyExists": "المستخدم مسجّل مسبقًا",
     "passwordMinLength": "لازم أن تكون كلمة المرور 8 أحرف على الأقل وتحتوي على حروف وأرقام.",
     "sessionExpired": "انتهت الجلسة، من فضلك تسجيل الدخول مرة أخرى.",
     "sessionMissing": "جلسة التسجيل مش متاحة. من فضلك البدء من جديد."
@@ -234,8 +238,18 @@
     },
     "wizard": {
       "title": "ابدأ أول طلب لك",
-      "skip": "تخطي"
+      "skip": "تخطي",
+      "deliveryMode": {
+        "title": "كيف تريد استلام طلبك؟",
+        "subtitle": "اختر طريقة التوصيل لبدء التسوق بسرعة.",
+        "instant": "توصيل سريع اليوم",
+        "schedule": "حجز موعد غدًا"
+      }
     },
+    "heroSubtitle": "بقالة طازجة واحتياجات أساسية بتوصلك بسرعة.",
+    "deliveryEtaLabel": "توصيل خلال 30-45 دقيقة",
+    "coverageLabel": "تغطية كاملة للمدينة",
+    "qualityLabel": "اختيارات مميزة",
     "filters": {
       "inStock": "متوفر"
     },
@@ -286,6 +300,11 @@
     "errorOffers": "فشل تحميل العروض.",
     "errorBest": "فشل تحميل الأكثر طلبًا.",
     "pullToRefresh": "اسحب للتحديث"
+  },
+  "search": {
+    "emptyTitle": "ابدأ البحث",
+    "emptySubtitle": "ابحث في كل المزودين أو داخل متجر معين.",
+    "noRecentSearches": "لا توجد عمليات بحث حديثة. اكتب في الأعلى للبحث."
   },
   "products": {
     "title": "المنتجات",
@@ -417,7 +436,8 @@
     "deliveryEstimateMissing": "أضف عنوانًا لعرض رسوم التوصيل.",
     "deliveryEstimateGuest": "حدد عنوانك عند إتمام الطلب لعرض رسوم التوصيل.",
     "deliveryEstimateLogin": "سجّل الدخول لعرض رسوم التوصيل.",
-    "checkoutGuest": "إتمام الطلب كضيف"
+    "checkoutGuest": "إتمام الطلب كضيف",
+    "groupsTitle": "التوصيل حسب الفرع"
   },
   "checkout": {
     "title": "الدفع",
@@ -442,7 +462,8 @@
       "discount": "الخصم",
       "etaUnknown": "الوقت المتوقع غير متوفر.",
       "freeDelivery": "توصيل مجاني",
-      "deliveryUnavailable": "هذا العنوان خارج نطاق توصيل هذا المزود."
+      "deliveryUnavailable": "هذا العنوان خارج نطاق توصيل هذا المزود.",
+      "byBranch": "التوصيل حسب الفرع"
     },
     "deliveryEstimate": {
       "label": "رسوم التوصيل التقديرية",
@@ -656,6 +677,7 @@
     "providerFallback": "المزود",
     "manageGroup": "إدارة الطلب",
     "cancel": "إلغاء",
+    "cancelOrder": "إلغاء الطلب",
     "cancelHint": "يمكنك إلغاء هذا الطلب قبل بدء التحضير.",
     "cancelPartialHint": "يمكنك إلغاء بعض المزودين فقط في هذا الطلب.",
     "cancelLocked": "مش ممكن الإلغاء بعد بدء التحضير.",
@@ -774,7 +796,9 @@
       "marketingHint": "استقبل عروض وتنبيهات حصرية."
     },
     "appVersion": "إصدار التطبيق",
+    "login": "تسجيل الدخول",
     "logout": "تسجيل الخروج",
+    "signInCta": "سجّل الدخول للوصول للعناوين وتاريخ الطلبات ونقاط الولاء والمزيد.",
     "saved": "تم حفظ بيانات الملف الشخصي",
     "errorSave": "تعذر حفظ بيانات الملف الشخصي",
     "passwordChanged": "تم تغيير كلمة المرور بنجاح",
@@ -814,7 +838,13 @@
       "emailSubject": "Fasket Support",
       "share": "مشاركة التطبيق",
       "phone": "الاتصال بخدمة العملاء"
-    }
+    },
+    "deleteAccount": "حذف الحساب",
+    "deleteAccountConfirmTitle": "هل أنت متأكد من حذف الحساب؟",
+    "deleteAccountConfirmDescription": "لا يمكن التراجع عن هذا الإجراء.",
+    "deleteAccountConfirm": "حذف",
+    "deleteAccountCancel": "إلغاء",
+    "deleteAccountSuccess": "سيتم إرسال طلب حذف الحساب إلى فريق الدعم وسيتم حذف حسابك خلال ٤٨ ساعة"
   },
   "addresses": {
     "title": "عناويني",

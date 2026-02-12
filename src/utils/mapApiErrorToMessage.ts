@@ -125,6 +125,13 @@ export function mapApiErrorToMessage(
     if (keyCandidate && /^[a-z0-9._-]+$/i.test(keyCandidate) && i18n.exists(keyCandidate)) {
       return translate(keyCandidate, translator);
     }
+    const knownMessageKeys: Record<string, string> = {
+      "Ordering is closed right now": "errors.orderingClosed",
+      "User already exists": "auth.userAlreadyExists",
+    };
+    if (keyCandidate && knownMessageKeys[keyCandidate]) {
+      return translate(knownMessageKeys[keyCandidate], translator);
+    }
     if (keyCandidate && SAFE_MESSAGE_PATTERN.test(keyCandidate)) {
       return keyCandidate;
     }

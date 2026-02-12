@@ -2,13 +2,11 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "../../ui/button";
 import { Badge } from "../../ui/badge";
-import { Input } from "../../ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "../../ui/dialog";
 import {
   Search,
   ShoppingCart,
   Bell,
-  History,
   Sparkles,
   ChevronRight,
   Clock,
@@ -33,7 +31,6 @@ import {
   useNetworkStatus,
   useProducts,
   useProviders,
-  useSearchHistory,
   useApiErrorToast,
   useLastOrders,
   useFrequentlyBought,
@@ -47,7 +44,6 @@ import {
   ProductCardSkeleton,
   RetryBlock,
 } from "../components";
-import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { hashFromUrl, parseHash } from "../navigation/deepLinking";
 import { goToCart, goToCategory, goToHome, goToOrders, goToProduct } from "../navigation/navigation";
 import type { FirstOrderWizardResponse, Product, ProviderSummary } from "../../types/api";
@@ -98,14 +94,7 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
       : selectedProvider.name || selectedProvider.nameAr
     : null;
 
-  const [q, setQ] = useState("");
-  const debouncedQ = useDebouncedValue(q, 250);
-  const [searchScope, setSearchScope] = useState<"provider" | "all">(providerSelected ? "provider" : "all");
-  const showingSearch = debouncedQ.trim().length > 0 && (searchScope === "all" || providerSelected);
-  const searchInputRef = useRef<HTMLInputElement | null>(null);
   const providerSectionRef = useRef<HTMLDivElement | null>(null);
-  const [showHistory, setShowHistory] = useState(false);
-  const { history, addQuery, clearHistory } = useSearchHistory("home");
   const [ctaClock, setCtaClock] = useState(() => Date.now());
   const smartHomeConfig = growthPack?.smartHome ?? {};
   const showReorder = smartHomeConfig.showReorder ?? true;
@@ -152,17 +141,11 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
     { type: "hot-offers", limit: hotLimit, providerId },
     { enabled: providerSelected }
   );
-  const searchProviderId = searchScope === "provider" ? providerId : undefined;
-  const searchQuery = useProducts(
-    { search: debouncedQ || undefined, providerId: searchProviderId },
-    { enabled: showingSearch && Boolean(debouncedQ) }
-  );
   const staleData =
     (providersQuery.data?.stale ?? false) ||
     (providerSelected && (categoriesQuery.data?.stale ?? false)) ||
     (providerSelected && (bestQuery.data?.stale ?? false)) ||
-    (providerSelected && (hotQuery.data?.stale ?? false)) ||
-    (showingSearch && (searchQuery.data?.stale ?? false));
+    (providerSelected && (hotQuery.data?.stale ?? false));
 
   const promoImages = [
     "https://images.unsplash.com/photo-1705727209465-b292e4129a37?auto=format&fit=crop&w=1080&q=80",
@@ -450,7 +433,8 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
     }
     const preferredMode =
       action.mode === "PREORDER" ? "SCHEDULED" : action.mode === "INSTANT" ? "ASAP" : null;
-    const preferredPatch = preferredMode ? { preferredDeliveryMode: preferredMode } : {};
+    const preferredPatch: { preferredDeliveryMode?: "ASAP" | "SCHEDULED" } =
+      preferredMode ? { preferredDeliveryMode: preferredMode } : {};
     if (action.type === "OPEN_VENDOR") {
       const providerId = action.vendorId;
       if (providerId) {
@@ -521,54 +505,42 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
     }
   };
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchScope === "provider" && !providerSelected) {
-      showToast({
-        type: "info",
-        message: t("home.selectProviderPrompt", "Select a provider to browse products."),
-      });
-      return;
-    }
-    addQuery(q);
-    if (!showingSearch) return;
-    searchQuery.refetch();
-  };
+  const goToSearch = () => updateAppState({ currentScreen: "search" });
 
   const greeting = appState.user
     ? t("home.greeting", { name: appState.user?.name?.split(" ")[0] || "" })
     : t("home.greetingGuest");
-  const searchPlaceholder =
-    searchScope === "all"
-      ? t("home.searchPlaceholderGlobal", "Search across providers")
-      : providerSelected
-        ? t("home.searchPlaceholder")
-        : t("home.searchProviderPlaceholder", "Select a provider to start searching");
-
-  useEffect(() => {
-    if (!providerSelected && searchScope === "provider") {
-      setSearchScope("all");
-    }
-  }, [providerSelected, searchScope]);
+  const searchPlaceholder = t("home.searchPlaceholderGlobal", "Search across providers");
 
   const heroConfig = mobileConfig?.home?.hero ?? {};
-  const heroPrompt = getLocalizedString(heroConfig.prompt, lang, t("home.prompt"));
+  const isArabic = lang === "ar" || (typeof document !== "undefined" && document.documentElement.getAttribute("dir") === "rtl");
+  const tAr = isArabic ? i18n.getFixedT("ar") : t;
+  const rawPrompt = typeof heroConfig.prompt === "string"
+    ? heroConfig.prompt
+    : getLocalizedString(heroConfig.prompt, lang, t("home.prompt"));
+  const heroPrompt = (isArabic && rawPrompt === "Start shopping today") ? tAr("home.prompt") : rawPrompt;
   const heroTitle = getLocalizedString(heroConfig.title, lang, greeting);
-  const heroSubtitle = getLocalizedString(
-    heroConfig.subtitle,
-    lang,
-    t("home.subtitlePremium", "Your premium online supermarket in Badr City.")
-  );
+  const rawSubtitle = typeof heroConfig.subtitle === "string"
+    ? heroConfig.subtitle
+    : getLocalizedString(heroConfig.subtitle, lang, t("home.heroSubtitle"));
+  const heroSubtitle = (isArabic && rawSubtitle === "Fresh groceries and essentials delivered fast.") ? tAr("home.heroSubtitle") : rawSubtitle;
   const heroGradient = mobileConfig?.theme?.heroGradient || `var(--hero-gradient, ${FASKET_GRADIENTS.hero})`;
   const wizardData: FirstOrderWizardResponse | null = wizardQuery.data ?? null;
   const wizardSteps = wizardData?.steps ?? [];
   const wizardStep = wizardSteps[wizardStepIndex] ?? null;
-  const wizardTitle = wizardStep
-    ? getLocalizedString(wizardStep.title, lang, t("home.wizard.title", "Start your first order"))
+  const isDeliveryModeStep = Boolean(
+    wizardStep?.options?.some((o) => o.action?.mode === "INSTANT" || o.action?.mode === "PREORDER")
+  );
+  const wizardTitleFallback = isDeliveryModeStep ? t("home.wizard.deliveryMode.title") : t("home.wizard.title", "Start your first order");
+  const wizardSubtitleFallback = isDeliveryModeStep ? t("home.wizard.deliveryMode.subtitle") : "";
+  const rawWizardTitle = wizardStep
+    ? getLocalizedString(wizardStep.title, lang, wizardTitleFallback)
     : t("home.wizard.title", "Start your first order");
-  const wizardSubtitle = wizardStep
-    ? getLocalizedString(wizardStep.subtitle, lang, "")
+  const rawWizardSubtitle = wizardStep
+    ? getLocalizedString(wizardStep.subtitle, lang, wizardSubtitleFallback)
     : "";
+  const wizardTitle = (isArabic && rawWizardTitle === "How do you want your delivery?") ? tAr("home.wizard.deliveryMode.title") : rawWizardTitle;
+  const wizardSubtitle = (isArabic && rawWizardSubtitle === "Pick a mode to start shopping fast.") ? tAr("home.wizard.deliveryMode.subtitle") : rawWizardSubtitle;
 
   const resolvePillIcon = (name?: string) => {
     const key = (name || "").toLowerCase();
@@ -578,16 +550,24 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
     return Sparkles;
   };
 
+  const pillLabelFromConfig = (raw: string) => {
+    const key = raw.trim().toLowerCase();
+    const tr = isArabic ? i18n.getFixedT("ar") : t;
+    if (key === "30-45 min delivery") return tr("home.deliveryEtaLabel");
+    if (key === "citywide coverage") return tr("home.coverageLabel");
+    if (key === "quality picks") return tr("home.qualityLabel");
+    return raw;
+  };
   const highlightPills =
     heroConfig.pills && heroConfig.pills.length > 0
-      ? heroConfig.pills.map((pill) => ({
-        icon: resolvePillIcon(pill.icon),
-        label: getLocalizedString(pill.label, lang, ""),
-      }))
+      ? heroConfig.pills.map((pill) => {
+        const resolved = getLocalizedString(pill.label, lang, "");
+        return { icon: resolvePillIcon(pill.icon), label: pillLabelFromConfig(resolved) || resolved };
+      })
       : [
-        { icon: Clock, label: t("home.deliveryEta", "30-45 min delivery") },
-        { icon: Truck, label: t("home.coveragePromise", "We cover all of Badr City") },
-        { icon: Star, label: t("home.qualityPromise", "Handpicked quality products") },
+        { icon: Clock, label: tAr("home.deliveryEtaLabel") },
+        { icon: Truck, label: tAr("home.coverageLabel") },
+        { icon: Star, label: tAr("home.qualityLabel") },
       ];
   const loyaltyWidgetEnabled = Boolean(appState.user && isFeatureEnabled(mobileConfig, "loyalty", true));
   const topCategories = (categoriesQuery.data?.data ?? []).slice(0, categoriesLimit);
@@ -689,7 +669,7 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
     }
 
     return (
-      <div ref={providerSectionRef} className="section-card space-y-4 motion-fade">
+      <div ref={providerSectionRef} className="section-card cupertino-inset space-y-4 motion-fade">
         <div className="flex items-center justify-between gap-2">
           <div>
             <p className="text-xs text-gray-500">
@@ -984,7 +964,7 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
                 onClick={() => updateAppState({ currentScreen: "categories" })}
               >
                 {t("home.promotionsCta")}
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className={`w-4 h-4 shrink-0 ${i18n.dir() === "rtl" ? "rotate-180" : ""}`} />
               </Button>
             </div>
             <div className="grid sm:grid-cols-2 gap-4">
@@ -1080,7 +1060,7 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
     <div className="page-shell">
       <NetworkBanner stale={staleData} />
       {heroSectionEnabled && (
-        <div className="section-card space-y-4 glass-surface" style={{ background: heroGradient }}>
+        <div className="section-card cupertino-hero space-y-4 glass-surface" style={{ background: heroGradient }}>
           <div className="flex items-start justify-between gap-3">
             <div className="space-y-1">
               <p className="text-sm text-gray-700 flex items-center gap-2">
@@ -1094,7 +1074,7 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
                   {highlightPills.map((pill) => (
                     <div
                       key={pill.label}
-                      className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-white/70 border border-border shadow-sm text-xs text-gray-700"
+                      className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-white/80 border border-white/50 shadow-sm text-xs text-gray-700"
                     >
                       <pill.icon className="w-4 h-4 text-primary" />
                       <span>{pill.label}</span>
@@ -1124,73 +1104,16 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
             </div>
           </div>
 
-          <form className="relative" onSubmit={handleSearchSubmit}>
-            <Search
-              className={`absolute top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 ${i18n.dir() === "rtl" ? "right-4" : "left-4"
-                }`}
-            />
-            <Input
-              placeholder={searchPlaceholder}
-              disabled={searchScope === "provider" && !providerSelected}
-              className={`h-12 rounded-2xl bg-white/80 border-none shadow-inner ${i18n.dir() === "rtl" ? "pr-12 text-right" : "pl-12"}`}
-              value={q}
-              ref={searchInputRef}
-              onFocus={() => setShowHistory(true)}
-              onBlur={() => setTimeout(() => setShowHistory(false), 100)}
-              onChange={(e) => setQ(e.target.value)}
-            />
-            <button type="submit" className="hidden" />
-            {showHistory && history.length > 0 && (
-              <div className="absolute z-10 mt-2 left-0 right-0 bg-white rounded-2xl shadow-card border max-h-48 overflow-auto">
-                <div className="flex items-center justify-between px-3 py-2 text-xs text-gray-500">
-                  <span className="flex items-center gap-1">
-                    <History className="w-3 h-3" /> {t("products.recentSearches", "Recent searches")}
-                  </span>
-                  <button className="text-primary" type="button" onClick={() => clearHistory()}>
-                    {t("products.clearHistory", "Clear")}
-                  </button>
-                </div>
-                {history.map((item) => (
-                  <button
-                    key={item}
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => {
-                      setQ(item);
-                      addQuery(item);
-                    }}
-                    className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm"
-                  >
-                    {item}
-                  </button>
-                ))}
-              </div>
-            )}
-          </form>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs text-gray-600">{t("home.searchScopeLabel", "Search scope")}</span>
-            <Button
-              type="button"
-              size="sm"
-              variant={searchScope === "provider" ? "default" : "outline"}
-              className="rounded-full px-3"
-              disabled={!providerSelected}
-              onClick={() => setSearchScope("provider")}
-            >
-              {providerSelected
-                ? t("home.searchScope.provider", { provider: providerLabel ?? t("home.providersTitle", "Provider") })
-                : t("home.searchScope.providerFallback", "Within provider")}
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant={searchScope === "all" ? "default" : "outline"}
-              className="rounded-full px-3"
-              onClick={() => setSearchScope("all")}
-            >
-              {t("home.searchScope.all", "All providers")}
-            </Button>
-          </div>
+          <button
+            type="button"
+            onClick={goToSearch}
+            className={`relative w-full flex items-center gap-3 h-12 cupertino-search-input rounded-2xl bg-white/80 border-none shadow-inner px-4 cursor-pointer ${
+              i18n.dir() === "rtl" ? "flex-row-reverse text-right" : ""
+            }`}
+          >
+            <Search className="text-gray-400 w-5 h-5 shrink-0" />
+            <span className="flex-1 text-gray-500 font-medium">{searchPlaceholder}</span>
+          </button>
 
           {loyaltyWidgetEnabled && (
             <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-3">
@@ -1212,8 +1135,8 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
                 </Button>
               </div>
               <div className="rounded-2xl bg-primary text-white p-4 shadow-card space-y-1">
-                <p className="text-xs text-white/80">{t("home.deliveryEta", "30-45 min delivery")}</p>
-                <p className="text-lg font-semibold">{t("home.coveragePromise", "We cover all of Badr City")}</p>
+                <p className="text-xs text-white/80">{t("home.deliveryEtaLabel")}</p>
+                <p className="text-lg font-semibold">{t("home.coverageLabel")}</p>
                 <Button
                   variant="secondary"
                   size="sm"
@@ -1232,57 +1155,58 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
         {renderSmartCta()}
         {renderReorderSection()}
         {renderFrequentlyBoughtSection()}
-        <div className="section-card grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {[
-            {
-              key: "search",
-              title: t("home.quickPaths.searchTitle", "Quick search"),
-              subtitle: t("home.quickPaths.searchSubtitle", "Find items in seconds"),
-              icon: Search,
-              action: () => {
-                searchInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-                searchInputRef.current?.focus();
+        <div className="section-card cupertino-inset">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
+            {[
+              {
+                key: "search",
+                title: t("home.quickPaths.searchTitle", "Quick search"),
+                subtitle: t("home.quickPaths.searchSubtitle", "Find items in seconds"),
+                icon: Search,
+                action: goToSearch,
               },
-            },
-            {
-              key: "providers",
-              title: t("home.quickPaths.providersTitle", "Shop by provider"),
-              subtitle: t("home.quickPaths.providersSubtitle", "Pick a trusted store"),
-              icon: Store,
-              action: () => providerSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
-            },
-            {
-              key: "categories",
-              title: t("home.quickPaths.categoriesTitle", "Shop by category"),
-              subtitle: t("home.quickPaths.categoriesSubtitle", "Browse essentials fast"),
-              icon: Grid,
-              action: () => {
-                if (!providerSelected) {
-                  showToast({
-                    type: "info",
-                    message: t("home.selectProviderPrompt", "Select a provider to browse products."),
-                  });
-                  providerSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-                  return;
-                }
-                updateAppState({ currentScreen: "categories" });
+              {
+                key: "providers",
+                title: t("home.quickPaths.providersTitle", "Shop by provider"),
+                subtitle: t("home.quickPaths.providersSubtitle", "Pick a trusted store"),
+                icon: Store,
+                action: () => providerSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
               },
-            },
-          ].map((card) => (
-            <button
-              key={card.key}
-              onClick={card.action}
-              className="rounded-2xl border border-border bg-white p-4 text-left shadow-card hover:-translate-y-0.5 transition-transform duration-200"
-            >
-              <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-3">
-                <card.icon className="w-5 h-5" />
-              </div>
-              <p className="text-sm font-semibold text-gray-900">{card.title}</p>
-              <p className="text-xs text-gray-500">{card.subtitle}</p>
-            </button>
-          ))}
+              {
+                key: "categories",
+                title: t("home.quickPaths.categoriesTitle", "Shop by category"),
+                subtitle: t("home.quickPaths.categoriesSubtitle", "Browse essentials fast"),
+                icon: Grid,
+                action: () => {
+                  if (!providerSelected) {
+                    showToast({
+                      type: "info",
+                      message: t("home.selectProviderPrompt", "Select a provider to browse products."),
+                    });
+                    providerSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    return;
+                  }
+                  updateAppState({ currentScreen: "categories" });
+                },
+              },
+            ].map((card) => (
+              <button
+                key={card.key}
+                onClick={card.action}
+                className="group flex flex-col items-center gap-2 rounded-xl border border-border bg-white p-3 sm:p-4 text-center shadow-sm hover:shadow-md hover:border-primary/30 hover:bg-primary/5 transition-all duration-200 active:scale-[0.98]"
+              >
+                <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                  <card.icon className="w-5 h-5" />
+                </div>
+                <div className="min-w-0 w-full space-y-0.5">
+                  <p className="text-xs font-semibold text-gray-900 line-clamp-2 leading-tight">{card.title}</p>
+                  <p className="text-[10px] sm:text-xs text-gray-500 line-clamp-2 leading-tight hidden sm:block">{card.subtitle}</p>
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="section-card space-y-4">
+        <div className="section-card cupertino-inset space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-gray-500">{t("home.providerTypes.subtitle", "Choose a market type")}</p>
@@ -1320,14 +1244,7 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
           </div>
         </div>
         {renderProvidersSection()}
-        {showingSearch ? (
-          renderProductsSection(
-            t("home.sections.searchResults"),
-            searchQuery,
-            () => updateAppState({ currentScreen: "categories" }),
-            { showProviderMeta: searchScope === "all" }
-          )
-        ) : !providerSelected ? (
+        {!providerSelected ? (
           <EmptyState
             title={t("home.providersPromptTitle", "Choose a provider to continue")}
             subtitle={t("home.providersPromptSubtitle", "Providers have their own categories and products.")}
@@ -1365,7 +1282,18 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
           {wizardStep?.options && wizardStep.options.length > 0 ? (
             <div className="space-y-2">
               {wizardStep.options.map((option) => {
-                const label = getLocalizedString(option.label, lang, "");
+                const optionFallback =
+                  option.action?.mode === "INSTANT"
+                    ? tAr("home.wizard.deliveryMode.instant")
+                    : option.action?.mode === "PREORDER"
+                      ? tAr("home.wizard.deliveryMode.schedule")
+                      : "";
+                let label = getLocalizedString(option.label, lang, optionFallback);
+                if (isArabic) {
+                  if (label === "Fast delivery today") label = tAr("home.wizard.deliveryMode.instant");
+                  else if (label === "Schedule for tomorrow") label = tAr("home.wizard.deliveryMode.schedule");
+                }
+                const isRtl = i18n.dir() === "rtl";
                 return (
                   <Button
                     key={option.id}
@@ -1374,7 +1302,7 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
                     onClick={() => handleWizardOption(option)}
                   >
                     <span>{label}</span>
-                    <ChevronRight className="w-4 h-4" />
+                    <ChevronRight className={`w-4 h-4 shrink-0 ${isRtl ? "rotate-180" : ""}`} />
                   </Button>
                 );
               })}
@@ -1382,7 +1310,7 @@ export function HomeScreen({ appState, updateAppState }: HomeScreenProps) {
           ) : null}
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={handleWizardSkip}>
-              {t("home.wizard.skip", "Skip")}
+              {tAr("home.wizard.skip", "Skip")}
             </Button>
           </DialogFooter>
         </DialogContent>

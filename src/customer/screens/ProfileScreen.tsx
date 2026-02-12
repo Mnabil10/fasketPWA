@@ -57,6 +57,7 @@ import { logout as logoutApi } from "../../services/auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocalCartStore } from "../stores/localCart";
 import { isAppStoreDeadlinePassed } from "../../config/fasketConfig";
+import appLogo from "../../../icons/icon-256.webp";
 
 interface ProfileScreenProps {
   appState: AppState;
@@ -675,12 +676,17 @@ export function ProfileScreen({ appState, updateAppState }: ProfileScreenProps) 
           </div>
         </div>
 
-        <div className="mx-4 mt-6 bg-white rounded-xl p-4 shadow-sm">
-          <div className="text-center">
-            <p className="text-sm text-gray-500 mb-1">
-              {t("common.appName")} {t("profile.appVersion")}
-            </p>
-            <p className="text-sm font-medium text-gray-900">v{displayVersion}</p>
+        <div className="mx-4 mt-6 bg-white rounded-xl p-6 shadow-sm">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 shadow-inner ring-1 ring-emerald-100/80">
+              <img src={appLogo} alt="" className="h-9 w-9 object-contain" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500 mb-0.5">
+                {t("common.appName")} {t("profile.appVersion")}
+              </p>
+              <p className="text-sm font-medium text-gray-900">v{displayVersion}</p>
+            </div>
           </div>
         </div>
 
